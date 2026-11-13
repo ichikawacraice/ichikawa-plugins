@@ -441,6 +441,15 @@ test('Entregues mostra as 10 mais recentes e guarda o resto em "Ver mais"', () =
   assert.doesNotMatch(antes, /entrega-p-F11|entrega-p-F12/);
 });
 
+test('Entregues: os 10 primeiros e o "Ver mais" vêm da entrega mais recente para a mais antiga, não por F', () => {
+  const t = (dia) => new Date(Date.UTC(2026, 10, dia, 12));
+  // F1 é a mais antiga; F12 é a mais recente.
+  for (let n = 1; n <= 12; n += 1) entregar('p', `e${n}`, t(n));
+  const d = dados(t(14).getTime());
+  assert.deepEqual(d.entregas.map(({ i }) => i.id), ['F12', 'F11', 'F10', 'F9', 'F8', 'F7', 'F6', 'F5', 'F4', 'F3']);
+  assert.deepEqual(d.maisEntregas.map(({ i }) => i.id), ['F2', 'F1']);
+});
+
 test('sem mais de 10 entregas não há "Ver mais"', () => {
   entregar('p', 'uma', new Date());
   assert.doesNotMatch(html(), /class="ver-mais"/);
