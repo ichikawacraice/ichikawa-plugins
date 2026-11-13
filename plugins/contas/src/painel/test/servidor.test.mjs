@@ -6,7 +6,7 @@ import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { criarServidor } from '../servidor.mjs';
 import { esquecerSessoes } from '../sessoes.mjs';
-import { principal, lerArgumentos, PORTA_PADRAO } from '../cli.mjs';
+import { principal, lerArgumentos, PORTA_PADRAO, PASTA_DO_PLUGIN } from '../cli.mjs';
 import { montar, entrada, CONTA_A, ORG, SENTINELAS } from '../../troca/test/fabrica.mjs';
 
 const PUBLICO = join(dirname(fileURLToPath(import.meta.url)), '..', 'publico');
@@ -104,5 +104,27 @@ test('CLI do painel: argumentos, porta livre e porta já do painel', async () =>
     assert.equal(outra.codigo, 0);
     assert.equal(outra.servidor, null);
     assert.match(saida.at(-1), /já está aberto/);
+    assert.equal((await pedir(porta, '/api/saude')).json.pasta, PASTA_DO_PLUGIN);
   } finally { await new Promise((x) => r.servidor.close(x)); }
+});
+
+test('painel-de-contas na porta do painel de outra versão: encerra o antigo e passa a ouvir nela (ICH-F23)', async () => {
+  const velho = http.createServer((_, res) => res.writeHead(200, { 'Content-Type': 'application/json' }).end('{"painel":"contas","versao":"0.1.0","pid":1}'));
+  await new Promise((x) => velho.listen(0, '127.0.0.1', x));
+  const porta = velho.address().port;
+  const encerrados = [];
+  const m = montar();
+  const r = await principal({
+    argv: ['--porta', String(porta), '--sem-abrir'], env: m.env, saida: () => {}, erro: () => {},
+    troca: {
+      processos: () => [{ pid: 4242, comando: `node /cache/ichikawa-plugins/contas/d288e84/src/painel/cli.mjs --porta ${porta} --sem-abrir` }],
+      encerrar: (pid) => { encerrados.push(pid); velho.close(); velho.closeAllConnections(); },
+    },
+  });
+  try {
+    assert.deepEqual(encerrados, [4242]);
+    assert.equal(r.codigo, 0);
+    assert.equal(r.servidor.address().port, porta);
+    assert.equal((await pedir(porta, '/api/saude')).json.pasta, PASTA_DO_PLUGIN);
+  } finally { velho.close(); if (r.servidor) await new Promise((x) => r.servidor.close(x)); }
 });
