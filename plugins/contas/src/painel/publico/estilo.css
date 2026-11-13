@@ -1,4 +1,4 @@
-/* Base da página de perguntas: tokens, tipografia, topo, seções, botões e pé. Os cartões ficam em perguntas.css.
+/* Base da Central (perguntas, sessões e entregas): tokens, tipografia, topo, seções, botões e pé. Os cartões ficam em perguntas.css.
    Inspirada no reflect.app (sem copiar nada dele): fundo quase preto puxado ao violeta, títulos em Geist 500,
    corpo em system-ui, muito respiro e fios finos. Feita para uma coluna estreita (300–420 px); em tela larga
    as colunas ficam lado a lado. */
@@ -29,6 +29,10 @@
   --alto: #e2c2ff;
   --critico: #ff9cbd;
   --foco: #c8b8ff;
+  /* Status do kit nos selos do topo: 🟡 aguarda, 🔵 trabalhando, 🟢 entregou. */
+  --aguarda: #f5d27a;
+  --trabalhando: #8ec5ff;
+  --entregou: var(--ok);
 
   /* Tipo: títulos em Geist, o resto no sistema */
   --titulo: "Geist", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
@@ -67,13 +71,8 @@ body {
 .ceu { position: fixed; inset: 0; width: 100%; height: 100%; z-index: 0; pointer-events: none; }
 .topo, main, .pe { position: relative; z-index: 1; max-width: 480px; margin: 0 auto; padding: 0 var(--gutter); }
 
-/* ---- topo: selo em pílula, título com degradê, linha de apoio ---- */
+/* ---- topo: nome, selos de status (só número e cor) e o aviso do modo ausente ---- */
 .topo { padding-top: 28px; padding-bottom: 4px; text-align: center; }
-.selo-topo {
-  display: inline-block; margin: 0 0 12px; padding: 3px 12px;
-  font: 500 var(--t-meta)/18px var(--titulo); color: var(--botao-texto);
-  background: var(--violeta-fundo); border: 1px solid rgba(196, 181, 253, 0.28); border-radius: 999px;
-}
 h1 {
   margin: 0;
   font: 500 var(--t-h1)/var(--t-h1-linha) var(--titulo);
@@ -83,7 +82,29 @@ h1 {
   background-clip: text;
   color: transparent;
 }
-.subtitulo { margin: 6px 0 0; color: var(--texto-2); font-size: var(--t-apoio); line-height: 18px; font-variant-numeric: tabular-nums; }
+.topo .contagens { display: flex; justify-content: center; gap: 8px; margin: 12px 0 0; }
+.contagem {
+  --cor: var(--texto-3);
+  min-width: 36px; padding: 2px 10px;
+  font: 500 var(--t-apoio)/20px var(--titulo); font-variant-numeric: tabular-nums; text-align: center;
+  color: var(--cor); border: 1px solid color-mix(in srgb, var(--cor) 40%, transparent);
+  background: color-mix(in srgb, var(--cor) 10%, transparent); border-radius: 999px;
+}
+.contagem-aguarda { --cor: var(--aguarda); }
+.contagem-trabalhando { --cor: var(--trabalhando); }
+.contagem-entregou { --cor: var(--entregou); }
+.contagem.zero { opacity: 0.4; }
+.aviso-ausente {
+  display: inline-flex; align-items: center; flex-wrap: wrap; justify-content: center; gap: 2px 8px;
+  margin: 12px 0 0; padding: 6px 14px; border-radius: var(--raio-botao);
+  font-size: var(--t-apoio); line-height: 18px; color: var(--texto-2);
+  border: 1px solid var(--fio-forte); background: var(--vidro);
+}
+.aviso-ausente b { font-weight: 600; color: var(--texto); }
+.aviso-ponto { flex: none; width: 8px; height: 8px; border-radius: 50%; background: var(--texto-3); }
+.aviso-ausente.ligado { border-color: color-mix(in srgb, var(--aguarda) 55%, transparent); background: color-mix(in srgb, var(--aguarda) 12%, var(--vidro-forte)); }
+.aviso-ausente.ligado b { color: var(--aguarda); }
+.aviso-ausente.ligado .aviso-ponto { background: var(--aguarda); box-shadow: 0 0 0 3px color-mix(in srgb, var(--aguarda) 25%, transparent); }
 
 h2, h3 { font-family: var(--titulo); font-weight: 500; }
 h2 { margin: 0; font-size: var(--t-h2); line-height: var(--t-h2-linha); letter-spacing: -0.01em; }
@@ -126,8 +147,7 @@ ul { list-style: none; margin: 14px 0 0; padding: 0; display: grid; gap: 10px; }
   :root { --t-h1: 32px; --t-h1-linha: 38px; --t-h2: 19px; --t-h2-linha: 24px; --gutter: 24px; }
   .topo, main, .pe { max-width: 1040px; }
   .topo { padding-top: 48px; }
-  .selo-topo { margin-bottom: 16px; }
-  .subtitulo { font-size: 14px; line-height: 20px; margin-top: 8px; }
+  .topo .contagens, .aviso-ausente { margin-top: 16px; }
   main { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 0 40px; align-items: start; margin-top: 20px; }
   main > div > .secao:first-child { border-top: 1px solid var(--fio); padding-top: 20px; }
   .pe { padding-top: 40px; padding-bottom: calc(var(--planeta) + 24px); }
