@@ -25,7 +25,8 @@ const AJUDA = `perguntas — perguntas ao operador e itens do projeto
   perguntas item entregar F7 --desfecho <entregue|parcial|parado> --resultado R
             [--medido M] [--nao-medido N] [--proximo P ...] [--pr N]
                                             a dona grava ao terminar, logo antes de se arquivar
-  perguntas item listar [--json]
+  perguntas item listar [--json]            os itens abertos (os entregues não aparecem)
+  perguntas item ver F7 [--json]            um item, entregue ou não: etapa, desfecho da entrega e PR
   perguntas papel <orquestradora|nenhum> --sessao-id ID   marca o papel desta sessão (o ID vem do início da sessão)
   perguntas passar-papel --sessao-id ID     logo antes do /clear: a próxima sessão nesta pasta herda o papel
   perguntas sigla [SIG] [--todas]           a sigla do projeto (IZA em IZA-F3); com SIG, troca; --todas lista todas
@@ -185,6 +186,15 @@ function cmdItem(args, v, projeto, out) {
     const it = entregar(id, v, alvo);
     if (!it) throw new Error(`${estado.rotulo(alvo, id)} não existe em ${alvo}`);
     out(`${estado.rotulo(alvo, it.id)} · ${it.titulo} — ${it.entrega.desfecho}`);
+    return 0;
+  }
+  if (acao === 'ver') {
+    if (!resto[0]) throw new Error('uso: perguntas item ver F7');
+    const { id, projeto: alvo } = resolver(resto[0], 'F', v, projeto);
+    const it = estado.ler('itens', alvo, id);
+    if (!it) throw new Error(`${estado.rotulo(alvo, id)} não existe em ${alvo}`);
+    const entrega = it.entrega?.desfecho ?? 'sem entrega';
+    out(v.json ? JSON.stringify(it, null, 2) : `${linhaDeItem(alvo, it)} · ${entrega}${it.pr ? ` · PR #${it.pr}` : ''}`);
     return 0;
   }
   if (acao === 'listar') {

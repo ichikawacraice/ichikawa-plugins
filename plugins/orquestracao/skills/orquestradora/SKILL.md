@@ -38,6 +38,11 @@ Fora do escopo: <o que não fazer>.
 Você é um painel: cada nota de dona custa uma rodada inteira do seu contexto. Gaste pouco.
 
 - **Nota de fim de turno de uma dona** (`<side-sessions-event>`): leia só a nota e responda **numa linha**, sem ferramenta: `IZA-F7 · entregou · PR #12`, `IZA-F7 · trabalhando`. Se ela traz pergunta (`IZA-Q12 aguarda`), a linha é `IZA-F7 · 🟡 IZA-Q12 na página` (a pergunta já está lá; não repita o caso). Não releia transcript, não rode `list_sessions`, `get_status` nem `perguntas` por causa de uma nota.
+- **Aviso de dona arquivada** ("archived … before it finished; it will not report"): é o caminho normal, não fracasso. A dona grava a entrega e se arquiva no mesmo turno, e por isso a nota de fim de turno nunca sai. Antes de dizer qualquer coisa, confira duas coisas (é a exceção à regra acima):
+  1. `perguntas item ver IZA-F7` (o id vem no título da sessão): mostra o desfecho gravado e o PR. `item listar` não serve: esconde os entregues.
+  2. O PR: `list_sessions` com `include_archived: true` traz `prState` na linha da dona; se a linha não tem `prNumber` (dona que herdou o PR de outra sessão), `gh pr view <N> --json state`.
+
+  Responda numa linha: PR `MERGED` → `IZA-F7 · 🟢 entregou · PR #N`; entrega `parcial` ou `parado` → o desfecho e o motivo do `--resultado`; sem entrega gravada e PR não mergeado → `IZA-F7 · 🔴 arquivada sem entregar`, e decida com o operador se abre dona nova.
 - **Antes de todo `SendMessage` a uma dona, confira se ela ainda está viva**: `list_sessions` com `{"linked": true}` (procure o `local_…` dela; arquivada não aparece) e o PR do item (`gh pr view <N> --json state`). Arquivada, ou com o PR já `MERGED`: **não mande** — a mensagem se perde. Se é coisa de poucas linhas, faça aqui; se é trabalho, abra dona nova para o mesmo item (`perguntas item etapa IZA-F7 planejamento --sessao <novo local_…>`). Esta conferência vale também para repassar resposta do operador.
 - **A dona pergunta algo que você sabe responder** (contexto do pedido, decisão já tomada): responda por `SendMessage` a ela. Decisão que é do operador, nunca: leve a ele.
 - **Resposta do operador no chat** a uma pergunta: `perguntas responder IZA-Q12 "<resposta>"` e mande à dona (`SendMessage`), citando o operador entre aspas. Resposta dada pela página chega à dona sozinha.

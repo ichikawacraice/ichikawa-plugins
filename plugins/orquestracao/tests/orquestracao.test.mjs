@@ -70,6 +70,20 @@ test('entregar grava a entrega e leva a etapa a feito ou parado', async () => {
   await assert.rejects(rodar('item', 'entregar', 'F1', '--projeto', 'p', '--desfecho', 'talvez', '--resultado', 'x'), /desfecho/);
 });
 
+test('item ver mostra a entrega e o PR mesmo de item já entregue, que o listar esconde', async () => {
+  await rodar('item', 'nova', 'A', '--projeto', 'p');
+  await rodar('item', 'nova', 'B', '--projeto', 'p');
+  await rodar('item', 'entregar', 'F1', '--projeto', 'p', '--desfecho', 'entregue', '--resultado', 'ok', '--pr', '10');
+  await rodar('item', 'etapa', 'F2', 'pr', '--projeto', 'p', '--pr', '11');
+  await rodar('item', 'listar', '--projeto', 'p');
+  assert.doesNotMatch(saida.join('\n'), /F1/);
+  await rodar('item', 'ver', 'F1', '--projeto', 'p');
+  assert.match(saida[0], /^PXX-F1 · A — feito · entregue · PR #10$/);
+  await rodar('item', 'ver', 'F2', '--projeto', 'p');
+  assert.match(saida[0], /^PXX-F2 · B — pr · sem entrega · PR #11$/);
+  await assert.rejects(rodar('item', 'ver', 'F9', '--projeto', 'p'), /não existe/);
+});
+
 test('novidades lista só as respostas da página e as marca lidas', async () => {
   estado.criar('perguntas', 'p', { titulo: 'T', estado: 'respondida', resposta: 'sim', lida: false });
   await rodar('novidades', '--projeto', 'p');
