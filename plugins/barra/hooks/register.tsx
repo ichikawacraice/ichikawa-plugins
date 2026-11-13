@@ -26,7 +26,7 @@ import {
 import {
   CICLO_CINTILA,
   ICONES,
-  PX_POR_COLUNA,
+  larguraDaCena,
   SVG_ALTURA,
   TEMAS,
   linhaDoCeu,
@@ -358,49 +358,54 @@ export const register: Register = on => {
     const texto = `⧗ ${e.props.isWorking ? 'ativo' : relogio(c.segundos)}`
     // No terminal o rótulo leva a cor do tema; no desktop o botão é nativo e se pinta sozinho (cor de texto ignorada).
     const rotulo = (chave: string, t: string) => (Svg ? t : <Text key={chave} color={tema.texto}>{t}</Text>)
-    const largura = (e.props.bodyColumns + 6) * PX_POR_COLUNA
-    // Desktop: a cena em fluxo, no que sobra da linha à direita, cortada pela esquerda (o app não pinta Svg em
-    // camada). Terminal: a linha de estrelas ou nuvens em camada atrás dos botões, como antes.
-    const ceu = Svg ? (
-      <Box key="ceu" flexGrow={1} flexShrink={1} minWidth={0} overflow="hidden" flexDirection="row" justifyContent="flex-end">
-        <Svg source={svgDaCena(modo, largura, semMovimento)} alt="" width={Math.max(200, Math.round(largura))} height={SVG_ALTURA} />
-      </Box>
-    ) : (
-      <Box key="ceu" position="absolute" top={0} left={0}>
-        <Text color={tema.detalheTerminal} wrap="truncate-end">
-          {linhaDoCeu(modo, e.props.bodyColumns, quadro)}
+    const rotuloAusente = ROTULO_AUSENTE(a, mudando)
+    const rotulos = lista.map(b => rotuloDoBotao(b, s[b.chave]))
+    const relogioDoCache =
+      nivel === 'alerta' || nivel === 'venceu' ? (
+        <Text key="cache" inverse bold color="error">{` ${texto} `}</Text>
+      ) : (
+        <Text key="cache" bold color={nivel === 'aviso' ? tema.aviso : tema.texto}>
+          {texto}
         </Text>
-      </Box>
-    )
-
-    return (
-      <Box
-        key={`barra-${modo}`}
-        flexDirection="row"
-        flexWrap={Svg ? 'nowrap' : 'wrap'}
-        columnGap={1}
-        alignItems="center"
-        paddingX={1}
-        backgroundColor={tema.fundo}
-        overflow="hidden"
-      >
-        {Svg ? null : ceu}
-        {nivel === 'alerta' || nivel === 'venceu' ? (
-          <Text inverse bold color="error">{` ${texto} `}</Text>
-        ) : (
-          <Text bold color={nivel === 'aviso' ? tema.aviso : tema.texto}>
-            {texto}
-          </Text>
-        )}
-        <Button key="ausente" variant="secondary" onPress={() => void alternarAusente($)}>
-          {rotulo('r-ausente', ROTULO_AUSENTE(a, mudando))}
+      )
+    const botoesDaBarra = [
+      <Button key="ausente" variant="secondary" onPress={() => void alternarAusente($)}>
+        {rotulo('r-ausente', rotuloAusente)}
+      </Button>,
+      ...lista.map((b, i) => (
+        <Button key={b.chave} variant="secondary" onPress={() => void clicar($, b)}>
+          {rotulo(`r-${b.chave}`, rotulos[i] ?? b.rotulo)}
         </Button>
-        {lista.map(b => (
-          <Button key={b.chave} variant="secondary" onPress={() => void clicar($, b)}>
-            {rotulo(`r-${b.chave}`, rotuloDoBotao(b, s[b.chave]))}
-          </Button>
-        ))}
-        {Svg ? ceu : null}
+      )),
+    ]
+
+    // Desktop: relógio à esquerda, a cena em fluxo no meio (o app não pinta Svg em camada) com o sol ou o planeta na
+    // ponta direita e 50 px de céu antes dos botões, e os botões encostados à direita. Sem `overflow`/`flexWrap`: com
+    // eles o app deixava de pintar a cena.
+    if (Svg) {
+      const largura = larguraDaCena(e.props.bodyColumns, texto, [rotuloAusente, ...rotulos])
+
+      return (
+        <Box key={`barra-${modo}`} flexDirection="row" alignItems="center" columnGap={1} paddingX={1} backgroundColor={tema.fundo}>
+          {relogioDoCache}
+          <Box key="ceu" flexGrow={1} flexDirection="row" justifyContent="flex-end">
+            {largura ? <Svg source={svgDaCena(modo, largura, semMovimento)} alt="" width={largura} height={SVG_ALTURA} /> : null}
+          </Box>
+          {botoesDaBarra}
+        </Box>
+      )
+    }
+
+    // Terminal: a linha de estrelas ou nuvens em camada atrás de tudo, como antes.
+    return (
+      <Box key={`barra-${modo}`} flexDirection="row" flexWrap="wrap" columnGap={1} alignItems="center" paddingX={1} backgroundColor={tema.fundo} overflow="hidden">
+        <Box key="ceu" position="absolute" top={0} left={0}>
+          <Text color={tema.detalheTerminal} wrap="truncate-end">
+            {linhaDoCeu(modo, e.props.bodyColumns, quadro)}
+          </Text>
+        </Box>
+        {relogioDoCache}
+        {botoesDaBarra}
       </Box>
     )
   })

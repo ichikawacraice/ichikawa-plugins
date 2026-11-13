@@ -1,6 +1,6 @@
 import { expect, test } from 'claude-code/testing'
 
-import { CICLO_CINTILA, TEMAS, estrelasDaLinha, linhaDeEstrelas, linhaDeNuvens, linhaDoCeu, modoDoAusente, pedeMenosMovimento, svgDaCena } from '../hooks/ceu'
+import { CENA_MAX, CICLO_CINTILA, ESPACO_SOL_BOTOES, SVG_ALTURA, TEMAS, estrelasDaLinha, larguraDaCena, linhaDeEstrelas, linhaDeNuvens, linhaDoCeu, modoDoAusente, pedeMenosMovimento, svgDaCena } from '../hooks/ceu'
 
 test('estrelas do terminal: a linha tem a largura pedida, o mesmo céu a cada desenho e só estrela onde há', () => {
   const linha = linhaDeEstrelas(80, 0)
@@ -69,4 +69,18 @@ test('menos movimento: a variável liga (0/false desligam), e o macOS com 1', ()
   expect(pedeMenosMovimento('false', '1\n')).toBe(true)
   expect(pedeMenosMovimento(undefined, '1\n')).toBe(true)
   expect(pedeMenosMovimento(undefined, '0\n')).toBe(false)
+})
+
+test('cena do dia: o sol na ponta direita, com 50 px de céu antes dos botões, e a cena da altura da barra', () => {
+  const svg = svgDaCena('dia', 300, true)
+  expect(svg).toContain(`height="${SVG_ALTURA}"`)
+  expect(svg).toContain(`<circle cx="${300 - ESPACO_SOL_BOTOES - 10}" cy="${SVG_ALTURA / 2}" r="10" fill="url(#sol)"/>`)
+})
+
+test('largura da cena: o que sobra entre o relógio e os botões, com teto, e nada quando não cabe', () => {
+  const rotulos = ['☀ Ficar ausente', '◫ Painel', '◉ Contas']
+  expect(larguraDaCena(200, '⧗ 59:00', rotulos)).toBe(CENA_MAX)
+  const media = larguraDaCena(80, '⧗ 59:00', rotulos)
+  expect(media !== null && media < CENA_MAX && media >= 140).toBe(true)
+  expect(larguraDaCena(50, '⧗ 59:00', rotulos)).toBe(null)
 })

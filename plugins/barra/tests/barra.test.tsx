@@ -446,7 +446,7 @@ test('sessões: a lista do app falhou: o arquivo antigo fica e o erro vai ao log
 const estrelas = async (ui: { findAll: (q: object) => Promise<Array<{ text: string }>> }) =>
   (await ui.findAll({ type: 'Text' })).map(x => x.text).find(t => /[·✦⋆]/.test(t) && !/⧗/.test(t)) ?? ''
 
-test('céu: ausente desligado é dia — fundo azul, cena do sol à direita dos botões no desktop, nuvens no terminal', async ($, on) => {
+test('céu: ausente desligado é dia — fundo azul, cena do sol entre o relógio e os botões no desktop, nuvens no terminal', async ($, on) => {
   await iniciar($, on)
   for (const surface of SUPERFICIES) {
     const ui = await montar($, surface)

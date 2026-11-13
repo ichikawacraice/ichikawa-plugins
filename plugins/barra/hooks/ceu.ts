@@ -102,8 +102,17 @@ export const linhaDoCeu = (modo: Modo, colunas: number, fase: number | null): st
 
 // ---- desktop: a cena em SVG ----
 
-/** Altura da cena, em pixels CSS: a de um botão do app com folga. */
-export const SVG_ALTURA = 30
+/** Altura da cena, em pixels CSS: um botão do app com folga em cima e embaixo, longe da moldura nativa da faixa. */
+export const SVG_ALTURA = 40
+/** Céu livre entre a borda do sol e o primeiro botão, em pixels. */
+export const ESPACO_SOL_BOTOES = 50
+const RAIO_SOL = 10
+/** Largura mínima e máxima da cena; abaixo do mínimo a barra fica sem cena. */
+export const CENA_MIN = 140
+export const CENA_MAX = 480
+/** Folga de cada botão nativo além do texto (padding e borda), em pixels. */
+const PX_BOTAO_FOLGA = 28
+const PX_VAO = 8
 /** Pixels por coluna da fonte de código do app: só para dimensionar a cena pela largura da barra. */
 export const PX_POR_COLUNA = 8
 
@@ -176,8 +185,8 @@ function nuvem(x: number, y: number, escala: number, opacidade: number): string 
 /** Dia: o azul clareia para a direita, o sol com brilho e raios na ponta e nuvens que derivam devagar. */
 function cenaDoDia(l: number, parado: boolean): string {
   const a = SVG_ALTURA
-  const sx = l - 60
-  const sy = 11
+  const sx = l - ESPACO_SOL_BOTOES - RAIO_SOL
+  const sy = Math.round(a / 2)
   const raios = Array.from({ length: 12 }, (_, k) => {
     const ang = (k * Math.PI) / 6
     const p = (d: number) => `${d1(sx + Math.cos(ang + d) * 64)} ${d1(sy + Math.sin(ang + d) * 64)}`
@@ -187,7 +196,7 @@ function cenaDoDia(l: number, parado: boolean): string {
   const nuvens = [
     nuvem(l - 230, 26, 0.75, 0.95),
     nuvem(l - 380, 16, 0.45, 0.7),
-    nuvem(l - 20, 30, 0.6, 0.9),
+    nuvem(l - 140, 32, 0.5, 0.8),
     nuvem(l - 540, 28, 0.6, 0.55),
     nuvem(l - 700, 14, 0.4, 0.4),
   ].join('')
@@ -211,8 +220,22 @@ function cenaDoDia(l: number, parado: boolean): string {
 }
 
 /**
- * A cena do desktop para o modo, com `largura` pixels: vai à direita dos botões, cortada pela esquerda, e começa na
- * cor do fundo para emendar sem borda. A animação é CSS do próprio SVG (estrelas em degraus de 1 s, nuvens a
+ * Quantos pixels sobram para a cena entre o relógio do cache e os botões: a largura da faixa menos o texto e os
+ * botões estimados pela fonte. `null` quando não cabe uma cena digna (a barra fica no fundo liso).
+ */
+export function larguraDaCena(colunas: number, texto: string, rotulos: string[]): number | null {
+  const ocupado =
+    PX_POR_COLUNA * (2 + [...texto].length) +
+    rotulos.reduce((t, r) => t + [...r].length * PX_POR_COLUNA + PX_BOTAO_FOLGA, 0) +
+    PX_VAO * (rotulos.length + 1)
+  const sobra = colunas * PX_POR_COLUNA - ocupado
+
+  return sobra < CENA_MIN ? null : Math.min(CENA_MAX, sobra)
+}
+
+/**
+ * A cena do desktop para o modo, com `largura` pixels: fica entre o relógio e os botões, com o sol (ou o planeta) na
+ * ponta direita e `ESPACO_SOL_BOTOES` de céu livre antes do primeiro botão; começa na cor do fundo para emendar sem borda. A animação é CSS do próprio SVG (estrelas em degraus de 1 s, nuvens a
  * deriva lenta); `prefers-reduced-motion` a para no app, e `parado` a tira do desenho.
  */
 export function svgDaCena(modo: Modo, largura: number, parado: boolean): string {
