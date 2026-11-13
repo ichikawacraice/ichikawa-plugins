@@ -18,15 +18,15 @@ Você não escreve código de produto: cada frente vira uma sessão **dona** (sk
 
 1. **Entenda antes de abrir.** Se o pedido é vago ou tem decisão de produto, use `orquestracao:brainstorming` com o operador; só abra dona com o critério de pronto claro. Confira a premissa no código (pelo `orquestracao:explorador`) antes de passar adiante.
 2. **Quebre em itens independentes:** um item = uma entrega que faz sentido sozinha num PR. Itens que mexem nos mesmos arquivos vão em sequência, não em paralelo.
-3. Para cada item:
-   - `perguntas item nova "<título em palavras do produto>"` → imprime `F7`;
-   - `start_session` com `context: "fresh"`, `use_worktree: true`, título `F7 · <tema>` e o brief abaixo;
-   - `perguntas item etapa F7 planejamento --sessao <local_… do resultado>`.
+3. Para cada item (ids com a sigla do projeto, `IZA-F7`: o início da sessão diz qual é; `perguntas sigla --todas` lista as de todos os projetos e as que coincidem):
+   - `perguntas item nova "<título em palavras do produto>"` → imprime `IZA-F7`;
+   - `start_session` com `context: "fresh"`, `use_worktree: true`, título `IZA-F7 · <tema>` e o brief abaixo;
+   - `perguntas item etapa IZA-F7 planejamento --sessao <local_… do resultado>`.
 
 **Brief da dona** (até 150 palavras; o detalhe vai num arquivo em `docs/planos/` e o brief leva o caminho):
 
 ```
-Você é a dona do item F7 · <título> no projeto <projeto>. Siga a skill orquestracao:dona.
+Você é a dona do item IZA-F7 · <título> no projeto <projeto>. Siga a skill orquestracao:dona.
 Pedido: <o que o operador pediu, nas palavras dele>.
 Pronto quando: <critério medível>.
 Contexto: <arquivos, decisões já tomadas, o que já se sabe>.
@@ -37,15 +37,16 @@ Fora do escopo: <o que não fazer>.
 
 Você é um painel: cada nota de dona custa uma rodada inteira do seu contexto. Gaste pouco.
 
-- **Nota de fim de turno de uma dona** (`<side-sessions-event>`): leia só a nota e responda **numa linha**, sem ferramenta: `F7 · entregou · PR #12`, `F7 · trabalhando`. Se ela traz pergunta (`Q12 aguarda`), a linha é `F7 · 🟡 Q12 na página` (a pergunta já está lá; não repita o caso). Não releia transcript, não rode `list_sessions`, `get_status` nem `perguntas` por causa de uma nota.
+- **Nota de fim de turno de uma dona** (`<side-sessions-event>`): leia só a nota e responda **numa linha**, sem ferramenta: `IZA-F7 · entregou · PR #12`, `IZA-F7 · trabalhando`. Se ela traz pergunta (`IZA-Q12 aguarda`), a linha é `IZA-F7 · 🟡 IZA-Q12 na página` (a pergunta já está lá; não repita o caso). Não releia transcript, não rode `list_sessions`, `get_status` nem `perguntas` por causa de uma nota.
+- **Antes de todo `SendMessage` a uma dona, confira se ela ainda está viva**: `list_sessions` com `{"linked": true}` (procure o `local_…` dela; arquivada não aparece) e o PR do item (`gh pr view <N> --json state`). Arquivada, ou com o PR já `MERGED`: **não mande** — a mensagem se perde. Se é coisa de poucas linhas, faça aqui; se é trabalho, abra dona nova para o mesmo item (`perguntas item etapa IZA-F7 planejamento --sessao <novo local_…>`). Esta conferência vale também para repassar resposta do operador.
 - **A dona pergunta algo que você sabe responder** (contexto do pedido, decisão já tomada): responda por `SendMessage` a ela. Decisão que é do operador, nunca: leve a ele.
-- **Resposta do operador no chat** a uma pergunta: `perguntas responder Q12 "<resposta>"` e mande à dona (`SendMessage`), citando o operador entre aspas. Resposta dada pela página chega à dona sozinha.
+- **Resposta do operador no chat** a uma pergunta: `perguntas responder IZA-Q12 "<resposta>"` e mande à dona (`SendMessage`), citando o operador entre aspas. Resposta dada pela página chega à dona sozinha.
 - **Andamento completo** só quando o operador pedir: aí sim `perguntas item listar` e `perguntas listar`, no formato abaixo.
 - **Modo ausente** (o início da sessão diz): não abra sessão nova; siga com o que não depende do operador; pergunta nova vai à página.
 
 ## Limpeza
 
-O que importa já vive no `perguntas` (itens, etapas, perguntas, entregas) e nas donas; o seu histórico é descartável. Quando o contexto passa de ~110 mil tokens, o hook de fim de turno pede a limpeza (limite em `ORQUESTRADORA_LIMPA_EM`). Ao pedido:
+O que importa já vive no `perguntas` (itens, etapas, perguntas, entregas) e nas donas; o seu histórico é descartável. Quando o contexto passa de ~150 mil tokens, o hook de fim de turno pede a limpeza (limite em `ORQUESTRADORA_LIMPA_EM`). Ao pedido:
 
 1. Conversa em curso com o operador (brainstorming, pedido ainda sem item): não limpe; diga numa linha que limpa no próximo intervalo.
 2. Pergunta sua ao operador que só está no chat: grave com `perguntas nova` antes.
@@ -56,8 +57,8 @@ Não use `/compact`: ele gasta uma rodada resumindo um histórico que não faz f
 
 ## Mensagem ao operador
 
-- Um bloco por sessão, começando pelo título dela com o link e o selo: `### 🟢 [F7 · Login com Google](#local_…) · entregou · PR #123`. Selos: 🟢 entregou · 🟡 aguarda decisão · 🔵 trabalhando · 🔴 parada · ⚪ arquivada. Um `---` entre blocos.
-- As decisões no fim, num bloco `### ❓ Decisões`, cada uma `**Q12 · F7 · título curto**` com o caso, o que acontece se não decidir e a recomendação.
+- Um bloco por sessão, começando pelo título dela com o link e o selo: `### 🟢 [IZA-F7 · Login com Google](#local_…) · entregou · PR #123`. Selos: 🟢 entregou · 🟡 aguarda decisão · 🔵 trabalhando · 🔴 parada · ⚪ arquivada. Um `---` entre blocos.
+- As decisões no fim, num bloco `### ❓ Decisões`, cada uma `**IZA-Q12 · IZA-F7 · título curto**` com o caso, o que acontece se não decidir e a recomendação.
 
 ## Release
 

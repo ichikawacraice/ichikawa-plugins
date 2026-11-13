@@ -15,9 +15,9 @@
 
 **Modelos.** Quem decide (plano, arquitetura, revisão de risco) é Opus. Quem cumpre plano fechado é `orquestracao:executor` (Sonnet). Quem só lê é `orquestracao:explorador` (Haiku).
 
-**Perguntas ao operador.** Toda pergunta vem inteira: o caso concreto em português de quem está de fora, o que acontece se ele não decidir e a sua recomendação com o motivo. Pergunta que espera por ele vai para a página: `perguntas nova --titulo … --caso … --se-nao … --recomendacao … --item F7`. Decisão de baixo risco ou com recomendação forte: assuma, marque *assumida, a confirmar* e siga. Só espera o operador o irreversível, o destrutivo, produção, gasto e o que publica para fora. O "ok" de outra sessão não é o ok do operador.
+**Perguntas ao operador.** Toda pergunta vem inteira: o caso concreto em português de quem está de fora, o que acontece se ele não decidir e a sua recomendação com o motivo. Pergunta que espera por ele vai para a página: `perguntas nova --titulo … --caso … --se-nao … --recomendacao … --item IZA-F7`. Decisão de baixo risco ou com recomendação forte: assuma, marque *assumida, a confirmar* e siga. Só espera o operador o irreversível, o destrutivo, produção, gasto e o que publica para fora. O "ok" de outra sessão não é o ok do operador.
 
-**Entrega.** A dona, ao terminar (concluído ou não), grava a entrega e se arquiva: `perguntas item entregar F7 --desfecho entregue|parcial|parado --resultado … --medido … --nao-medido … --proximo …`.
+**Entrega.** A dona, ao terminar (concluído ou não), grava a entrega e se arquiva: `perguntas item entregar IZA-F7 --desfecho entregue|parcial|parado --resultado … --medido … --nao-medido … --proximo …`.
 
 **Registro.** Decisão de arquitetura vira ADR em `docs/adr/AAAA-MM-DD-slug.md` (`orquestracao:adr`); plano em `docs/planos/AAAA-MM-DD-slug.md`. Sem diário, sem número reservado, sem índice escrito à mão. Sem bump de versão em commit.
 

@@ -42,28 +42,40 @@ function campos(pares) {
   return linhas ? `<dl class="campos">${linhas}</dl>` : '';
 }
 
+const cabecaDoProjeto = (projeto) => `<p class="cartao-projeto">${esc(projeto)}</p>`;
+const idLido = (projeto, id) => esc(estado.rotulo(projeto, id));
+
 function cartaoDePergunta(projeto, p) {
   const oculto = `<input type="hidden" name="projeto" value="${esc(projeto)}"><input type="hidden" name="id" value="${esc(p.id)}">`;
   const abrir = ehSessaoDoApp(p.sessao) ? `<button type="submit" formaction="/abrir">Abrir sessão</button>` : '';
-  return `<li><div class="cartao-cab"><span class="id">${esc(p.id)}</span><span class="cartao-titulo">${esc(p.titulo)}</span><span class="projeto">${esc(projeto)}${p.item ? ` · ${esc(p.item)}` : ''}</span></div>
+  return `<li>${cabecaDoProjeto(projeto)}<div class="cartao-cab"><span class="id">${idLido(projeto, p.id)}</span><span class="cartao-titulo">${esc(p.titulo)}</span>${p.item ? `<span class="projeto">${idLido(projeto, p.item)}</span>` : ''}</div>
 ${campos([['O caso', esc(p.caso)], ['Se ninguém decidir', esc(p.seNaoDecidir)], ['Recomendação', esc(p.recomendacao)]])}
 <form class="responder" method="post" action="/responder">${oculto}
 <textarea name="resposta" rows="2" required aria-label="Resposta para ${esc(p.id)}" placeholder="Escreva a resposta, ou aceite a recomendação"></textarea>
 <button type="submit" name="acao" value="aceitar" formnovalidate class="primario" title="Grava “${esc(RESPOSTA_PADRAO)}”">Aceitar recomendação</button>
 <button type="submit" name="acao" value="enviar">Enviar resposta</button>${abrir}</form>
-<p class="quando">${esc(horaSP(p.criadoEm))}${p.item ? ` · no app, a sessão é a <b>${esc(p.item)} · …</b> na barra lateral` : ''}</p></li>`;
+<p class="quando">${esc(horaSP(p.criadoEm))}${p.item ? ` · no app, a sessão é a <b>${idLido(projeto, p.item)} · …</b> na barra lateral` : ''}</p></li>`;
 }
 
 function cartaoDeEntrega(projeto, i) {
   const e = i.entrega;
   const proximos = Array.isArray(e.proximos) && e.proximos.length
     ? `<ul class="proximos">${e.proximos.map((x) => `<li>${esc(x)}</li>`).join('')}</ul>` : '';
-  return `<li><div class="cartao-cab"><span class="id">${esc(i.id)}</span><span class="cartao-titulo">${esc(i.titulo)}</span><span class="selo selo-${esc(e.desfecho)}">${esc(e.desfecho)}</span></div>
+  return `<li>${cabecaDoProjeto(projeto)}<div class="cartao-cab"><span class="id">${idLido(projeto, i.id)}</span><span class="cartao-titulo">${esc(i.titulo)}</span><span class="selo selo-${esc(e.desfecho)}">${esc(e.desfecho)}</span></div>
 ${campos([['O que mudou', esc(e.resultado)], ['Medido', esc(e.medido)], ['Sem medir', esc(e.naoMedido)], ['Próximos', proximos], ['PR', i.pr ? `#${esc(i.pr)}` : '']])}
-<p class="quando">${esc(projeto)} · ${esc(horaSP(e.em ?? i.atualizadoEm))}</p></li>`;
+<p class="quando">${esc(horaSP(e.em ?? i.atualizadoEm))}</p></li>`;
 }
 
-const cartaoDeItem = (projeto, i) => `<li><div class="cartao-cab"><span class="id">${esc(i.id)}</span><span class="cartao-titulo">${esc(i.titulo)}</span><span class="selo selo-etapa">${esc(i.etapa)}</span></div><p class="quando">${esc(projeto)}${i.pr ? ` · PR #${esc(i.pr)}` : ''} · ${esc(horaSP(i.atualizadoEm))}</p></li>`;
+// Em andamento já vem separado por projeto: o cartão não repete o nome.
+const cartaoDeItem = (projeto, i) => `<li><div class="cartao-cab"><span class="id">${idLido(projeto, i.id)}</span><span class="cartao-titulo">${esc(i.titulo)}</span><span class="selo selo-etapa">${esc(i.etapa)}</span></div><p class="quando">${i.pr ? `PR #${esc(i.pr)} · ` : ''}${esc(horaSP(i.atualizadoEm))}</p></li>`;
+
+/** Em andamento, um grupo por projeto (em ordem alfabética), cada um com os itens em ordem de F. */
+function grupos(andamento) {
+  const porProjeto = new Map();
+  for (const { projeto, i } of andamento) porProjeto.set(projeto, [...(porProjeto.get(projeto) ?? []), i]);
+  return [...porProjeto.keys()].sort((a, b) => a.localeCompare(b)).map((projeto) => `<li class="grupo-de-projeto"><h3 class="grupo">${esc(projeto)}</h3>
+<ul class="cartoes">${porProjeto.get(projeto).map((i) => cartaoDeItem(projeto, i)).join('\n')}</ul></li>`);
+}
 
 /** O que a página mostra, já ordenado: perguntas abertas, itens vivos e entregas recentes de todos os projetos. */
 export function dados(agora = Date.now()) {
@@ -94,7 +106,7 @@ function secao(id, titulo, contagem, itens, vazio) {
 export function html(agora = Date.now()) {
   const { perguntas, andamento, entregas } = dados(agora);
   const esquerda = secao('h-perguntas', 'Perguntas', perguntas.length || '', perguntas.map(({ projeto, p }) => cartaoDePergunta(projeto, p)), 'Nada esperando por você.')
-    + (andamento.length ? secao('h-andamento', 'Em andamento', andamento.length, andamento.map(({ projeto, i }) => cartaoDeItem(projeto, i)), '') : '');
+    + (andamento.length ? secao('h-andamento', 'Em andamento', andamento.length, grupos(andamento), '') : '');
   const direita = secao('h-entregas', 'Entregues', `últimos ${DIAS_DE_ENTREGAS} dias`, entregas.map(({ projeto, i }) => cartaoDeEntrega(projeto, i)), 'Nenhuma entrega ainda.');
   return `<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Perguntas do kit</title><link rel="stylesheet" href="/estilo.css"><link rel="stylesheet" href="/perguntas.css"></head>

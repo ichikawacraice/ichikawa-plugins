@@ -96,6 +96,46 @@ export function lerAusente() {
   return a?.ligado === true ? a : null;
 }
 
+const TAMANHO_DA_SIGLA = 3;
+const SIGLA_VALIDA = /^[A-Z0-9]{3}$/;
+const ID_COM_SIGLA = /^(?:([A-Za-z0-9]{3})-)?([QFqf]\d+)$/;
+const arquivoDeSiglas = () => join(raiz(), 'siglas.json');
+
+/** As siglas configuradas à mão (`perguntas sigla`), por projeto. */
+export function siglasConfiguradas() {
+  const s = lerJson(arquivoDeSiglas());
+  return s && typeof s === 'object' && !Array.isArray(s) ? s : {};
+}
+
+/** A sigla do projeto: a configurada, ou as 3 primeiras letras ou dígitos do nome (`Izanagi` → `IZA`). */
+export function sigla(projeto) {
+  const configurada = siglasConfiguradas()[projeto];
+  if (typeof configurada === 'string' && SIGLA_VALIDA.test(configurada)) return configurada;
+  return String(projeto).replace(/[^A-Za-z0-9]/g, '').toUpperCase().slice(0, TAMANHO_DA_SIGLA).padEnd(TAMANHO_DA_SIGLA, 'X');
+}
+
+/** O id como o operador lê: `IZA-F3`. O arquivo e o campo `id` seguem `F3`. */
+export const rotulo = (projeto, id) => (id ? `${sigla(projeto)}-${String(id).toUpperCase()}` : '');
+
+/** `IZA-F3` → { sigla: 'IZA', id: 'F3' }; `f3` → { sigla: null, id: 'F3' }; outra coisa → null. */
+export function separarId(texto) {
+  const m = ID_COM_SIGLA.exec(String(texto ?? '').trim());
+  return m ? { sigla: m[1]?.toUpperCase() ?? null, id: m[2].toUpperCase() } : null;
+}
+
+/** Os projetos conhecidos que respondem por esta sigla. */
+export const projetosDaSigla = (s, extras = []) => [...new Set([...projetos(), ...extras])].filter((p) => sigla(p) === s);
+
+/** Grava a sigla do projeto; recusa formato inválido e sigla que outro projeto já usa. */
+export function gravarSigla(projeto, nova) {
+  const s = String(nova ?? '').toUpperCase();
+  if (!SIGLA_VALIDA.test(s)) throw new Error('a sigla tem 3 letras ou dígitos (ex.: IZA)');
+  const dono = projetosDaSigla(s).find((p) => p !== projeto);
+  if (dono) throw new Error(`${s} já é de ${dono}`);
+  gravarJson(arquivoDeSiglas(), { ...siglasConfiguradas(), [projeto]: s });
+  return s;
+}
+
 /** Os projetos que têm alguma pergunta ou item. */
 export function projetos() {
   const nomes = new Set();
