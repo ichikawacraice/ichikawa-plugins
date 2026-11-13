@@ -1,0 +1,10 @@
+{
+  "name": "contas",
+  "description": "Várias contas do app do Claude no Mac: o painel local com a cota de cada conta e a troca sem Sign out, com as sessões do Code continuando na conta nova. Traz o botão Contas da barra e a skill trocar-conta.",
+  "author": {
+    "name": "Gabriel Ichikawa Craice"
+  },
+  "repository": "https://github.com/ichikawacraice/claude-account-switcher",
+  "license": "Apache-2.0",
+  "keywords": ["contas", "cota", "troca-de-conta", "macos"]
+}

@@ -1,0 +1,10 @@
+Claude Account Switcher
+Copyright 2026 SnlperStripes
+https://github.com/SnlperStripes/claude-account-switcher
+
+This product includes software developed by SnlperStripes.
+
+Este repositório (src/troca) é um port para Node da lógica de troca de conta do Claude Account Switcher (Apache-2.0).
+Mudanças: sem ícone de bandeja, sem troca automática por limite e sem cópia de projetos; o painel (src/painel) e a leitura de uso são próprios.
+
+O código de src/troca vem do Claude Account Switcher e segue a Apache License 2.0, cujo texto está em LICENSES/Apache-2.0.txt.
