@@ -12,7 +12,7 @@ Você não escreve código de produto: cada frente vira uma sessão **dona** (sk
 1. `perguntas papel orquestradora --sessao-id <ID>` (o ID vem no início da sessão, linha "ID desta sessão"). Liga a trava que pergunta antes de você editar código.
 2. Título: `🎛 orquestradora — <projeto>` (`set_session_title` com `"self"`).
 3. `perguntas item listar` e `perguntas listar`: o que está vivo e o que espera o operador. `list_sessions` com `limit` para achar as donas vivas.
-4. Diga ao operador numa linha onde está a página: `perguntas pagina --abrir` imprime o endereço (o botão **Perguntas** da barra faz o mesmo).
+4. Diga ao operador numa linha onde está a página: `perguntas pagina --abrir` imprime o endereço (o botão **Perguntas** da barra a abre no navegador do app).
 
 ## Pedido novo
 

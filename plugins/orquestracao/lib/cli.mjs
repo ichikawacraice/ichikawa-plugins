@@ -26,7 +26,7 @@ const AJUDA = `perguntas — perguntas ao operador e itens do projeto
                                             a dona grava ao terminar, logo antes de se arquivar
   perguntas item listar [--json]
   perguntas papel <orquestradora|nenhum> --sessao-id ID   marca o papel desta sessão (o ID vem do início da sessão)
-  perguntas pagina [--abrir] [--porta ${PORTA_PADRAO}]
+  perguntas pagina [--abrir | --subir] [--porta ${PORTA_PADRAO}]
 
 Opção comum: --projeto <nome> (padrão: a pasta do repositório principal).`;
 
@@ -34,7 +34,7 @@ const OPCOES = {
   titulo: { type: 'string' }, caso: { type: 'string' }, 'se-nao': { type: 'string' },
   recomendacao: { type: 'string' }, item: { type: 'string' }, sessao: { type: 'string' },
   projeto: { type: 'string' }, todas: { type: 'boolean' }, json: { type: 'boolean' },
-  abrir: { type: 'boolean' }, porta: { type: 'string' }, pr: { type: 'string' },
+  abrir: { type: 'boolean' }, subir: { type: 'boolean' }, porta: { type: 'string' }, pr: { type: 'string' },
   desfecho: { type: 'string' }, resultado: { type: 'string' }, medido: { type: 'string' },
   'nao-medido': { type: 'string' }, proximo: { type: 'string', multiple: true }, 'sessao-id': { type: 'string' },
 };
@@ -157,7 +157,7 @@ export async function main(argv, out = (s) => process.stdout.write(`${s}\n`)) {
   if (cmd === 'item') return cmdItem(args, v, projeto, out) ?? (out(AJUDA), 1);
   if (cmd === 'pagina') {
     const porta = Number(v.porta || PORTA_PADRAO);
-    if (v.abrir) { out(await abrirPagina(porta)); return 0; }
+    if (v.abrir || v.subir) { out(await abrirPagina(porta, { navegador: Boolean(v.abrir) })); return 0; }
     await servir(porta);
     return 0;
   }

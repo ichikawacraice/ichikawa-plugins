@@ -104,6 +104,8 @@ export function pluginsLigados(instalados: unknown, ligados: Record<string, bool
 
 export const ORDEM_PADRAO = 100
 const ID_DO_BOTAO = /^[A-Za-z0-9_-]{1,40}$/
+/** Só página local: um plugin não abre site de fora no navegador do app. */
+const URL_LOCAL = /^http:\/\/(127\.0\.0\.1|localhost)(:\d{1,5})?(\/[^\s]*)?$/
 const MARCA_DA_RAIZ = '${CLAUDE_PLUGIN_ROOT}'
 
 /** Troca `${CLAUDE_PLUGIN_ROOT}` pela pasta do plugin dono, em cada argumento (sem shell: nada mais é interpretado). */
@@ -133,6 +135,7 @@ export function lerBarraJson(texto: string, plugin: PluginLigado): { botoes: Bot
     if (typeof o.rotulo !== 'string' || o.rotulo.trim() === '') return void erros.push(`${onde}: sem "rotulo"`)
     if (!ehArgv(o.comando)) return void erros.push(`${onde}: "comando" não é uma lista de textos`)
     if (o.contador !== undefined && !ehArgv(o.contador)) return void erros.push(`${onde}: "contador" não é uma lista de textos`)
+    if (o.url !== undefined && (typeof o.url !== 'string' || !URL_LOCAL.test(o.url))) return void erros.push(`${onde}: "url" não é página local (http://127.0.0.1 ou http://localhost)`)
     vistos.add(o.id)
     botoes.push({
       chave: `${plugin.id}/${o.id}`,
@@ -142,6 +145,7 @@ export function lerBarraJson(texto: string, plugin: PluginLigado): { botoes: Bot
       ...(typeof o.dica === 'string' ? { dica: o.dica } : {}),
       comando: trocarRaiz(o.comando, plugin.raiz),
       ...(o.contador !== undefined ? { contador: trocarRaiz(o.contador as string[], plugin.raiz) } : {}),
+      ...(typeof o.url === 'string' ? { url: o.url } : {}),
       ordem: typeof o.ordem === 'number' && Number.isFinite(o.ordem) ? o.ordem : ORDEM_PADRAO,
     })
   })
@@ -155,6 +159,10 @@ export const ordenarBotoes = (botoes: readonly Botao[]): Botao[] =>
 
 export const CONTADOR_INTERVALO_MS = 30_000
 export const CONTADOR_PRAZO_MS = 3_000
+/** Botão com `url`: o prazo do `comando` (que sobe a página) antes de abrir o navegador do app. */
+export const COMANDO_COM_URL_PRAZO_MS = 10_000
+/** A ferramenta do app que abre uma URL no painel de navegador (o "navegador do app"). */
+export const FERRAMENTA_NAVEGADOR_DO_APP = 'mcp__Claude_Browser__preview_start'
 
 /** A saída do contador: um inteiro sozinho (espaços em volta aceitos); qualquer outra coisa é sem selo. */
 export function lerContador(saida: { exitCode: number; stdout: string }): number | null {

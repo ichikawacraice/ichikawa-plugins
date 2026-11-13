@@ -3,8 +3,9 @@
     {
       "id": "perguntas",
       "rotulo": "Perguntas",
-      "dica": "Abre a página com as perguntas abertas, os itens em andamento e as entregas",
-      "comando": ["node", "${CLAUDE_PLUGIN_ROOT}/lib/cli.mjs", "pagina", "--abrir"],
+      "dica": "Abre no navegador do app a página com as perguntas abertas, os itens em andamento e as entregas",
+      "comando": ["node", "${CLAUDE_PLUGIN_ROOT}/lib/cli.mjs", "pagina", "--subir"],
+      "url": "http://127.0.0.1:4747",
       "contador": ["node", "${CLAUDE_PLUGIN_ROOT}/lib/cli.mjs", "contar"],
       "ordem": 20
     }

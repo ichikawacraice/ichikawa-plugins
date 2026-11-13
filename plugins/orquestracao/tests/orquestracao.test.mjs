@@ -5,7 +5,7 @@ import { tmpdir, homedir } from 'node:os';
 import { join } from 'node:path';
 import * as estado from '../lib/estado.mjs';
 import { main } from '../lib/cli.mjs';
-import { html, servir } from '../lib/pagina.mjs';
+import { dados, html, servir } from '../lib/pagina.mjs';
 import { decidir as orquestradoraNaoEdita } from '../hooks/orquestradora-nao-edita.mjs';
 import { decidir as configProtegida } from '../hooks/config-protegida.mjs';
 import { decidir as segredoSai } from '../hooks/segredo-sai.mjs';
@@ -142,6 +142,50 @@ test('a página só aceita POST da própria origem e grava o pedido de resposta'
     const pedido = JSON.parse(readFileSync(join(pasta, readdirSync(pasta)[0]), 'utf8'));
     assert.equal(pedido.tipo, 'responder');
     assert.equal(pedido.sessao, SESSAO_DO_APP);
+  } finally {
+    servidor.close();
+  }
+});
+
+test('a página lista perguntas da mais antiga para a mais nova e os itens em ordem de F', () => {
+  const t = (min) => new Date(Date.UTC(2026, 10, 13, 12, min));
+  estado.criar('perguntas', 'p', { titulo: 'velha', estado: 'aberta' }, t(1));
+  estado.criar('perguntas', 'p', { titulo: 'nova', estado: 'aberta' }, t(9));
+  estado.criar('perguntas', 'p', { titulo: 'meio', estado: 'aberta' }, t(5));
+  for (let n = 1; n <= 11; n += 1) {
+    const entregue = n % 2 === 0;
+    estado.criar('itens', 'p', {
+      titulo: `i${n}`,
+      etapa: entregue ? 'feito' : 'execucao',
+      ...(entregue ? { entrega: { desfecho: 'entregue', resultado: 'ok', em: t(60 - n).toISOString() } } : {}),
+    }, t(60 - n));
+  }
+  const d = dados(t(120).getTime());
+  assert.deepEqual(d.perguntas.map(({ p }) => p.titulo), ['velha', 'meio', 'nova']);
+  assert.deepEqual(d.andamento.map(({ i }) => i.id), ['F1', 'F3', 'F5', 'F7', 'F9', 'F11']);
+  assert.deepEqual(d.entregas.map(({ i }) => i.id), ['F2', 'F4', 'F6', 'F8', 'F10']);
+});
+
+test('cada pergunta tem "Aceitar recomendação" e "Enviar resposta"; enviar vazio não grava', async () => {
+  estado.criar('perguntas', 'p', { titulo: 'A', estado: 'aberta' });
+  estado.criar('perguntas', 'p', { titulo: 'B', estado: 'aberta' });
+  estado.criar('perguntas', 'p', { titulo: 'C', estado: 'aberta' });
+  const h = html();
+  assert.equal(h.match(/name="acao" value="aceitar"/g)?.length, 3);
+  assert.equal(h.match(/name="acao" value="enviar"/g)?.length, 3);
+  assert.match(h, />Aceitar recomendação</);
+  assert.match(h, />Enviar resposta</);
+  const porta = 5400 + Math.floor(Math.random() * 500);
+  const servidor = await servir(porta);
+  try {
+    const url = `http://127.0.0.1:${porta}`;
+    const post = (corpo) => fetch(`${url}/responder`, { method: 'POST', redirect: 'manual', headers: { origin: url, 'content-type': 'application/x-www-form-urlencoded' }, body: corpo });
+    assert.equal((await post('projeto=p&id=Q1&acao=aceitar&resposta=')).status, 303);
+    assert.equal(estado.ler('perguntas', 'p', 'Q1').resposta, 'Sim, siga a recomendação.');
+    assert.equal((await post('projeto=p&id=Q2&acao=enviar&resposta=%20%20')).status, 400);
+    assert.equal(estado.ler('perguntas', 'p', 'Q2').estado, 'aberta');
+    assert.equal((await post('projeto=p&id=Q3&acao=enviar&resposta=n%C3%A3o')).status, 303);
+    assert.equal(estado.ler('perguntas', 'p', 'Q3').resposta, 'não');
   } finally {
     servidor.close();
   }

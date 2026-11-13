@@ -4,8 +4,10 @@ import type { EngineInterface, Register } from 'claude-code'
 import type { Ausente, Botao, Cache } from '../types'
 import {
   CACHE_TTL_MS,
+  COMANDO_COM_URL_PRAZO_MS,
   CONTADOR_INTERVALO_MS,
   CONTADOR_PRAZO_MS,
+  FERRAMENTA_NAVEGADOR_DO_APP,
   FONTES_DE_SETTINGS,
   PEDIDOS_INTERVALO_MS,
   argvDesacoplado,
@@ -160,10 +162,30 @@ export async function ler($: EngineInterface): Promise<void> {
   }
 }
 
+/**
+ * Abre a página no painel de navegador do app. Sem a ferramenta (o terminal, ou o app sem o painel), cai no
+ * navegador do sistema; recusa ou erro do app vira aviso.
+ */
+async function abrirNoApp($: EngineInterface, b: Botao, url: string): Promise<void> {
+  let r: { text?: string; isError?: boolean; deny?: string }
+  try {
+    r = (await $.tool.call({ tool: FERRAMENTA_NAVEGADOR_DO_APP, url } as never)) as typeof r
+  } catch {
+    await $.process.run(['open', url], { timeoutMs: CONTADOR_PRAZO_MS })
+    return
+  }
+  if (r.deny !== undefined) $.ui.toast(`"${b.rotulo}": o app não abriu o navegador (${r.deny || 'negado'}).`)
+  else if (r.isError) $.ui.toast(`"${b.rotulo}": o app não abriu o navegador (${r.text || 'erro sem texto'}).`)
+}
+
 export async function clicar($: EngineInterface, b: Botao): Promise<void> {
   try {
-    const r = await $.process.run(argvDesacoplado(b.comando), { timeoutMs: CONTADOR_PRAZO_MS, env: { CLAUDE_PLUGIN_ROOT: b.raiz } })
-    if (r.exitCode !== 0) $.ui.toast(`Não consegui rodar "${b.rotulo}" (${r.stderr.trim() || `saída ${r.exitCode}`}).`)
+    // Com `url`, o comando sobe a página e a barra espera ele terminar para abrir no navegador do app.
+    const argv = b.url ? b.comando : argvDesacoplado(b.comando)
+    const prazo = b.url ? COMANDO_COM_URL_PRAZO_MS : CONTADOR_PRAZO_MS
+    const r = await $.process.run(argv, { timeoutMs: prazo, env: { CLAUDE_PLUGIN_ROOT: b.raiz } })
+    if (r.exitCode !== 0) return void $.ui.toast(`Não consegui rodar "${b.rotulo}" (${r.stderr.trim() || `saída ${r.exitCode}`}).`)
+    if (b.url) await abrirNoApp($, b, b.url)
   } catch (err) {
     $.ui.toast(`Não consegui rodar "${b.rotulo}" (${mensagem(err)}).`)
   }
