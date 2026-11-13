@@ -15,7 +15,8 @@
   --espaco: #030014;
   --texto: #ffffff;
   --texto-2: rgba(239, 237, 253, 0.6);
-  --texto-3: rgba(239, 237, 253, 0.42);
+  /* .55 sobre #030014 dá ~5,5:1 (WCAG AA para texto de 12 px, com folga sobre o vidro). */
+  --texto-3: rgba(239, 237, 253, 0.55);
   --fio: rgba(239, 237, 253, 0.08);
   --fio-forte: rgba(239, 237, 253, 0.14);
   --vidro: rgba(14, 10, 36, 0.5);
@@ -39,6 +40,7 @@
   --t-h2-linha: 22px;
   --t-cartao: 15px;
   --t-corpo: 14px;
+  --t-apoio: 13px;
   --t-meta: 12px;
 
   /* Forma */
@@ -81,7 +83,7 @@ h1 {
   background-clip: text;
   color: transparent;
 }
-.subtitulo { margin: 6px 0 0; color: var(--texto-2); font-size: 13px; line-height: 18px; font-variant-numeric: tabular-nums; }
+.subtitulo { margin: 6px 0 0; color: var(--texto-2); font-size: var(--t-apoio); line-height: 18px; font-variant-numeric: tabular-nums; }
 
 h2, h3 { font-family: var(--titulo); font-weight: 500; }
 h2 { margin: 0; font-size: var(--t-h2); line-height: var(--t-h2-linha); letter-spacing: -0.01em; }

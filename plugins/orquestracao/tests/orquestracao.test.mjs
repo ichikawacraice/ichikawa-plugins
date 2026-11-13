@@ -176,6 +176,12 @@ test('o topo da página resume o que espera por você', () => {
   assert.match(topo, /<h1>Perguntas do kit<\/h1>/);
   assert.match(topo, /1 pergunta esperando · 1 em andamento/);
   assert.match(html(), /<link rel="preload" href="\/fontes\/geist-medium\.woff2" as="font" type="font\/woff2" crossorigin>/);
+  estado.criar('perguntas', 'p', { titulo: 'B', estado: 'aberta' });
+  assert.match(html(), /<p class="subtitulo">2 perguntas esperando · 1 em andamento<\/p>/);
+});
+
+test('com nada esperando, o topo diz que está tudo em dia', () => {
+  assert.match(html(), /<p class="subtitulo">Tudo em dia\.<\/p>/);
 });
 
 test('a página só aceita POST da própria origem e grava o pedido de resposta', async () => {

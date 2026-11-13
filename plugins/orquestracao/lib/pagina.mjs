@@ -125,12 +125,12 @@ const verMais = (resto) => (resto.length
 
 const quantos = (n, um, varios) => `${n} ${n === 1 ? um : varios}`;
 
-/** A linha de apoio do topo: o que espera por você agora, em uma frase. */
+/** A linha de apoio do topo: quantas perguntas esperam por você e quantos itens estão em andamento. */
 function resumo(perguntas, andamento) {
   const partes = [];
   if (perguntas.length) partes.push(quantos(perguntas.length, 'pergunta esperando', 'perguntas esperando'));
   if (andamento.length) partes.push(`${andamento.length} em andamento`);
-  return partes.join(' · ') || 'Nada esperando por você.';
+  return partes.join(' · ') || 'Tudo em dia.';
 }
 
 export function html(agora = Date.now()) {
