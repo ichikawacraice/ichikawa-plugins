@@ -119,14 +119,18 @@ function cartaoDeSessao(projeto, s, agora) {
 ${esteiraHtml(s.esteira)}${esperas}${s.motivo ? `<p class="motivo">${esc(s.motivo)}</p>` : ''}${meta.length ? `<p class="quando">${meta.join(' · ')}</p>` : ''}</li>`;
 }
 
-/** Sessões abertas que não são dona de item vivo (a orquestradora, uma dona que entregou e não se arquivou): uma linha cada. */
-const linhasSemItem = (outras, agora) => (outras.length
-  ? `<li class="sem-item"><p class="rotulo-sem-item">Outras sessões abertas</p><ul>${outras.map((o) => `<li>${marcador(o.rodando ? 'trabalhando' : 'quieta', o.rodando)}<span class="titulo-sem-item">${esc(o.titulo)}</span><span class="quando">${[atividade(o, agora), abrirNoApp(o.link)].filter(Boolean).join(' · ')}</span></li>`).join('')}</ul></li>`
+/** Sessão sem item que está rodando: cartão como as ativas (ativa tem um só desenho), sem id nem esteira, que não tem. */
+const cartaoSemItem = (o, agora) => `<li class="sessao sessao-trabalhando sessao-sem-item"><div class="cartao-cab">${marcador('trabalhando', true)}<span class="cartao-titulo">${esc(o.titulo)}</span><span class="selo selo-sessao-trabalhando">${esc(ROTULO_DO_ESTADO.trabalhando)}</span></div>
+<p class="quando">${[esc(atividade(o, agora)), abrirNoApp(o.link)].filter(Boolean).join(' · ')}</p></li>`;
+
+/** Sessões sem item paradas (a orquestradora quieta, uma dona que entregou e não se arquivou): o pontilhado, uma linha cada. */
+const linhasSemItem = (paradas, agora) => (paradas.length
+  ? `<li class="sem-item"><p class="rotulo-sem-item">Sessões paradas</p><ul>${paradas.map((o) => `<li>${marcador('quieta', false)}<span class="titulo-sem-item">${esc(o.titulo)}</span><span class="quando">${[atividade(o, agora), abrirNoApp(o.link)].filter(Boolean).join(' · ')}</span></li>`).join('')}</ul></li>`
   : '');
 
 /** Sessões, um grupo por projeto, o mais urgente em cima. */
 const grupos = (sessoes, agora) => sessoes.grupos.map((g) => `<li class="grupo-de-projeto"><h3 class="grupo">${esc(g.projeto)}</h3>
-<ul class="cartoes">${g.sessoes.map((s) => cartaoDeSessao(g.projeto, s, agora)).join('\n')}${linhasSemItem(g.outras, agora)}</ul></li>`);
+<ul class="cartoes">${g.sessoes.map((s) => cartaoDeSessao(g.projeto, s, agora)).join('\n')}${g.outras.filter((o) => o.rodando).map((o) => cartaoSemItem(o, agora)).join('\n')}${linhasSemItem(g.outras.filter((o) => !o.rodando), agora)}</ul></li>`);
 
 /** Ao lado do título: a idade da leitura do app; velha ou ausente, diz o que falta. */
 function frescor(sessoes, agora) {
