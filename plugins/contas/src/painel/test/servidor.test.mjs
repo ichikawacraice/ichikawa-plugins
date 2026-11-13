@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import http from 'node:http';
-import { writeFileSync } from 'node:fs';
+import { mkdirSync, writeFileSync } from 'node:fs';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { criarServidor } from '../servidor.mjs';
@@ -33,7 +33,7 @@ test('serve a tela com CSP e recusa Host de fora', async () => {
   const m = montar();
   const s = await subir(m.env);
   try {
-    for (const [caminho, tipo] of [['/', /text\/html/], ['/app.js', /javascript/], ['/regras.js', /javascript/], ['/ceu.js', /javascript/], ['/estilo.css', /text\/css/], ['/cotas.css', /text\/css/], ['/planeta.js', /javascript/], ['/fontes/geist-medium.woff2', /font\/woff2/]]) {
+    for (const [caminho, tipo] of [['/', /text\/html/], ['/app.js', /javascript/], ['/regras.js', /javascript/], ['/ceu.js', /javascript/], ['/ceu-dia.js', /javascript/], ['/estilo.css', /text\/css/], ['/cotas.css', /text\/css/], ['/planeta.js', /javascript/], ['/fontes/geist-medium.woff2', /font\/woff2/]]) {
       const r = await pedir(s.porta, caminho);
       assert.equal(r.status, 200, caminho);
       assert.ok(r.texto.length > 0, caminho);
@@ -43,6 +43,24 @@ test('serve a tela com CSP e recusa Host de fora', async () => {
     assert.equal((await pedir(s.porta, '/', { host: 'malicioso.com' })).status, 403);
     assert.equal((await pedir(s.porta, '/nada')).status, 404);
     assert.equal((await pedir(s.porta, '/api/saude')).json.painel, 'contas');
+  } finally { await s.fechar(); }
+});
+
+test('o céu segue o modo ausente do kit: dia desligado (e sem arquivo), noite ligado', async () => {
+  const m = montar();
+  const s = await subir(m.env);
+  try {
+    assert.match((await pedir(s.porta, '/')).texto, /<html lang="pt-BR" data-ceu="dia">/);
+    assert.deepEqual((await pedir(s.porta, '/api/ceu')).json, { ceu: 'dia' });
+    const pasta = join(m.home, '.claude', 'ichikawa');
+    mkdirSync(pasta, { recursive: true });
+    writeFileSync(join(pasta, 'ausente.json'), '{"ligado":true}');
+    assert.match((await pedir(s.porta, '/')).texto, /<html lang="pt-BR" data-ceu="noite">/);
+    const r = await pedir(s.porta, '/api/ceu');
+    assert.deepEqual(r.json, { ceu: 'noite' });
+    assert.equal(r.headers['cache-control'], 'no-store');
+    writeFileSync(join(pasta, 'ausente.json'), 'não é json');
+    assert.deepEqual((await pedir(s.porta, '/api/ceu')).json, { ceu: 'dia' });
   } finally { await s.fechar(); }
 });
 

@@ -154,6 +154,11 @@ test('a página serve o céu e o planeta do rodapé que ele importa', async () =
     assert.equal(planeta.status, 200);
     assert.match(planeta.headers.get('content-type'), /javascript/);
     assert.match(await planeta.text(), /export function quadroPlaneta/);
+    assert.match(ceu, /from '\.\/ceu-dia\.js'/);
+    const dia = await fetch(`${url}/ceu-dia.js`);
+    assert.equal(dia.status, 200);
+    assert.match(dia.headers.get('content-type'), /javascript/);
+    assert.match(await dia.text(), /export function iniciarCeuDia/);
   } finally {
     servidor.close();
   }
@@ -209,6 +214,12 @@ test('o topo avisa se o modo ausente está ligado ou desligado', () => {
   const topo = topoDe(html());
   assert.match(topo, /class="aviso-ausente ligado"[^>]*>[\s\S]*Ausente ligado/);
   assert.match(topo, /desde 13\/11\/2026, 21:15/);
+});
+
+test('o céu segue o modo ausente: dia com ele desligado, a noite de hoje com ele ligado', () => {
+  assert.match(html(), /^<!doctype html><html lang="pt-BR" data-ceu="dia">/);
+  writeFileSync(join(process.env.ICHIKAWA_HOME, 'ausente.json'), '{"ligado":true}');
+  assert.match(html(), /^<!doctype html><html lang="pt-BR" data-ceu="noite">/);
 });
 
 test('a página só aceita POST da própria origem e grava o pedido de resposta', async () => {

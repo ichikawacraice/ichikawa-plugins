@@ -1,4 +1,5 @@
 /* Base do Painel (perguntas, sessões e entregas): tokens, tipografia, topo, seções, botões e pé. Os cartões ficam em perguntas.css.
+   Dois céus: a noite (`:root`, modo ausente ligado) e o dia (`:root[data-ceu="dia"]`, ausente desligado), que só redefine tokens.
    Inspirada no reflect.app (sem copiar nada dele): fundo quase preto puxado ao violeta, títulos em Geist 500,
    corpo em system-ui, muito respiro e fios finos. Feita para uma coluna estreita (300–420 px); em tela larga
    as colunas ficam lado a lado. */
@@ -33,6 +34,19 @@
   --aguarda: #f5d27a;
   --trabalhando: #8ec5ff;
   --entregou: var(--ok);
+  /* Literais de antes, agora tokens: o dia troca só estes valores. */
+  --texto-campo: rgba(255, 255, 255, 0.9);
+  --campo-fundo: rgba(3, 0, 20, 0.6);
+  --h1-degrade: linear-gradient(180deg, #ffffff 30%, #cbb8ff);
+  --contagem-fundo: transparent;
+  --botao-fundo: rgba(255, 255, 255, 0.03);
+  --botao-borda-hover: rgba(196, 181, 253, 0.45);
+  --botao-fundo-hover: rgba(139, 92, 246, 0.1);
+  --primario-texto: var(--botao-texto);
+  --primario-fundo: linear-gradient(180deg, rgba(139, 92, 246, 0.42), rgba(109, 62, 220, 0.3));
+  --primario-fundo-hover: linear-gradient(180deg, rgba(150, 105, 250, 0.55), rgba(118, 72, 230, 0.4));
+  --primario-borda: rgba(196, 181, 253, 0.5);
+  --primario-sombra: 0 0 0 1px rgba(255, 255, 255, 0.04) inset, 0 6px 20px -10px rgba(139, 92, 246, 0.9);
 
   /* Tipo: títulos em Geist, o resto no sistema */
   --titulo: "Geist", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
@@ -56,6 +70,42 @@
   color-scheme: dark;
 }
 
+/* O dia (ICH-F21): céu azul claro atrás, texto azul-marinho, vidro branco fosco plano (sem sombra), acento cobalto.
+   Contraste medido sobre o céu de ceu-dia.js: texto 6,6:1; apoio 5,2:1; metadado 4,6:1; acento ≥5,5:1 (AA). */
+:root[data-ceu="dia"] {
+  --espaco: #9ccdf4;
+  --texto: #0b1f3a;
+  --texto-2: #183452;
+  --texto-3: #1f3d5f;
+  --fio: rgba(13, 36, 67, 0.12);
+  --fio-forte: rgba(13, 36, 67, 0.22);
+  --vidro: rgba(255, 255, 255, 0.5);
+  --vidro-forte: rgba(255, 255, 255, 0.78);
+  --lilas: #1f4fc4;
+  --violeta: #2a5bd7;
+  --violeta-fundo: rgba(255, 255, 255, 0.5);
+  --botao-texto: #0d2443;
+  --ok: #075a43;
+  --alto: #744700;
+  --critico: #9a1d35;
+  --foco: #0d2443;
+  --aguarda: #744700;
+  --trabalhando: #164f8e;
+  --texto-campo: #12294a;
+  --campo-fundo: rgba(255, 255, 255, 0.75);
+  --h1-degrade: linear-gradient(180deg, #0b2142 35%, #23548f);
+  --contagem-fundo: rgba(255, 255, 255, 0.72);
+  --botao-fundo: rgba(255, 255, 255, 0.55);
+  --botao-borda-hover: rgba(13, 36, 67, 0.4);
+  --botao-fundo-hover: rgba(255, 255, 255, 0.85);
+  --primario-texto: #ffffff;
+  --primario-fundo: linear-gradient(180deg, #2a5bd7, #1f4fc4);
+  --primario-fundo-hover: linear-gradient(180deg, #2450c4, #1a43a8);
+  --primario-borda: rgba(15, 40, 110, 0.3);
+  --primario-sombra: none;
+  color-scheme: light;
+}
+
 * { box-sizing: border-box; }
 html { background: var(--espaco); }
 body {
@@ -77,7 +127,7 @@ h1 {
   margin: 0;
   font: 500 var(--t-h1)/var(--t-h1-linha) var(--titulo);
   letter-spacing: -0.02em;
-  background: linear-gradient(180deg, #ffffff 30%, #cbb8ff);
+  background: var(--h1-degrade);
   -webkit-background-clip: text;
   background-clip: text;
   color: transparent;
@@ -88,7 +138,7 @@ h1 {
   min-width: 36px; padding: 2px 10px;
   font: 500 var(--t-apoio)/20px var(--titulo); font-variant-numeric: tabular-nums; text-align: center;
   color: var(--cor); border: 1px solid color-mix(in srgb, var(--cor) 40%, transparent);
-  background: color-mix(in srgb, var(--cor) 10%, transparent); border-radius: 999px;
+  background: color-mix(in srgb, var(--cor) 10%, var(--contagem-fundo)); border-radius: 999px;
 }
 .contagem-aguarda { --cor: var(--aguarda); }
 .contagem-trabalhando { --cor: var(--trabalhando); }
@@ -119,19 +169,20 @@ main > div > .secao:first-child { border-top: 0; padding-top: 0; }
 button {
   font: 500 13px/1.2 var(--fonte);
   min-height: 36px; padding: 8px 14px;
-  color: var(--botao-texto); background: rgba(255, 255, 255, 0.03);
+  color: var(--botao-texto); background: var(--botao-fundo);
   border: 1px solid var(--fio-forte); border-radius: var(--raio-botao);
   cursor: pointer;
   transition: border-color 0.15s, background-color 0.15s, box-shadow 0.15s;
 }
-button:hover:not(:disabled) { border-color: rgba(196, 181, 253, 0.45); background: rgba(139, 92, 246, 0.1); }
+button:hover:not(:disabled) { border-color: var(--botao-borda-hover); background: var(--botao-fundo-hover); }
 button:disabled { opacity: 0.45; cursor: default; }
 button.primario {
-  background: linear-gradient(180deg, rgba(139, 92, 246, 0.42), rgba(109, 62, 220, 0.3));
-  border-color: rgba(196, 181, 253, 0.5);
-  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.04) inset, 0 6px 20px -10px rgba(139, 92, 246, 0.9);
+  color: var(--primario-texto);
+  background: var(--primario-fundo);
+  border-color: var(--primario-borda);
+  box-shadow: var(--primario-sombra);
 }
-button.primario:hover:not(:disabled) { background: linear-gradient(180deg, rgba(150, 105, 250, 0.55), rgba(118, 72, 230, 0.4)); border-color: var(--lilas); }
+button.primario:hover:not(:disabled) { background: var(--primario-fundo-hover); border-color: var(--lilas); }
 button:focus-visible { outline: 2px solid var(--foco); outline-offset: 2px; }
 
 /* ---- listas ---- */
@@ -141,6 +192,7 @@ ul { list-style: none; margin: 14px 0 0; padding: 0; display: grid; gap: 10px; }
 /* ---- pé ---- */
 .pe { color: var(--texto-3); font-size: var(--t-meta); line-height: 16px; text-align: center; padding-top: 32px; padding-bottom: calc(var(--planeta) + 20px); }
 .pe p { margin: 0; }
+.pe .assinatura { margin-top: 10px; font-family: var(--titulo); letter-spacing: .08em; }
 
 /* ---- tela larga: duas colunas, títulos um degrau acima ---- */
 @media (min-width: 900px) {

@@ -136,9 +136,11 @@ Cada plugin que quer botão na barra traz um `barra.json` na raiz dele (ao lado 
 
 ## Layout comum das páginas
 
-Toda página local dos plugins (perguntas, contas e as que vierem) usa o mesmo visual: céu noturno com planeta no rodapé, cartões de vidro, títulos em Geist, topo centralizado (selo, título, subtítulo) e duas colunas em tela larga.
+Toda página local dos plugins (perguntas, contas e as que vierem) usa o mesmo visual: céu com o astro no rodapé, cartões de vidro, títulos em Geist, topo centralizado (selo, título, subtítulo) e duas colunas em tela larga.
 
-- **A fonte é a página de perguntas**, `plugins/orquestracao/lib/publico/`: `estilo.css` (tokens, tipografia, topo, seções, botões, pé), `ceu.js`, `planeta.js` e `fontes/` (`geist-medium.woff2` com a licença `OFL-geist.txt`).
+- **A fonte é a página de perguntas**, `plugins/orquestracao/lib/publico/`: `estilo.css` (tokens, tipografia, topo, seções, botões, pé), `ceu.js`, `ceu-dia.js`, `planeta.js` e `fontes/` (`geist-medium.woff2` com a licença `OFL-geist.txt`).
 - As outras páginas levam **cópia idêntica** desses arquivos (o painel de contas, em `plugins/contas/src/painel/publico/`) e acrescentam só classes próprias num arquivo à parte (`perguntas.css`, `cotas.css`).
 - O arquivo próprio usa só os tokens da base (`var(--…)`; tom translúcido por `color-mix`), sem cor solta: o tema troca os tokens em `estilo.css` e todas as páginas acompanham.
+- **Dois céus, pelo modo ausente** (`ausente.json` em `ICHIKAWA_HOME`, padrão `~/.claude/ichikawa`): ligado, a noite (via láctea e planeta, os tokens de `:root`); desligado, sem arquivo ou ilegível, o dia (céu azul, nuvens e sol, os tokens de `:root[data-ceu="dia"]`). O servidor grava `data-ceu="noite|dia"` no `<html>`; `ceu.js` desenha o céu pedido e troca sozinho quando o atributo muda. A página de perguntas acompanha no recarregamento de 30 s; o painel de contas confere `GET /api/ceu` a cada 10 s.
+- O arquivo próprio pode trazer ajustes só do dia sob `:root[data-ceu="dia"]` (ex.: tirar brilhos), nunca cor que valha só para um céu fora desse bloco.
 - Mudar o visual é mudar a fonte e copiar nas outras no mesmo PR. `plugins/contas/src/painel/test/layout-comum.test.mjs` falha se as cópias divergirem.
