@@ -97,5 +97,6 @@ test('a página mostra as sessões: marcador, esteira, pergunta com âncora, PR 
   assert.match(h, /<li id="pergunta-kit-Q1">/);
   assert.match(sec, /PR #3 aberto · rodando agora · <a class="abrir-app" href="claude:\/\/claude.ai\/epitaxy\/local_1">Abrir no app<\/a>/);
   assert.match(sec, /🎛 orquestradora<\/span><span class="quando">última atividade há 5 min/);
-  assert.match(h, /1 pergunta esperando · 2 sessões ativas/);
+  assert.match(h, /<span class="so-leitor">1 pergunta esperando você<\/span>/);
+  assert.match(h, /<span class="so-leitor">1 item em andamento<\/span>/);
 });
