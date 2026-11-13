@@ -53,6 +53,7 @@ A tarefa é a menor unidade com ciclo de teste próprio e entrega que se testa s
 ### Tarefa N: <componente>
 
 **Risco:** não | sim — <auth/permissão/segredo · dinheiro · migration ou dado que não volta · diff grande>
+**Depende de:** nenhuma | Tarefa N, Tarefa M
 **Arquivos:**
 - Criar: `caminho/exato/arquivo.ts`
 - Mudar: `caminho/exato/existente.ts:123-145`
@@ -66,8 +67,10 @@ A tarefa é a menor unidade com ciclo de teste próprio e entrega que se testa s
 - [ ] **Passo 2: ver falhar** — `npm run test:afetados -- caminho/arquivo.test.ts` → esperado: FAIL, "validarEmail is not defined"
 - [ ] **Passo 3: implementar `validarEmail(email: string): Resultado` em `caminho/arquivo.ts`** — uma linha sobre a abordagem, se a assinatura e o teste deixarem escolha
 - [ ] **Passo 4: ver passar** — mesmo comando + typecheck → esperado: PASS, 0 erros
-- [ ] **Passo 5: commit** — `feat: valida e-mail no cadastro`
+- [ ] **Passo 5: commit (pela sessão que coordena, só os arquivos da tarefa)** — `feat: valida e-mail no cadastro`
 ````
+
+**Ondas.** Depois das tarefas, uma seção `## Ondas` agrupa o que roda ao mesmo tempo: `Onda 1: Tarefas 1, 3, 4` · `Onda 2: Tarefas 2, 5`. Na mesma onda só entram tarefas que não dependem uma da outra e não têm arquivo em comum, até 4 por onda. Vai **sozinha** na onda a tarefa que mexe no que todas usam: dependência ou lockfile, arquivo gerado (tipos, catálogo, compêndio), configuração global, migration ou numeração (ADR, spec). Tarefa que lê a interface de outra entra na onda seguinte. O **Arquivos:** de cada tarefa tem de ser completo: é ele que impede duas executoras de escreverem no mesmo arquivo.
 
 **Risco** decide a revisão: só tarefa marcada "sim" ganha o `orquestracao:revisor` (ver `orquestracao:revisar`). Marque pelo critério, não por cautela: auth, permissão ou segredo; dinheiro; migration ou dado que não volta; diff previsto acima de ~400 linhas de código.
 

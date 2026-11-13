@@ -25,7 +25,7 @@ Subagente trabalha com contexto isolado. Você monta exatamente o que ele precis
 | Revisão de item de risco | `orquestracao:revisor` | Ver `orquestracao:revisar` |
 | Decidir, desenhar, julgar | você, em Opus | Quem decide não delega a decisão |
 
-Agente que grava em paralelo com outro precisa de **árvore própria** (`isolation: "worktree"`); dois executores na mesma pasta brigam. Depois, as branches dos worktrees se juntam na sua, uma por vez, conferindo cada uma.
+Agentes que gravam em paralelo dividem a **mesma pasta** quando os arquivos de cada um são disjuntos e declarados, nenhum commita e nenhum roda typecheck, lint ou formatador do projeto inteiro (é assim que o `orquestracao:executar-plano` roda as ondas). Se dividem arquivo, dependência, lockfile ou arquivo gerado, vão em sequência ou cada um na **árvore própria** (`isolation: "worktree"`). Depois, as branches dos worktrees se juntam na sua, uma por vez, conferindo cada uma.
 
 ## Como
 

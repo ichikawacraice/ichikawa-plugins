@@ -1,6 +1,6 @@
 ---
 name: executar-plano
-description: Executa um plano de docs/planos/ tarefa por tarefa — a sessão coordena em Opus e manda o código de cada tarefa ao subagente orquestracao:executor (Sonnet), confere testes afetados e typecheck, registra o andamento no próprio plano e só chama revisor nas tarefas de risco. Use quando houver um plano pronto para implementar, quando o operador disser "executa o plano", "pode fazer", "segue o plano", ou ao retomar um plano pela metade depois de compactar ou limpar o contexto.
+description: Executa um plano de docs/planos/ em ondas — as tarefas independentes de cada onda saem juntas, uma executora por tarefa na mesma pasta; a sessão coordena em Opus e manda o código de cada tarefa ao subagente orquestracao:executor (Sonnet), confere testes afetados e typecheck, registra o andamento no próprio plano e só chama revisor nas tarefas de risco. Use quando houver um plano pronto para implementar, quando o operador disser "executa o plano", "pode fazer", "segue o plano", ou ao retomar um plano pela metade depois de compactar ou limpar o contexto.
 ---
 
 # Executar o plano
@@ -26,12 +26,18 @@ O `## Andamento` é o seu diário de bordo, **no próprio plano**: uma linha por
 
 ## Por tarefa
 
+## Ondas (o padrão)
+
+O plano agrupa as tarefas em `## Ondas`. **Cada onda sai de uma vez:** uma executora por tarefa, todas na mesma mensagem e **na mesma pasta** (sem worktree). Isso funciona porque as tarefas da onda não dividem arquivo e a executora não commita, não roda o typecheck nem formatador do projeto (eles veriam o trabalho pela metade das outras): ela roda só os testes dela. Onda de uma tarefa é o caso de sempre. Plano sem `## Ondas`: monte as ondas você pelo **Depende de:** e pelos **Arquivos:** antes de começar, e registre no `## Andamento`.
+
+Quando todas da onda voltam, os passos 2 a 5 abaixo valem para a onda: trate os relatos, confira a onda inteira de uma vez, revise as tarefas de risco (os revisores da onda também saem juntos, são só leitura) e commite tarefa por tarefa.
+
 ### 1. Mandar ao executor
 
-Anote `BASE=$(git rev-parse HEAD)`. Lance `orquestracao:executor` com o molde de [executor-prompt.md](executor-prompt.md): onde a tarefa se encaixa (uma linha), o caminho do plano e **qual tarefa** (o executor lê só a dela), as interfaces e decisões de tarefas anteriores que o texto dela não conhece, a sua resolução de qualquer ambiguidade que notou, e os comandos de verificação.
+Anote `BASE=$(git rev-parse HEAD)` uma vez por onda. Lance `orquestracao:executor` com o molde de [executor-prompt.md](executor-prompt.md): onde a tarefa se encaixa (uma linha), o caminho do plano e **qual tarefa** (o executor lê só a dela), as interfaces e decisões de tarefas anteriores que o texto dela não conhece, a sua resolução de qualquer ambiguidade que notou, e os comandos de verificação.
 
 - Não cole histórico de tarefas anteriores. Tarefa, interfaces que toca, restrições globais. Mais nada.
-- **Nunca dois executores em paralelo na mesma árvore.** Tarefas independentes em arquivos disjuntos podem ir em paralelo só em worktrees separados (`orquestracao:paralelizar-agentes`).
+- **Em onda**, cada executora recebe a lista exata de arquivos da tarefa dela e o aviso de que outras trabalham na mesma pasta (bloco *Em onda* do molde). Nunca mande duas executoras ao mesmo arquivo.
 - Tarefa de uma linha mecânica, ou correção pequena depois de uma revisão: pode fazer você mesmo — mandar custa mais que fazer.
 
 ### 2. Tratar o relato
@@ -47,21 +53,23 @@ O executor devolve um de quatro estados:
 
 O relato do executor é alegação, não evidência (`orquestracao:verificar-antes-de-concluir`):
 
-- `git log --oneline $BASE..HEAD` e `git diff --stat $BASE..HEAD`: os commits e arquivos são os que a tarefa previa?
-- Rode **você** os testes afetados e o typecheck do plano. Leia a saída.
+- `git status --porcelain` e `git diff --stat`: cada arquivo mudado pertence aos **Arquivos:** de uma tarefa da onda. Arquivo fora de todas as listas: pare e descubra quem mexeu antes de seguir.
+- Rode **você**, uma vez para a onda, os testes afetados das tarefas e o typecheck do plano. Leia a saída. Vermelho: ache pelo arquivo de qual tarefa é e devolva só àquela executora, com a linha da falha.
 - O relato traz o vermelho visto antes do verde? Sem ele, o teste não provou nada (`orquestracao:tdd`).
 
 ### 4. Revisão — só se a tarefa tem risco
 
-`Risco: sim` no plano (auth/permissão/segredo, dinheiro, migration ou dado que não volta, diff > ~400 linhas) → `orquestracao:revisar` com o intervalo `$BASE..HEAD` da tarefa. Achado Crítico ou Importante: mande o executor corrigir (com os achados, não a sua interpretação), confira de novo. Use `orquestracao:receber-revisao` para pesar cada achado.
+`Risco: sim` no plano (auth/permissão/segredo, dinheiro, migration ou dado que não volta, diff > ~400 linhas) → `orquestracao:revisar` com o `git diff -- <arquivos da tarefa>` (antes do commit) ou o commit dela. Achado Crítico ou Importante: mande o executor corrigir (com os achados, não a sua interpretação), confira de novo. Use `orquestracao:receber-revisao` para pesar cada achado.
 
 Sem risco: a conferência do passo 3 basta. Não lance revisor "por garantia".
 
 ### 5. Registrar
 
+Commite **você**, uma tarefa por commit, só os arquivos dela: `git add -- <arquivos da tarefa>` e `git commit -m "<mensagem do Passo 5>"`. Nunca `git add -A` nem `git add .`: varre o arquivo de outra tarefa para o commit errado.
+
 Na mesma rodada, marque os checkboxes da tarefa e acrescente ao `## Andamento`:
 
-`Tarefa N: feita (commits <base7>..<head7>, <comando> → <resultado>[, revisada])`
+`Tarefa N: feita (onda K, commit <hash7>, <comando> → <resultado>[, revisada])`
 
 ## Fim do plano
 
@@ -77,6 +85,8 @@ Na mesma rodada, marque os checkboxes da tarefa e acrescente ao `## Andamento`:
 |---|---|
 | "Lembro o que a Tarefa N diz" | Lembra um resumo. O plano tem os valores exatos. |
 | "O executor disse que passou" | Rode você. Relato não é evidência. |
+| "Uma tarefa por vez é mais seguro" | Com arquivos disjuntos e sem commit da executora, a onda é tão segura quanto e leva o tempo da tarefa mais lenta, não a soma. |
+| "`git add -A` e depois separo" | Separar depois é reescrever história. `git add -- <arquivos>` por tarefa. |
 | "Vou revisar tudo, por garantia" | Revisão é para risco. Fora dele, conferência + autorrevisão. |
 | "O plano está errado aqui, faço o certo e pronto" | Faça o certo **e registre a decisão**. Desvio sem registro é decisão escondida. |
 | "Escrevo o andamento depois de umas tarefas" | Compactação não espera. Uma linha por tarefa, junto do commit. |
