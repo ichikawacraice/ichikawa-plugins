@@ -1,4 +1,4 @@
-# claude-account-switcher
+# contas
 
 Painel local para quem usa várias contas no app desktop do Claude no Mac:
 
@@ -12,12 +12,11 @@ Tudo roda em `127.0.0.1`, sem dependência npm (Node ≥ 20, só módulos nativo
 ## Instalar
 
 ```bash
-git clone <este repositório> claude-account-switcher
-cd claude-account-switcher
-npm link   # deixa os comandos `painel-de-contas` e `trocar-conta` no PATH
+claude plugin marketplace add ichikawacraice/ichikawa-plugins
+claude plugin install contas@ichikawa-plugins
 ```
 
-Sem `npm link`: `node src/painel/cli.mjs` e `node src/troca/cli.mjs`.
+Com o plugin `barra` ligado, o botão **Contas** abre o painel. Sem o plugin, de dentro desta pasta: `node src/painel/cli.mjs` e `node src/troca/cli.mjs` (ou `npm link` para ter `painel-de-contas` e `trocar-conta` no PATH).
 
 ## Usar
 

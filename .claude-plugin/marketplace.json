@@ -1,6 +1,8 @@
 {
   "name": "ichikawa-plugins",
-  "owner": { "name": "ichikawacraice" },
+  "owner": {
+    "name": "ichikawacraice"
+  },
   "plugins": [
     {
       "name": "orquestracao",
@@ -19,7 +21,7 @@
     },
     {
       "name": "contas",
-      "source": { "source": "github", "repo": "ichikawacraice/claude-account-switcher", "ref": "develop" },
+      "source": "./plugins/contas",
       "description": "O painel de contas do Claude: ver o uso de cada conta e trocar de conta."
     }
   ]

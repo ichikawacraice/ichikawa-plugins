@@ -1,5 +1,5 @@
 {
-  "name": "claude-account-switcher",
+  "name": "contas",
   "version": "0.1.0",
   "description": "Painel local para várias contas do app do Claude no Mac: cota de cada conta, troca sem Sign out e as sessões do Code continuando na conta nova.",
   "private": true,

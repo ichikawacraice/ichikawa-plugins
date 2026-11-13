@@ -4,7 +4,12 @@
   "author": {
     "name": "Gabriel Ichikawa Craice"
   },
-  "repository": "https://github.com/ichikawacraice/claude-account-switcher",
+  "repository": "https://github.com/ichikawacraice/ichikawa-plugins",
   "license": "Apache-2.0",
-  "keywords": ["contas", "cota", "troca-de-conta", "macos"]
+  "keywords": [
+    "contas",
+    "cota",
+    "troca-de-conta",
+    "macos"
+  ]
 }

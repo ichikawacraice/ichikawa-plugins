@@ -121,4 +121,4 @@ Cada plugin que quer botão na barra traz um `barra.json` na raiz dele (ao lado 
 
 ## Layout comum das páginas
 
-Toda página local dos plugins (contas, perguntas e as que vierem) usa o mesmo visual: o do painel de contas (`claude-account-switcher/src/painel/publico/estilo.css` e `ceu.js`, céu noturno com cartões de vidro). A fonte é o painel de contas; as outras páginas levam uma cópia idêntica dos dois arquivos e acrescentam só classes próprias num arquivo à parte. Mudar o visual é mudar o original e copiar nos outros no mesmo dia.
+Toda página local dos plugins (contas, perguntas e as que vierem) usa o mesmo visual: o do painel de contas (`plugins/contas/src/painel/publico/estilo.css` e `ceu.js`, céu noturno com cartões de vidro). A fonte é o painel de contas; as outras páginas levam uma cópia idêntica dos dois arquivos e acrescentam só classes próprias num arquivo à parte. Mudar o visual é mudar o original e copiar nos outros no mesmo dia.
