@@ -1,6 +1,6 @@
 // A tela do painel: lê `/api/contas` e `/api/sessoes`, desenha e manda as ações. Texto da tela nunca vem cru do servidor
 // como HTML: tudo entra por `textContent`.
-import { desfecho, erroDoUso, fraseDaChave, fraseDoAndamento, haQuanto, identidade, janelas, ordenarContas, validarNome } from './regras.js';
+import { avisoDaCota, desfecho, erroDoUso, fraseDaChave, fraseDoAndamento, haQuanto, identidade, janelas, ordenarContas, validarNome } from './regras.js';
 
 const CABECALHO = { 'X-Painel-De-Contas': '1', 'Content-Type': 'application/json' };
 const INTERVALO_CALMO_MS = 15_000;
@@ -80,6 +80,13 @@ function desenharFaixas() {
   erro.hidden = !d?.erro;
   erro.textContent = d?.erroCodigo === 'semConfig' ? 'Não achei o app do Claude neste Mac (o config.json dele não existe).' : d?.erroCodigo === 'formato' ? 'O app do Claude está num formato que o painel não conhece; nada será trocado.' : d?.erro ? `Não consegui ler as contas: ${d.erro}` : '';
 
+  const avisoCota = d && !d.erro ? avisoDaCota({ contas: d.contas, uso: d.uso, lendoUso: d.lendoUso }, agora) : null;
+  const caixa = $('aviso-cota');
+  caixa.hidden = !avisoCota;
+  caixa.classList.toggle('erro', avisoCota?.tom === 'erro');
+  $('aviso-cota-titulo').textContent = avisoCota?.titulo ?? '';
+  $('aviso-cota-corpo').textContent = avisoCota?.texto ?? '';
+
   $('aviso-importar').hidden = !d?.importavel;
   const aviso = $('aviso-chave');
   const frase = d ? fraseDaChave(d.lendoUso ? 'lendo' : d.chave) : '';
@@ -152,8 +159,11 @@ function desenharContas() {
   $('b-adicionar').disabled = ocupado() || !d.ativa;
   $('b-sincronizar').disabled = ocupado() || !d.ativa;
   $('b-uso').disabled = Boolean(d.lendoUso) || !contas.length;
+  $('b-uso-aviso').disabled = $('b-uso').disabled;
   const lidos = Object.values(d.uso ?? {}).map((u) => Date.parse(u.lidoEm)).filter(Number.isFinite);
   $('lido-uso').textContent = lidos.length ? `cota lida ${haQuanto(Math.max(...lidos), Date.now())}` : '';
+  const ativa = contas.find((c) => c.ativa);
+  $('subtitulo').textContent = [`${contas.length} ${contas.length === 1 ? 'conta' : 'contas'}`, ativa ? `no app agora: ${identidade(ativa, d.emails).nome}` : ''].filter(Boolean).join(' · ');
 }
 
 function desenharSessoes() {
@@ -180,7 +190,7 @@ function desenhar() {
   try {
     desenharFaixas();
     if (estado.editando === null) desenharContas(); // com o nome sendo digitado a lista não se redesenha por baixo
-    else $('b-uso').disabled = Boolean(estado.dados?.lendoUso);
+    else $('b-uso').disabled = $('b-uso-aviso').disabled = Boolean(estado.dados?.lendoUso);
     desenharSessoes();
   } catch (e) {
     console.error('não consegui desenhar o painel', e);
@@ -226,6 +236,7 @@ async function cancelarAdicionar() {
 
 async function lerCota() {
   $('b-uso').disabled = true;
+  $('b-uso-aviso').disabled = true;
   const r = await postar('/api/contas/uso');
   if (!r.ok) estado.falhaLocal = `Não li a cota: ${r.motivo}.`;
   await carregarContas();
@@ -266,6 +277,7 @@ function agendar() {
 $('b-adicionar').addEventListener('click', adicionar);
 $('b-sincronizar').addEventListener('click', sincronizar);
 $('b-uso').addEventListener('click', lerCota);
+$('b-uso-aviso').addEventListener('click', lerCota);
 document.addEventListener('visibilitychange', () => { if (!document.hidden) { carregarContas(); carregarSessoes(); } });
 setInterval(carregarSessoes, INTERVALO_SESSOES_MS);
 carregarContas();
