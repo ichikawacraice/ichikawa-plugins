@@ -19,7 +19,7 @@ const ENTREGAS_A_MOSTRAR = 10;
 const RESPOSTA_PADRAO = 'Sim, siga a recomendação.';
 const SESSAO_DO_APP = /^local_[0-9a-f-]{36}$/;
 const PUBLICO = fileURLToPath(new URL('./publico/', import.meta.url));
-const ARQUIVOS = { '/estilo.css': 'text/css', '/perguntas.css': 'text/css', '/ceu.js': 'text/javascript' };
+const ARQUIVOS = { '/estilo.css': 'text/css', '/perguntas.css': 'text/css', '/ceu.js': 'text/javascript', '/planeta.js': 'text/javascript' };
 
 const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 

@@ -126,6 +126,22 @@ test('a página escapa o texto e separa perguntas, andamento e entregas', () => 
   assert.match(h, /selo-entregue/);
 });
 
+test('a página serve o céu e o planeta do rodapé que ele importa', async () => {
+  const porta = 4800 + Math.floor(Math.random() * 500);
+  const servidor = await servir(porta);
+  try {
+    const url = `http://127.0.0.1:${porta}`;
+    const ceu = await (await fetch(`${url}/ceu.js`)).text();
+    assert.match(ceu, /from '\.\/planeta\.js'/);
+    const planeta = await fetch(`${url}/planeta.js`);
+    assert.equal(planeta.status, 200);
+    assert.match(planeta.headers.get('content-type'), /javascript/);
+    assert.match(await planeta.text(), /export function quadroPlaneta/);
+  } finally {
+    servidor.close();
+  }
+});
+
 test('a página só aceita POST da própria origem e grava o pedido de resposta', async () => {
   estado.criar('perguntas', 'p', { titulo: 'T', estado: 'aberta', sessao: SESSAO_DO_APP });
   const porta = 4800 + Math.floor(Math.random() * 500);
