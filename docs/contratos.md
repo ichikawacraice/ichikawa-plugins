@@ -117,7 +117,7 @@ Cada plugin que quer botão na barra traz um `barra.json` na raiz dele (ao lado 
 - `comando`: argv executado sem shell, com `${CLAUDE_PLUGIN_ROOT}` trocado pela pasta do plugin dono do arquivo. Roda desacoplado (`/bin/sh -c 'nohup "$@" &' barra <argv>`: o shell só repassa o argv, nada é interpretado; a saída vai para `/dev/null`, a variável `CLAUDE_PLUGIN_ROOT` também é passada); a barra não espera a saída.
 - `url` (opcional): página local (`http://127.0.0.1…` ou `http://localhost…`; outra URL é recusada) que o clique abre no **navegador do app** (o painel de navegador do Claude, pela ferramenta `mcp__Claude_Browser__preview_start`). Com `url`, o `comando` roda sem desacoplar, com prazo de 10 s, e a barra espera ele terminar (é ele que sobe a página) antes de abrir. Sem a ferramenta (terminal), abre no navegador do sistema (`open`); recusa ou erro do app vira aviso.
 - `contador` (opcional): argv que imprime um número inteiro no stdout, mostrado como selo no botão. A barra o roda no máximo a cada 30 s, com prazo de 3 s; falha, `0` ou saída não numérica = sem selo. `dica` não aparece na barra (o motor não tem dica de botão); fica para documentação.
-- `ordem`: menor fica à esquerda. Os botões próprios da barra (cache, ausente) vêm antes de todos.
+- `ordem`: menor fica à esquerda. Os botões próprios da barra (cache, ausente, sessões) vêm antes de todos.
 
 ## Branches dos projetos
 

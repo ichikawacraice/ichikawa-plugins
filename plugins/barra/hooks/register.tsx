@@ -1,7 +1,7 @@
 import { atom, read, update } from 'claude-code'
 import type { EngineInterface, Register } from 'claude-code'
 
-import type { Ausente, Botao, Cache } from '../types'
+import type { Ausente, Botao, Cache, LinhaDeSessao, Painel } from '../types'
 import {
   CACHE_TTL_MS,
   COMANDO_COM_URL_PRAZO_MS,
@@ -24,6 +24,21 @@ import {
   textoDoAusente,
 } from './logica'
 import { atenderPedidos } from './pedidos'
+import {
+  COR,
+  PANE_SESSOES,
+  SESSOES_INTERVALO_MS,
+  SESSOES_LIMITE,
+  TITULO_SESSOES,
+  jsonDaFerramenta,
+  lerItem,
+  lerPergunta,
+  lerSessoes,
+  linhasDoPainel,
+  projetoDaPasta,
+  relogioSP,
+} from './sessoes'
+import type { ItemDoKit, PerguntaDoKit, SessaoDoApp } from './sessoes'
 
 // A barra acima do prompt: o relógio do cache de 1 h, o botão de ausente e os botões que os outros plugins
 // declaram no `barra.json`. Só arquivos e os contadores declarados; nunca `list_sessions` em laço.
@@ -34,6 +49,8 @@ export const ausente = atom({ plugin: 'barra', key: 'ausente' } as const, null a
 export const trocando = atom({ plugin: 'barra', key: 'trocando' } as const, false)
 export const botoes = atom({ plugin: 'barra', key: 'botoes' } as const, [] as Botao[])
 export const selos = atom({ plugin: 'barra', key: 'selos' } as const, {} as Record<string, number | null>)
+const PAINEL_VAZIO: Painel = { linhas: [], lidoEm: null, erro: null, lendo: false }
+export const painel = atom({ plugin: 'barra', key: 'painel' } as const, PAINEL_VAZIO)
 
 const mensagem = (err: unknown): string => (err instanceof Error ? err.message : String(err))
 const logar = ($: EngineInterface, texto: string): void => {
@@ -44,6 +61,7 @@ const logar = ($: EngineInterface, texto: string): void => {
 let projeto: string | null = null
 let timers: Array<{ cancel: () => void }> = []
 let lendo = false
+let lendoPainel = false
 let atendendo = false
 let geracaoAusente = 0
 let errosVistos = ''
@@ -191,6 +209,84 @@ export async function clicar($: EngineInterface, b: Botao): Promise<void> {
   }
 }
 
+// ---- painel de sessões ----
+// Interface do mod, fora da conversa: nada entra no contexto do modelo. Só lê com o pane aberto.
+
+/** Aberto e posto numa tela: o pane guardado sem tela (sessão fora de vista) não conta, nem para ler nem para fechar. */
+export const painelAberto = async ($: EngineInterface): Promise<boolean> =>
+  (await $.ui.panes()).some(p => p.id === PANE_SESSOES && p.isPlaced)
+
+type Resposta = { text?: string; isError?: boolean; deny?: string }
+
+async function chamar($: EngineInterface, chamada: Record<string, unknown>): Promise<Resposta> {
+  return (await $.tool.call(chamada as never)) as Resposta
+}
+
+async function lerColecao<T>($: EngineInterface, pasta: string, ler: (t: string) => T | null): Promise<T[]> {
+  if (!(await $.fs.exists(pasta))) return []
+  const nomes = (await $.fs.list(pasta)).filter(e => e.kind === 'file' && e.name.endsWith('.json')).map(e => e.name)
+  const lidos = await Promise.all(nomes.map(n => Promise.resolve($.fs.read(`${pasta}/${n}`)).then(t => ler(String(t)), () => null)))
+
+  return lidos.filter((x): x is Awaited<T> => x !== null) as T[]
+}
+
+/** Uma leitura por vez: a lista do app, a própria sessão (que a lista não traz), os itens e as perguntas do projeto. */
+export async function lerPainel($: EngineInterface): Promise<void> {
+  if (lendoPainel) return
+  lendoPainel = true
+  await update($, painel, p => ({ ...p, lendo: true }))
+  try {
+    const [lista, eu] = await Promise.all([
+      chamar($, { tool: 'mcp__ccd_session_mgmt__list_sessions', limit: SESSOES_LIMITE }),
+      chamar($, { tool: 'mcp__ccd_session_mgmt__get_session', session_id: 'self' }).catch(() => ({}) as Resposta),
+    ])
+    if (lista.deny !== undefined || lista.isError) throw new Error(lista.deny || lista.text || 'a lista de sessões falhou')
+    const propria = lerSessoes(jsonDaFerramenta(eu))[0] ?? null
+    const sessoes: SessaoDoApp[] = [...(propria ? [propria] : []), ...lerSessoes(jsonDaFerramenta(lista))]
+    const nome = projetoDaPasta(propria?.originCwd ?? projeto)
+    const base = await pastaIchikawa($)
+    const [itens, perguntas] = nome
+      ? await Promise.all([
+          lerColecao<ItemDoKit>($, `${base}/itens/${nome}`, lerItem),
+          lerColecao<PerguntaDoKit>($, `${base}/perguntas/${nome}`, lerPergunta),
+        ])
+      : [[], []]
+    const agora = await $.clock.now()
+    const linhas = linhasDoPainel(sessoes, itens, perguntas, nome, propria?.sessionId ?? null, agora)
+    await update($, painel, () => ({ linhas, lidoEm: agora, erro: null, lendo: false }))
+  } catch (err) {
+    await update($, painel, p => ({ ...p, erro: mensagem(err), lendo: false }))
+  } finally {
+    lendoPainel = false
+  }
+}
+
+export async function alternarPainel($: EngineInterface): Promise<void> {
+  if (await painelAberto($)) return void (await $.ui.close({ id: PANE_SESSOES }))
+  const r = await $.ui.open({ id: PANE_SESSOES, title: TITULO_SESSOES })
+  if (!r.isPlaced) logar($, `painel: sem lugar (${(r as { reason?: string }).reason ?? 'sem motivo'})`)
+  await lerPainel($)
+}
+
+/** O app só põe em foco a própria sessão ou uma que esta abriu; fora disso, copia o endereço. */
+export async function abrirSessao($: EngineInterface, l: LinhaDeSessao): Promise<void> {
+  let porque = ''
+  try {
+    const r = await chamar($, { tool: 'mcp__ccd_window__open_session_in', session_id: l.propria ? 'self' : l.sessionId, target: 'focus' })
+    if (r.deny === undefined && !r.isError) return
+    porque = r.deny || r.text || 'recusado'
+  } catch (err) {
+    porque = mensagem(err)
+  }
+  if (!l.link) return void $.ui.toast(`Não consegui abrir "${l.titulo}" (${porque}).`)
+  const c = await $.ui.copy({ text: l.link }).catch(() => undefined)
+  $.ui.toast(c?.isCopied ? `Não abri daqui (${porque}): endereço de "${l.titulo}" copiado.` : `Não consegui abrir "${l.titulo}" (${porque}).`)
+}
+
+async function vezDoPainel($: EngineInterface): Promise<void> {
+  if (await painelAberto($)) await lerPainel($)
+}
+
 // ---- relógios ----
 
 async function tique($: EngineInterface): Promise<void> {
@@ -218,6 +314,7 @@ function iniciarRelogios($: EngineInterface): void {
     $.clock.every(1000, () => void tique($).catch(() => undefined)),
     $.clock.every(CONTADOR_INTERVALO_MS, () => void ler($)),
     $.clock.every(PEDIDOS_INTERVALO_MS, () => void vezDosPedidos($)),
+    $.clock.every(SESSOES_INTERVALO_MS, () => void vezDoPainel($).catch(() => undefined)),
   ]
 }
 
@@ -264,10 +361,42 @@ export const register: Register = on => {
         <Button key="ausente" variant="secondary" dimColor={!a?.ligado} onPress={() => void alternarAusente($)}>
           {ROTULO_AUSENTE(a, mudando)}
         </Button>
+        <Button key="sessoes" variant="secondary" onPress={() => void alternarPainel($)}>
+          ▦ Sessões
+        </Button>
         {lista.map(b => (
           <Button key={b.chave} variant="secondary" onPress={() => void clicar($, b)}>
             {rotuloComSelo(b.rotulo, s[b.chave])}
           </Button>
+        ))}
+      </Box>
+    )
+  })
+
+  on('ui.render', { component: 'Pane', requestId: PANE_SESSOES }, async ($, e) => {
+    const { Box, Text, Button } = $.ui.resolve(e)
+    const p = await read($, painel)
+    const quando = p.lidoEm === null ? '' : `lido ${relogioSP(p.lidoEm)}`
+
+    return (
+      <Box flexDirection="column" rowGap={1}>
+        <Box flexDirection="row" columnGap={1} alignItems="center">
+          <Text dimColor>{p.lendo ? 'lendo…' : quando}</Text>
+          <Button variant="secondary" onPress={() => void lerPainel($)}>↻ Atualizar</Button>
+        </Box>
+        {p.erro && <Text color="error">Não li as sessões: {p.erro}</Text>}
+        {p.lidoEm !== null && p.linhas.length === 0 && <Text dimColor>Nenhuma sessão aberta neste projeto.</Text>}
+        {p.linhas.map(l => (
+          <Box flexDirection="row" columnGap={1}>
+            <Text color={COR[l.status]} bold>{l.icone}</Text>
+            <Box flexDirection="column" flexGrow={1} flexShrink={1}>
+              <Button key={l.sessionId} variant="secondary" onPress={() => void abrirSessao($, l)}>
+                {l.propria ? `${l.titulo} (esta)` : l.titulo}
+              </Button>
+              <Text dimColor wrap="truncate-end">{l.detalhe}</Text>
+              <Text dimColor wrap="truncate-end">{l.tempo}</Text>
+            </Box>
+          </Box>
         ))}
       </Box>
     )

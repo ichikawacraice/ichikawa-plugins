@@ -383,3 +383,136 @@ test('pedidos: sem a pasta não lê nada além de conferir que ela não existe',
   expect(m.rodadas.filter(a => a[0] === 'mv' || a[0] === 'mkdir').length).toBe(0)
   expect(m.rodadas.length).toBe(antes)
 })
+
+// ---- painel de sessões ----
+
+const PANE_SESSOES = {
+  plugin: 'barra',
+  component: 'Pane',
+  requestId: 'sessoes',
+  props: { title: 'Sessões', isFocused: false, bodyColumns: 60, placement: 'dock', scroll: { offset: 0, bodyRows: 30 }, view: {} },
+} as const
+
+const LISTA = JSON.stringify([
+  { sessionId: 'local_f7', title: 'ICH-F7 · Entregues', cwd: `${PROJETO}/.claude/worktrees/w`, isRunning: true, lastActivityAt: new Date(AGORA - 180_000).toISOString(), link: 'claude://x/local_f7' },
+  { sessionId: 'local_outro', title: 'Outro projeto', cwd: '/work/outro', isRunning: true },
+])
+const EU_JSON = JSON.stringify({ sessionId: EU, title: 'ICH-F8 · Painel', cwd: PROJETO, originCwd: PROJETO, isRunning: false })
+
+function comPanes(on: On) {
+  const abertos = new Set<string>()
+  on('ui.open', (_, e) => {
+    abertos.add(e.id)
+    return { value: { isPlaced: true } }
+  })
+  on('ui.close', (_, e) => {
+    abertos.delete(e.id)
+    return { value: undefined }
+  })
+  on('ui.panes', () => ({ value: [...abertos].map(id => ({ id, title: id, isShown: true, isFocused: false, isPlaced: true })) }) as never)
+  on('ui.copy', () => ({ value: { isCopied: true } }) as never)
+  return abertos
+}
+
+const ferramentaDoApp = (recusaFoco = false) => (tool: string) => {
+  if (tool === 'mcp__ccd_session_mgmt__list_sessions') return { text: LISTA }
+  if (tool === 'mcp__ccd_session_mgmt__get_session') return { text: EU_JSON }
+  if (tool === 'mcp__ccd_window__open_session_in') return recusaFoco ? { isError: true, text: 'só sessões que esta abriu' } : { text: 'ok' }
+  return { text: 'ok' }
+}
+
+test('painel: fechado, nada lê a lista do app, nem com o relógio andando', async ($, on) => {
+  comPanes(on)
+  const m = await iniciar($, on, { ferramenta: ferramentaDoApp() })
+  await m.relogio.advance(5 * 60_000)
+  expect(m.chamadas.filter(c => c.tool === 'mcp__ccd_session_mgmt__list_sessions')).toHaveLength(0)
+  const ui = await montar($, 'desktop')
+  expect(await textos(ui)).toMatch(/▦ Sessões/)
+  await ui.unmount()
+})
+
+test('painel: o botão abre o pane, lista as sessões do projeto com status e tempo, relê a cada 60 s e fecha no segundo clique', async ($, on) => {
+  const abertos = comPanes(on)
+  const m = await iniciar($, on, {
+    ferramenta: ferramentaDoApp(),
+    arquivos: {
+      [`${ICH}/itens/projeto/F7.json`]: JSON.stringify({ id: 'F7', etapa: 'execucao', sessao: 'local_f7' }),
+      [`${ICH}/perguntas/projeto/Q1.json`]: JSON.stringify({ id: 'Q1', estado: 'aberta', sessao: EU }),
+    },
+  })
+  const barra = await montar($, 'desktop')
+  await barra.press({ key: 'sessoes' })
+  await m.relogio.settle()
+  expect(abertos.has('sessoes')).toBe(true)
+  for (const surface of SUPERFICIES) {
+    const ui = await $.ui.mount({ ...PANE_SESSOES, surface } as never)
+    const t = await textos(ui)
+    expect(t).toMatch(/ICH-F7 · Entregues/)
+    expect(t).toMatch(/trabalhando · execução/)
+    expect(t).toMatch(/há 3 min/)
+    expect(t).toMatch(/ICH-F8 · Painel \(esta\)/)
+    expect(t).toMatch(/aguarda você/)
+    expect(t).not.toMatch(/Outro projeto/)
+    await ui.unmount()
+  }
+  const lidas = () => m.chamadas.filter(c => c.tool === 'mcp__ccd_session_mgmt__list_sessions').length
+  expect(lidas()).toBe(1)
+  await m.relogio.advance(61_000)
+  expect(lidas(), 'aberto, relê no relógio').toBe(2)
+  await barra.press({ key: 'sessoes' })
+  await m.relogio.settle()
+  expect(abertos.has('sessoes')).toBe(false)
+  await m.relogio.advance(61_000)
+  expect(lidas(), 'fechado, para de ler').toBe(2)
+  await barra.unmount()
+})
+
+test('painel: clique numa sessão que o app não põe em foco copia o endereço e avisa', async ($, on) => {
+  comPanes(on)
+  const m = await iniciar($, on, { ferramenta: ferramentaDoApp(true) })
+  const barra = await montar($, 'desktop')
+  await barra.press({ key: 'sessoes' })
+  await m.relogio.settle()
+  const ui = await $.ui.mount({ ...PANE_SESSOES, surface: 'desktop' } as never)
+  await ui.press({ key: 'local_f7' })
+  await m.relogio.settle()
+  expect(m.chamadas.some(c => c.tool === 'mcp__ccd_window__open_session_in' && c.session_id === 'local_f7')).toBe(true)
+  expect(m.toasts.join('\n')).toMatch(/endereço de "ICH-F7 · Entregues" copiado/)
+  await ui.unmount()
+  await barra.unmount()
+})
+
+test('painel: a lista do app falhou vira linha de erro no pane, não exceção', async ($, on) => {
+  comPanes(on)
+  const m = await iniciar($, on, { ferramenta: t => (t === 'mcp__ccd_session_mgmt__list_sessions' ? { isError: true, text: 'app fora' } : { text: '{}' }) })
+  const barra = await montar($, 'desktop')
+  await barra.press({ key: 'sessoes' })
+  await m.relogio.settle()
+  const ui = await $.ui.mount({ ...PANE_SESSOES, surface: 'desktop' } as never)
+  expect(await textos(ui)).toMatch(/Não li as sessões: app fora/)
+  await ui.unmount()
+  await barra.unmount()
+})
+
+test('painel: pane guardado sem tela não é lido no relógio, e o clique o abre de novo em vez de fechar', async ($, on) => {
+  const vistos: string[] = []
+  let posto = false
+  on('ui.open', (_, e) => {
+    vistos.push(`open:${e.id}`)
+    posto = true
+    return { value: { isPlaced: true } }
+  })
+  on('ui.close', (_, e) => {
+    vistos.push(`close:${e.id}`)
+    return { value: undefined }
+  })
+  on('ui.panes', () => ({ value: [{ id: 'sessoes', title: 'Sessões', isShown: false, isFocused: false, isPlaced: posto }] }) as never)
+  const m = await iniciar($, on, { ferramenta: ferramentaDoApp() })
+  await m.relogio.advance(61_000)
+  expect(m.chamadas.filter(c => c.tool === 'mcp__ccd_session_mgmt__list_sessions')).toHaveLength(0)
+  const barra = await montar($, 'desktop')
+  await barra.press({ key: 'sessoes' })
+  await m.relogio.settle()
+  expect(vistos).toEqual(['open:sessoes'])
+  await barra.unmount()
+})
