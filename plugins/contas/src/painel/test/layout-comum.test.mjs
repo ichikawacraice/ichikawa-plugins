@@ -9,7 +9,7 @@ import { fileURLToPath } from 'node:url';
 const AQUI = dirname(fileURLToPath(import.meta.url));
 const COPIA = join(AQUI, '..', 'publico');
 const FONTE = join(AQUI, '..', '..', '..', '..', 'orquestracao', 'lib', 'publico');
-const BASE = ['estilo.css', 'ceu.js', 'ceu-dia.js', 'planeta.js', 'fontes/geist-medium.woff2', 'fontes/OFL-geist.txt'];
+const BASE = ['estilo.css', 'ceu.js', 'ceu-dia.js', 'planeta.js', 'tema.js', 'fontes/geist-medium.woff2', 'fontes/OFL-geist.txt'];
 
 test('a base visual do painel é cópia idêntica da página de perguntas', { skip: !existsSync(FONTE) && 'sem o plugin orquestracao ao lado' }, () => {
   for (const arquivo of BASE) {

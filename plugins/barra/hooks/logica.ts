@@ -1,7 +1,7 @@
 // Lógica pura da barra: sem `$`, testada direto. A descoberta dos botões, a precedência dos settings,
-// a troca de ${CLAUDE_PLUGIN_ROOT}, o relógio do cache, o ausente e os pedidos da página.
+// a troca de ${CLAUDE_PLUGIN_ROOT}, o relógio do cache, o ausente, o tema e os pedidos da página.
 
-import type { Ausente, Botao, Pedido } from '../types'
+import type { Ausente, Botao, EscolhaDeTema, Pedido } from '../types'
 
 // ---- cache de 1 h desde a última resposta ----
 
@@ -46,6 +46,28 @@ export function lerAusente(texto: string | null): Ausente {
 /** O que a barra grava ao trocar o modo: `desde` é o momento da troca. */
 export const textoDoAusente = (ligado: boolean, agora: number): string =>
   `${JSON.stringify({ ligado, desde: isoSaoPaulo(agora), por: 'barra' }, null, 2)}\n`
+
+// ---- tema.json ----
+
+/** Sem escolha gravada, o escuro (o céu noturno). */
+export const TEMA_PADRAO: EscolhaDeTema = 'escuro'
+
+/** O contrato: `tema` igual a `"claro"` é claro; sem arquivo, ilegível ou qualquer outro valor, o padrão (escuro). */
+export function lerTema(texto: string | null): EscolhaDeTema {
+  if (texto === null) return TEMA_PADRAO
+  try {
+    const v = JSON.parse(texto) as unknown
+    return v !== null && typeof v === 'object' && (v as Record<string, unknown>).tema === 'claro' ? 'claro' : TEMA_PADRAO
+  } catch {
+    return TEMA_PADRAO
+  }
+}
+
+export const temaOposto = (t: EscolhaDeTema): EscolhaDeTema => (t === 'claro' ? 'escuro' : 'claro')
+
+/** O que a barra grava ao trocar o tema: `em` é o momento da troca. */
+export const textoDoTema = (tema: EscolhaDeTema, agora: number): string =>
+  `${JSON.stringify({ tema, em: isoSaoPaulo(agora), por: 'barra' }, null, 2)}\n`
 
 // ---- quais plugins estão instalados e ligados ----
 

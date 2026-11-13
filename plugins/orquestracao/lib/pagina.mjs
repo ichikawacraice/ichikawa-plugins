@@ -9,6 +9,7 @@ import { join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import * as estado from './estado.mjs';
 import { ROTULO_DO_ESTADO, lerSessoesDoApp, sessoesDaPagina } from './sessoes.mjs';
+import { BOTAO_DE_TEMA } from './publico/tema.js';
 
 export const PORTA_PADRAO = 4747;
 const HOST = '127.0.0.1';
@@ -34,6 +35,7 @@ const ARQUIVOS = {
   '/ceu.js': 'text/javascript; charset=utf-8',
   '/ceu-dia.js': 'text/javascript; charset=utf-8',
   '/planeta.js': 'text/javascript; charset=utf-8',
+  '/tema.js': 'text/javascript; charset=utf-8',
   '/fontes/geist-medium.woff2': 'font/woff2',
 };
 
@@ -199,15 +201,20 @@ export function html(agora = Date.now()) {
   const esquerda = secao('h-perguntas', 'Perguntas', perguntas.length || '', perguntas.map(({ projeto, p }) => cartaoDePergunta(projeto, p)), 'Nada esperando por você.')
     + (sessoes.total ? secao('h-sessoes', 'Sessões', esc(frescor(sessoes, agora)), grupos(sessoes, agora), '') : '');
   const direita = secao('h-entregas', 'Entregues', `últimos ${estado.DIAS_DE_ENTREGAS} dias`, entregas.map(({ projeto, i }) => cartaoDeEntrega(projeto, i)), 'Nenhuma entrega ainda.', verMais(maisEntregas));
-  // O céu segue o modo ausente: ligado, a noite; desligado, o dia (estilo.css e ceu.js leem o `data-ceu`).
-  return `<!doctype html><html lang="pt-BR" data-ceu="${ausente ? 'noite' : 'dia'}"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+  // O céu segue só o botão de tema (`tema.json`): claro é o dia; escuro, e o padrão, a noite (estilo.css e ceu.js leem o `data-ceu`).
+  return `<!doctype html><html lang="pt-BR" data-ceu="${estado.lerTema() === 'claro' ? 'dia' : 'noite'}"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
 <title>${esc(NOME_DA_PAGINA)}</title><link rel="preload" href="/fontes/geist-medium.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="stylesheet" href="/estilo.css"><link rel="stylesheet" href="/perguntas.css"></head>
-<body><canvas id="ceu" class="ceu" aria-hidden="true"></canvas><header class="topo"><h1>${esc(NOME_DA_PAGINA)}</h1>${selosDoTopo(perguntas.length, andamento.length, entregas.length + maisEntregas.length)}${avisoDeAusente(ausente)}</header>
+<body><canvas id="ceu" class="ceu" aria-hidden="true"></canvas><header class="topo">${BOTAO_DE_TEMA}<h1>${esc(NOME_DA_PAGINA)}</h1>${selosDoTopo(perguntas.length, andamento.length, entregas.length + maisEntregas.length)}${avisoDeAusente(ausente)}</header>
 <main><div>${esquerda}</div><div>${direita}</div></main>
 <footer class="pe"><p>Lido às ${esc(horaSP(new Date(agora).toISOString()))}. A página se atualiza sozinha enquanto você não está escrevendo.</p><p class="assinatura">made by Ichikawa</p></footer>
 <script type="module">
 import { iniciarCeu } from '/ceu.js';
+import { ligarBotaoDeTema } from '/tema.js';
+ligarBotaoDeTema(document.getElementById('b-tema'), async (tema) => {
+  const r = await fetch('/tema', { method: 'POST', headers: { 'Content-Type': 'application/x-www-form-urlencoded' }, body: new URLSearchParams({ tema }) });
+  if (!r.ok) throw new Error('a página respondeu ' + r.status);
+});
 const escrevendo = () => [...document.querySelectorAll('textarea')].some((t) => t.value.trim() || t === document.activeElement);
 // O recarregamento fecharia os cartões abertos: guarda quais estavam abertos e reabre.
 const ABERTOS = 'entregas-abertas';
@@ -272,6 +279,15 @@ async function responder(req, res, porta) {
   res.writeHead(303, { Location: '/' }).end();
 }
 
+/** O botão de tema: grava `claro` ou `escuro` no `tema.json` (o mesmo da barra e do painel de cotas). */
+async function trocarTema(req, res, porta) {
+  if (!origemLocal(req, porta)) { res.writeHead(403).end('origem recusada'); return; }
+  const tema = new URLSearchParams(await lerCorpo(req)).get('tema');
+  if (!estado.TEMAS.includes(tema)) { res.writeHead(400).end('tema desconhecido'); return; }
+  estado.gravarTema(tema, 'painel');
+  res.writeHead(204).end();
+}
+
 async function abrir(req, res, porta) {
   const lido = await lerPergunta(req, res, porta);
   if (!lido) return;
@@ -311,6 +327,7 @@ export function criarServidor(porta = PORTA_PADRAO) {
       }
       if (req.method === 'POST' && caminho === '/responder') { await responder(req, res, porta); return; }
       if (req.method === 'POST' && caminho === '/abrir') { await abrir(req, res, porta); return; }
+      if (req.method === 'POST' && caminho === '/tema') { await trocarTema(req, res, porta); return; }
       res.writeHead(404).end('não existe');
     } catch (err) {
       process.stderr.write(`pagina: ${err.message}\n`);

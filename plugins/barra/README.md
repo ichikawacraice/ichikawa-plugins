@@ -3,6 +3,7 @@
 A barra acima do prompt do Claude Code (app desktop e terminal). Mostra:
 
 - **Cache**: quanto falta do cache de 1 h desde a última resposta da conversa principal (`⧗ 42:10`), âmbar aos 20 min e etiqueta vermelha aos 10.
+- **Tema**: botão só com ícone que troca entre claro e escuro, gravando `~/.claude/ichikawa/tema.json` — a mesma escolha do Painel e do painel de contas.
 - **Ausente**: botão que liga e desliga o modo ausente, gravando `~/.claude/ichikawa/ausente.json` (`$ICHIKAWA_HOME` troca a pasta).
 - **Botões de outros plugins**: de cada plugin instalado e ligado neste projeto, lê o `barra.json` da raiz e mostra os botões, na ordem.
 - **Sessões para a página**: a cada 60 s grava `~/.claude/ichikawa/sessoes-do-app.json` com a lista de sessões do app (`list_sessions`, que só o app enxerga), para a seção Sessões da página do kit. Se outra sessão gravou há menos de 50 s, não lê de novo. É interface do mod: nada entra no contexto do modelo.
@@ -10,11 +11,12 @@ A barra acima do prompt do Claude Code (app desktop e terminal). Mostra:
 
 Só lê arquivos, roda os contadores declarados e lê `list_sessions` no máximo uma vez por minuto entre todas as sessões abertas.
 
-## Tema (noite e dia, pela hora do computador)
+## Tema (escuro e claro, pelo botão)
 
-- **Noite, das 18h às 6h**: fundo `#030014`, estrelas que cintilam e a lua crescente à direita, no lugar do sol (a paleta do painel).
-- **Dia, das 6h às 18h**: o céu da paleta de dia do Painel (ICH-F21: `#74b6ef` → `#d6ebfb`, texto `#0b1f3a`), o sol com brilho e raios à direita e nuvens paradas ao fundo. A hora é a local do computador (fuso lido uma vez por sessão com `date +%z`; sem resposta, o de São Paulo), e a troca acontece no redesenho de 1 s seguinte à virada. O modo ausente não muda mais o céu.
-- **Ícones**: todo botão abre com um glifo (`☾ Estou de volta`, `☀ Ficar ausente`, `◫ Painel`, `◉ Contas`); outro plugin escolhe o dele pelo `icone` do `barra.json`, e sem ele vem `✦`.
+- **Só o botão decide**: o ícone mostra para onde vai (`☀` leva ao claro, `☾` ao escuro). O clique troca na hora e grava o `tema.json`; a escolha feita numa página chega na leitura de 30 s. Sem escolha (ou arquivo ilegível), o escuro. Nem a hora nem o modo ausente mudam o tema.
+- **Escuro (noite)**: fundo `#030014`, estrelas que cintilam e a lua crescente à direita, no lugar do sol (a paleta do painel).
+- **Claro (dia)**: o céu da paleta de dia do Painel (ICH-F21: `#74b6ef` → `#d6ebfb`, texto `#0b1f3a`), o sol com brilho e raios à direita e nuvens paradas ao fundo.
+- **Ícones**: todo botão abre com um glifo (`☀`/`☾` do tema, `↩ Estou de volta`, `◌ Ficar ausente`, `◫ Painel`, `◉ Contas`); outro plugin escolhe o dele pelo `icone` do `barra.json`, e sem ele vem `✦`.
 - **Desktop**: o fundo da barra é a cor lisa do céu. O relógio do cache fica à esquerda, os botões encostados à direita e, entre eles, a cena em SVG (26 px, a altura de um botão) com o sol ou a lua na ponta direita colado nos botões; janela estreita demais fica sem cena. O app não pinta SVG numa caixa em camada (`position="absolute"`, medido no ICH-F22) nem SVG com `alt` vazio, por isso a cena vai em fluxo e sempre com texto alternativo. As nuvens do dia são paradas; só as estrelas cintilam. A animação é CSS do SVG e para com o "Reduzir movimento" do sistema.
 - **Terminal**: a linha de estrelas (`· ✦ ⋆`, cintilando pelo relógio de 1 s) ou de nuvens (`☁`, com `☀` na ponta) atrás dos botões, e os rótulos na cor do tema.
 - **Relógio do cache**: na cor do tema; aos 20 min fica âmbar, aos 10 vira etiqueta vermelha (sem moldura, para a barra não mudar de altura).

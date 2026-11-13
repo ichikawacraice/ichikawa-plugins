@@ -1,5 +1,6 @@
 /* Base do Painel (perguntas, sessões e entregas): tokens, tipografia, topo, seções, botões e pé. Os cartões ficam em perguntas.css.
-   Dois céus: a noite (`:root`, modo ausente ligado) e o dia (`:root[data-ceu="dia"]`, ausente desligado), que só redefine tokens.
+   Dois céus, pela escolha do botão de tema (`tema.json`): a noite (`:root`, o escuro e o padrão) e o dia
+   (`:root[data-ceu="dia"]`, o claro), que só redefine tokens.
    Inspirada no reflect.app (sem copiar nada dele): fundo quase preto puxado ao violeta, títulos em Geist 500,
    corpo em system-ui, muito respiro e fios finos. Feita para uma coluna estreita (300–420 px); em tela larga
    as colunas ficam lado a lado. */
@@ -156,6 +157,19 @@ h1 {
 .aviso-ausente.ligado b { color: var(--aguarda); }
 .aviso-ausente.ligado .aviso-ponto { background: var(--aguarda); box-shadow: 0 0 0 3px color-mix(in srgb, var(--aguarda) 25%, transparent); }
 
+/* ---- botão de tema, no canto do topo: o sol leva ao claro, a lua ao escuro (tema.js) ---- */
+.topo .botao-tema {
+  position: absolute; top: 20px; right: var(--gutter);
+  width: 36px; min-height: 36px; height: 36px; padding: 0;
+  display: grid; place-items: center; border-radius: 50%;
+}
+/* O título centralizado guarda a largura do botão dos dois lados: em tela estreita o texto não passa por baixo dele. */
+.topo:has(.botao-tema) h1 { padding: 0 44px; }
+.botao-tema svg { display: block; }
+.botao-tema .icone-lua { display: none; }
+:root[data-ceu="dia"] .botao-tema .icone-sol { display: none; }
+:root[data-ceu="dia"] .botao-tema .icone-lua { display: block; }
+
 h2, h3 { font-family: var(--titulo); font-weight: 500; }
 h2 { margin: 0; font-size: var(--t-h2); line-height: var(--t-h2-linha); letter-spacing: -0.01em; }
 
@@ -200,6 +214,7 @@ ul { list-style: none; margin: 14px 0 0; padding: 0; display: grid; gap: 10px; }
   .topo, main, .pe { max-width: 1040px; }
   .topo { padding-top: 48px; }
   .topo .contagens, .aviso-ausente { margin-top: 16px; }
+  .topo .botao-tema { top: 40px; }
   main { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 0 40px; align-items: start; margin-top: 20px; }
   main > div > .secao:first-child { border-top: 1px solid var(--fio); padding-top: 20px; }
   .pe { padding-top: 40px; padding-bottom: calc(var(--planeta) + 24px); }

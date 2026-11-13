@@ -1,6 +1,9 @@
 /** O modo ausente como `ausente.json` o diz (contrato em docs/contratos.md). */
 export type Ausente = { ligado: boolean; desde?: string }
 
+/** A escolha do botão de tema, como `tema.json` a diz (contrato em docs/contratos.md). */
+export type EscolhaDeTema = 'claro' | 'escuro'
+
 /** Um botão vindo do `barra.json` de um plugin instalado e ligado, já com `${CLAUDE_PLUGIN_ROOT}` trocado. */
 export type Botao = {
   /** `<plugin>/<id>`: única na barra. */
@@ -34,6 +37,10 @@ declare module 'claude-code' {
       ausente: Ausente | null
       /** O clique do ausente está gravando: outro clique é ignorado. */
       trocando: boolean
+      /** A escolha de tema lida do `tema.json` (ou a do último clique). */
+      tema: EscolhaDeTema
+      /** O clique do tema está gravando: outro clique é ignorado. */
+      trocandoTema: boolean
       botoes: Botao[]
       /** O selo de cada botão, pela chave; `null` = sem selo. */
       selos: Record<string, number | null>

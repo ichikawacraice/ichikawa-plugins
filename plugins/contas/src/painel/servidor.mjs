@@ -3,12 +3,13 @@
 // recentes da conta em uso. Host tem de ser local: outra página no navegador não fala com o painel.
 import { createServer } from 'node:http';
 import { readFile } from 'node:fs/promises';
-import { homedir } from 'node:os';
 import { join } from 'node:path';
 import { tratarAcao } from './acoes.mjs';
 import { lerContas } from './contas.mjs';
 import { estadoDoUso, releituraSePreciso } from './uso.mjs';
 import { lerSessoes } from './sessoes.mjs';
+import { ceuDoTema, lerTema } from './tema.mjs';
+import { BOTAO_DE_TEMA } from './publico/tema.js';
 import { criarApp, pastaDeDados } from '../troca/app-do-claude.mjs';
 import { haParaImportar, pastaDoKit } from '../troca/importar.mjs';
 
@@ -19,6 +20,7 @@ const ESTATICOS = {
   '/ceu.js': ['ceu.js', 'text/javascript; charset=utf-8'],
   '/ceu-dia.js': ['ceu-dia.js', 'text/javascript; charset=utf-8'],
   '/planeta.js': ['planeta.js', 'text/javascript; charset=utf-8'],
+  '/tema.js': ['tema.js', 'text/javascript; charset=utf-8'],
   '/estilo.css': ['estilo.css', 'text/css; charset=utf-8'],
   '/cotas.css': ['cotas.css', 'text/css; charset=utf-8'],
   '/fontes/geist-medium.woff2': ['fontes/geist-medium.woff2', 'font/woff2'],
@@ -30,16 +32,8 @@ const SEGURANCA = {
 };
 const NO_STORE = { 'Cache-Control': 'no-store' };
 
-/**
- * O céu do painel segue o modo ausente do kit (o `ausente.json` que a barra grava, o mesmo que a página de perguntas
- * lê): ligado, a noite; desligado, sem arquivo ou ilegível, o dia.
- */
-export async function ceuDoAusente(env) {
-  const raiz = env.ICHIKAWA_HOME || join(env.HOME || homedir(), '.claude', 'ichikawa');
-  try {
-    return JSON.parse(await readFile(join(raiz, 'ausente.json'), 'utf8'))?.ligado === true ? 'noite' : 'dia';
-  } catch { return 'dia'; }
-}
+/** O céu do painel: só a escolha do botão de tema (`tema.json`); sem escolha, a noite. */
+export const ceuDoPainel = async (env) => ceuDoTema(await lerTema(env));
 
 /** `pasta`: a do plugin (uma por versão no cache), que `/api/saude` diz para quem abre trocar o servidor de outra versão. `contas`: `{ env, app, spawn, cli, kill, comandoDoPid, uso: { fetch, agora, lerSenha } }`, tudo opcional (os testes injetam). */
 export function criarServidor({ publico, versao = '0.0.0', pasta = null, contas = {} }) {
@@ -63,12 +57,18 @@ export function criarServidor({ publico, versao = '0.0.0', pasta = null, contas 
         const [arquivo, tipo] = ESTATICOS[caminho];
         let corpo;
         try { corpo = await readFile(join(publico, arquivo)); } catch { return json(404, { erro: 'não encontrado' }); }
-        // A tela já sai com o céu certo (sem piscar a noite antes do dia); o app.js confere depois por /api/ceu.
-        if (caminho === '/') return enviar(200, tipo, corpo.toString('utf8').replace('<html lang="pt-BR">', `<html lang="pt-BR" data-ceu="${await ceuDoAusente(env)}">`), NO_STORE);
+        // A tela já sai com o céu certo (sem piscar um céu antes do outro) e com o botão de tema no topo; o app.js
+        // confere o céu depois por /api/ceu.
+        if (caminho === '/') {
+          const tela = corpo.toString('utf8')
+            .replace('<html lang="pt-BR">', `<html lang="pt-BR" data-ceu="${await ceuDoPainel(env)}">`)
+            .replace('<header class="topo">', `<header class="topo">${BOTAO_DE_TEMA}`);
+          return enviar(200, tipo, tela, NO_STORE);
+        }
         return enviar(200, tipo, corpo, { 'Cache-Control': 'no-cache' });
       }
       if (caminho === '/api/saude') return json(200, { painel: 'contas', versao, pasta, pid: process.pid }, NO_STORE);
-      if (caminho === '/api/ceu') return json(200, { ceu: await ceuDoAusente(env) }, NO_STORE);
+      if (caminho === '/api/ceu') return json(200, { ceu: await ceuDoPainel(env) }, NO_STORE);
       if (caminho === '/api/contas') {
         if (req.method === 'HEAD') return json(200, {}, NO_STORE);
         const lido = lerContas({ env, app: contas.app });
