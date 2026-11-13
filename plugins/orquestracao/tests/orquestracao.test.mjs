@@ -156,6 +156,28 @@ test('a página serve o céu e o planeta do rodapé que ele importa', async () =
   }
 });
 
+test('a página serve a fonte dos títulos embutida, como woff2 e sem charset', async () => {
+  const porta = 4800 + Math.floor(Math.random() * 500);
+  const servidor = await servir(porta);
+  try {
+    const fonte = await fetch(`http://127.0.0.1:${porta}/fontes/geist-medium.woff2`);
+    assert.equal(fonte.status, 200);
+    assert.equal(fonte.headers.get('content-type'), 'font/woff2');
+    assert.equal(Buffer.from(await fonte.arrayBuffer()).subarray(0, 4).toString('latin1'), 'wOF2');
+  } finally {
+    servidor.close();
+  }
+});
+
+test('o topo da página resume o que espera por você', () => {
+  estado.criar('perguntas', 'p', { titulo: 'A', estado: 'aberta' });
+  estado.criar('itens', 'p', { titulo: 'vivo', etapa: 'execucao' });
+  const topo = /<header class="topo">([\s\S]*?)<\/header>/.exec(html())[1];
+  assert.match(topo, /<h1>Perguntas do kit<\/h1>/);
+  assert.match(topo, /1 pergunta esperando · 1 em andamento/);
+  assert.match(html(), /<link rel="preload" href="\/fontes\/geist-medium\.woff2" as="font" type="font\/woff2" crossorigin>/);
+});
+
 test('a página só aceita POST da própria origem e grava o pedido de resposta', async () => {
   estado.criar('perguntas', 'p', { titulo: 'T', estado: 'aberta', sessao: SESSAO_DO_APP });
   const porta = 4800 + Math.floor(Math.random() * 500);

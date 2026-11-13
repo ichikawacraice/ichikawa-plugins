@@ -19,7 +19,14 @@ const ENTREGAS_A_MOSTRAR = 10;
 const RESPOSTA_PADRAO = 'Sim, siga a recomendação.';
 const SESSAO_DO_APP = /^local_[0-9a-f-]{36}$/;
 const PUBLICO = fileURLToPath(new URL('./publico/', import.meta.url));
-const ARQUIVOS = { '/estilo.css': 'text/css', '/perguntas.css': 'text/css', '/ceu.js': 'text/javascript', '/planeta.js': 'text/javascript' };
+// Texto vai com charset; a fonte (binária) vai só com o tipo.
+const ARQUIVOS = {
+  '/estilo.css': 'text/css; charset=utf-8',
+  '/perguntas.css': 'text/css; charset=utf-8',
+  '/ceu.js': 'text/javascript; charset=utf-8',
+  '/planeta.js': 'text/javascript; charset=utf-8',
+  '/fontes/geist-medium.woff2': 'font/woff2',
+};
 
 const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 
@@ -116,14 +123,25 @@ const verMais = (resto) => (resto.length
   ? `<details class="ver-mais"><summary>Ver mais (${resto.length})</summary><ul class="cartoes">${resto.map(({ projeto, i }) => cartaoDeEntrega(projeto, i)).join('\n')}</ul></details>`
   : '');
 
+const quantos = (n, um, varios) => `${n} ${n === 1 ? um : varios}`;
+
+/** A linha de apoio do topo: o que espera por você agora, em uma frase. */
+function resumo(perguntas, andamento) {
+  const partes = [];
+  if (perguntas.length) partes.push(quantos(perguntas.length, 'pergunta esperando', 'perguntas esperando'));
+  if (andamento.length) partes.push(`${andamento.length} em andamento`);
+  return partes.join(' · ') || 'Nada esperando por você.';
+}
+
 export function html(agora = Date.now()) {
   const { perguntas, andamento, entregas, maisEntregas } = dados(agora);
   const esquerda = secao('h-perguntas', 'Perguntas', perguntas.length || '', perguntas.map(({ projeto, p }) => cartaoDePergunta(projeto, p)), 'Nada esperando por você.')
     + (andamento.length ? secao('h-andamento', 'Em andamento', andamento.length, grupos(andamento), '') : '');
   const direita = secao('h-entregas', 'Entregues', `últimos ${estado.DIAS_DE_ENTREGAS} dias`, entregas.map(({ projeto, i }) => cartaoDeEntrega(projeto, i)), 'Nenhuma entrega ainda.', verMais(maisEntregas));
   return `<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Perguntas do kit</title><link rel="stylesheet" href="/estilo.css"><link rel="stylesheet" href="/perguntas.css"></head>
-<body><canvas id="ceu" class="ceu" aria-hidden="true"></canvas><header class="topo"><h1>Perguntas do kit</h1></header>
+<title>Perguntas do kit</title><link rel="preload" href="/fontes/geist-medium.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="stylesheet" href="/estilo.css"><link rel="stylesheet" href="/perguntas.css"></head>
+<body><canvas id="ceu" class="ceu" aria-hidden="true"></canvas><header class="topo"><p class="selo-topo">Kit de orquestração</p><h1>Perguntas do kit</h1><p class="subtitulo">${esc(resumo(perguntas, andamento))}</p></header>
 <main><div>${esquerda}</div><div>${direita}</div></main>
 <footer class="pe"><p>Lido às ${esc(horaSP(new Date(agora).toISOString()))}. A página se atualiza sozinha enquanto você não está escrevendo.</p></footer>
 <script type="module">
@@ -218,7 +236,7 @@ export function criarServidor(porta = PORTA_PADRAO) {
       const caminho = (req.url ?? '/').split('?')[0];
       if (req.method === 'GET' && caminho === '/saude') { res.writeHead(200).end('ok'); return; }
       if (req.method === 'GET' && ARQUIVOS[caminho]) {
-        res.writeHead(200, { 'Content-Type': `${ARQUIVOS[caminho]}; charset=utf-8` }).end(readFileSync(join(PUBLICO, caminho.slice(1))));
+        res.writeHead(200, { 'Content-Type': ARQUIVOS[caminho] }).end(readFileSync(join(PUBLICO, caminho.slice(1))));
         return;
       }
       if (req.method === 'GET' && caminho === '/') {

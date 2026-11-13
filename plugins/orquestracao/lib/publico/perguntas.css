@@ -1,36 +1,81 @@
-/* Só o que a página de perguntas acrescenta ao layout comum (estilo.css, cópia do painel de contas). */
-.cartoes > li { padding: 10px 12px; background: var(--vidro); border: 1px solid var(--fio); border-radius: var(--raio); -webkit-backdrop-filter: blur(4px); backdrop-filter: blur(4px); }
-.cartao-cab { display: flex; gap: 6px 8px; align-items: baseline; flex-wrap: wrap; }
-.cartao-titulo { font-size: 14px; font-weight: 650; flex: 1 1 200px; min-width: 0; overflow-wrap: anywhere; }
-.id { font: 600 12px var(--mono); color: var(--violeta); }
-.projeto { color: var(--texto-2); font-size: 11.5px; }
-.campos { margin: 6px 0 0; display: grid; gap: 4px; }
-.campos dt { color: var(--texto-2); font-size: 11px; letter-spacing: 0.04em; text-transform: uppercase; }
-.campos dd { margin: 0; font-size: 13px; overflow-wrap: anywhere; }
-.responder { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 8px; }
-.responder textarea {
-  font: inherit; font-size: 13px; flex: 1 1 100%; min-width: 0; padding: 6px 10px; resize: vertical;
-  color: var(--texto); background: rgba(8, 10, 30, 0.8); border: 1px solid var(--fio-forte); border-radius: 10px;
+/* Os cartões da página: pergunta, item em andamento e entrega. Base e tokens em estilo.css.
+   Hierarquia de cada cartão: projeto (rótulo apagado) → id + título (Geist) → campos (rótulo 12, texto 14) → metadado. */
+.cartoes > li {
+  padding: 14px 16px;
+  background: var(--vidro);
+  border: 1px solid var(--fio);
+  border-radius: var(--raio);
+  -webkit-backdrop-filter: blur(6px); backdrop-filter: blur(6px);
 }
-.responder button { flex: 1 1 0; min-height: 30px; }
-.responder textarea:focus-visible { outline: 2px solid #c8b8ff; outline-offset: 2px; }
-.selo-entregue { color: var(--ok); background: rgba(110, 231, 200, 0.08); }
-.selo-parcial { color: var(--alto); background: rgba(214, 166, 255, 0.08); }
-.selo-parado { color: var(--critico); background: rgba(255, 122, 168, 0.08); }
-.selo-etapa { color: var(--texto-2); }
-.quando { color: var(--texto-2); font-size: 11.5px; font-variant-numeric: tabular-nums; margin-top: 6px; }
-.proximos { margin: 2px 0 0; padding-left: 16px; list-style: disc; display: block; }
-.proximos li { font-size: 13px; }
-.cartao-projeto { margin: 0 0 4px; font-size: 12px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: var(--violeta); overflow-wrap: anywhere; }
+.cartoes > li.vazio { background: none; border: 0; padding: 4px 0; -webkit-backdrop-filter: none; backdrop-filter: none; }
+
+/* Projeto, acima do título: pequeno e apagado, para o título mandar. */
+.cartao-projeto { margin: 0 0 6px; color: var(--texto-3); font-size: var(--t-meta); line-height: 16px; font-weight: 500; overflow-wrap: anywhere; }
+.cartao-cab { display: flex; gap: 4px 8px; align-items: baseline; flex-wrap: wrap; }
+.id { font: 500 var(--t-meta)/16px var(--mono); color: var(--lilas); flex: none; }
+/* O título encolhe e quebra por dentro: id, título e selo ficam na mesma linha mesmo na coluna estreita. */
+.cartao-titulo { font: 500 var(--t-cartao)/20px var(--titulo); letter-spacing: -0.005em; flex: 1 1 0; min-width: 0; overflow-wrap: anywhere; }
+.projeto { color: var(--texto-3); font: 500 var(--t-meta)/16px var(--mono); }
+
+/* Campos: rótulo pequeno e secundário, texto do corpo logo abaixo, um bloco por ideia. */
+.campos { margin: 12px 0 0; }
+.campos dt { margin-top: 12px; color: var(--texto-2); font-size: var(--t-meta); line-height: 16px; font-weight: 500; }
+.campos dt:first-child { margin-top: 0; }
+.campos dd { margin: 2px 0 0; color: rgba(255, 255, 255, 0.9); font-size: var(--t-corpo); line-height: 20px; overflow-wrap: anywhere; }
+.proximos { margin: 2px 0 0; padding-left: 18px; list-style: disc; display: block; }
+.proximos li { margin-top: 2px; }
+.proximos li::marker { color: var(--texto-3); }
+
+/* Responder: campo largo, dois botões lado a lado, o de abrir sessão embaixo se couber. */
+.responder { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 14px; padding-top: 14px; border-top: 1px solid var(--fio); }
+.responder textarea {
+  font: inherit; flex: 1 1 100%; min-width: 0; min-height: 44px; padding: 10px 12px; resize: vertical;
+  color: var(--texto); background: rgba(3, 0, 20, 0.6);
+  border: 1px solid var(--fio-forte); border-radius: var(--raio-botao);
+}
+.responder textarea::placeholder { color: var(--texto-3); }
+.responder textarea:focus-visible { outline: 2px solid var(--foco); outline-offset: 2px; border-color: transparent; }
+.responder button { flex: 1 1 auto; padding-inline: 12px; }
+
+/* Selos: pílula pequena, cor suave, sem caixa-alta. */
+.selo {
+  flex: none; padding: 1px 9px;
+  font: 500 11px/18px var(--fonte);
+  border-radius: 999px; border: 1px solid currentColor;
+}
+.selo-entregue { color: var(--ok); background: rgba(134, 227, 200, 0.08); border-color: rgba(134, 227, 200, 0.35); }
+.selo-parcial { color: var(--alto); background: rgba(226, 194, 255, 0.08); border-color: rgba(226, 194, 255, 0.35); }
+.selo-parado { color: var(--critico); background: rgba(255, 156, 189, 0.08); border-color: rgba(255, 156, 189, 0.35); }
+.selo-etapa { color: var(--texto-2); background: rgba(255, 255, 255, 0.03); border-color: var(--fio-forte); }
+
+.quando { margin: 10px 0 0; color: var(--texto-3); font-size: var(--t-meta); line-height: 16px; font-variant-numeric: tabular-nums; }
+.quando b { color: var(--texto-2); font-weight: 500; }
+
+/* Em andamento: um grupo por projeto, com o nome como subtítulo. */
 .cartoes > li.grupo-de-projeto { padding: 0; background: none; border: 0; -webkit-backdrop-filter: none; backdrop-filter: none; }
-.grupo { margin: 4px 2px 6px; font-size: 12px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: var(--violeta); }
+.cartoes > li.grupo-de-projeto + li.grupo-de-projeto { margin-top: 8px; }
+.grupo { margin: 0; color: var(--texto-2); font-size: 13px; line-height: 18px; }
+.grupo-de-projeto > .cartoes { margin-top: 8px; gap: 8px; }
+.grupo-de-projeto .cartoes > li { padding: 12px 16px; }
+.grupo-de-projeto .quando { margin-top: 4px; }
+
+/* Entrega: abre e fecha; a seta fica no canto do cabeçalho. */
 .entrega > summary { list-style: none; cursor: pointer; }
 .entrega > summary::-webkit-details-marker { display: none; }
-.entrega > summary .cartao-cab::after { content: '›'; color: var(--texto-2); font-size: 18px; line-height: 1; margin-left: auto; transition: transform 0.15s; }
-.entrega[open] > summary .cartao-cab::after { transform: rotate(90deg); }
-.entrega > summary:focus-visible { outline: 2px solid #c8b8ff; outline-offset: 4px; border-radius: 6px; }
-.ver-mais { margin-top: 8px; }
-.ver-mais > summary { cursor: pointer; color: var(--violeta); font-size: 13px; font-weight: 600; padding: 6px 2px; }
-.ver-mais > summary:focus-visible { outline: 2px solid #c8b8ff; outline-offset: 2px; border-radius: 6px; }
-.ver-mais > .cartoes { margin-top: 6px; }
+.entrega > summary .cartao-cab::after {
+  content: ''; flex: none; width: 7px; height: 7px; margin: 0 2px 0 auto; align-self: center;
+  border-right: 1.5px solid var(--texto-3); border-bottom: 1.5px solid var(--texto-3);
+  transform: rotate(-45deg); transition: transform 0.15s;
+}
+.entrega[open] > summary .cartao-cab::after { transform: rotate(45deg); }
+.entrega > summary:hover .cartao-titulo { color: var(--lilas); }
+.entrega > summary:focus-visible { outline: 2px solid var(--foco); outline-offset: 6px; border-radius: 8px; }
+.entrega[open] > .campos { padding-top: 12px; border-top: 1px solid var(--fio); }
+
+.ver-mais { margin-top: 12px; }
+.ver-mais > summary { cursor: pointer; display: inline-block; color: var(--lilas); font-size: 13px; font-weight: 500; padding: 6px 0; }
+.ver-mais > summary:hover { color: var(--texto); }
+.ver-mais > summary:focus-visible { outline: 2px solid var(--foco); outline-offset: 2px; border-radius: 6px; }
+.ver-mais > .cartoes { margin-top: 8px; }
+
 @media (prefers-reduced-motion: reduce) { .entrega > summary .cartao-cab::after { transition: none; } }

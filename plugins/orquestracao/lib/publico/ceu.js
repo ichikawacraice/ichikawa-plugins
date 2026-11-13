@@ -31,17 +31,17 @@ function pertoDaFaixa(x, y, w, h) {
 
 function pintarFixo(ctx, w, h) {
   const fundo = ctx.createLinearGradient(0, 0, w, h);
-  fundo.addColorStop(0, '#060818');
-  fundo.addColorStop(0.55, '#0a0d2a');
-  fundo.addColorStop(1, '#120a2e');
+  fundo.addColorStop(0, '#030014');
+  fundo.addColorStop(0.55, '#06021c');
+  fundo.addColorStop(1, '#0c0428');
   ctx.fillStyle = fundo;
   ctx.fillRect(0, 0, w, h);
 
-  // Nebulosas: manchas largas e bem apagadas, azul de um lado e roxo do outro.
+  // Nebulosas: manchas largas e bem apagadas, índigo de um lado e violeta do outro (a paleta da página parte de #030014).
   const nebulosas = [
-    [w * 0.15, h * 0.85, Math.max(w, h) * 0.55, 'rgba(61, 91, 255, 0.16)'],
-    [w * 0.85, h * 0.12, Math.max(w, h) * 0.5, 'rgba(150, 70, 255, 0.16)'],
-    [w * 0.5, h * 0.5, Math.max(w, h) * 0.35, 'rgba(110, 80, 230, 0.10)'],
+    [w * 0.15, h * 0.85, Math.max(w, h) * 0.55, 'rgba(76, 60, 220, 0.12)'],
+    [w * 0.85, h * 0.12, Math.max(w, h) * 0.5, 'rgba(139, 70, 255, 0.14)'],
+    [w * 0.5, h * 0.5, Math.max(w, h) * 0.35, 'rgba(110, 70, 230, 0.07)'],
   ];
   for (const [x, y, r, cor] of nebulosas) {
     const g = ctx.createRadialGradient(x, y, 0, x, y, r);
@@ -66,7 +66,7 @@ function pintarFixo(ctx, w, h) {
   }
   const brilho = ctx.createLinearGradient(0, h, w, 0);
   brilho.addColorStop(0.3, 'rgba(120, 140, 255, 0)');
-  brilho.addColorStop(0.52, 'rgba(140, 130, 255, 0.11)');
+  brilho.addColorStop(0.52, 'rgba(150, 125, 255, 0.08)');
   brilho.addColorStop(0.75, 'rgba(120, 140, 255, 0)');
   ctx.fillStyle = brilho;
   ctx.fillRect(0, 0, w, h);
