@@ -21,4 +21,4 @@
 
 **Registro.** Decisão de arquitetura vira ADR em `docs/adr/AAAA-MM-DD-slug.md` (`orquestracao:adr`); plano em `docs/planos/AAAA-MM-DD-slug.md`. Sem diário, sem número reservado, sem índice escrito à mão. Sem bump de versão em commit.
 
-**Comunicação.** PT-BR em tudo, horários de São Paulo. Mensagem entre sessões em até 150 palavras; o detalhe vai num arquivo e a mensagem leva o caminho. Nunca mande segredo para outra sessão: mande o nome da variável.
+**Comunicação.** PT-BR em tudo, horários de São Paulo. Mensagem entre sessões em até 150 palavras; o detalhe vai num arquivo e a mensagem leva o caminho. Nunca mande segredo para outra sessão: mande o nome da variável. A dona escreve enxuto no chat (seção "Escrita enxuta" da skill `dona`); commit, PR, ADR, plano, pergunta e entrega seguem em texto completo.
