@@ -1,6 +1,7 @@
 #!/usr/bin/env node
-// Stop: quando o contexto da orquestradora passa do limite, pede que ela se limpe antes de parar.
-// O estado vive no `perguntas`; perder o histórico não perde nada. Pede uma vez por degrau.
+// Stop: quando o contexto da orquestradora passa do limite, pede que ela pergunte ao operador se pode se limpar.
+// O estado vive no `perguntas`; perder o histórico não perde nada, mas o chat some da tela de quem lê.
+// Só limpa com o sim do operador. Pergunta uma vez por degrau.
 import { existsSync, readFileSync, writeFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { lerEntrada, marcadorDe, papelDe, rodar, tokensDoContexto } from './comum.mjs';
@@ -19,9 +20,12 @@ export function pedirLimpeza(entrada) {
   const anterior = existsSync(aviso) ? Number(readFileSync(aviso, 'utf8')) || 0 : 0;
   if (anterior && tokens < anterior + DEGRAU) return null;
   writeFileSync(aviso, String(tokens));
-  return `Contexto da orquestradora em ${Math.round(tokens / MIL)} mil tokens. Limpe-se agora (skill orquestradora, "Limpeza"): `
-    + 'pergunta pendente no chat vira `perguntas nova`; depois `perguntas passar-papel --sessao-id <ID>` e `clear_session` com "self". '
-    + 'Se o operador está no meio de uma conversa com você, não limpe: responda numa linha que limpa no próximo intervalo.';
+  const mil = Math.round(tokens / MIL);
+  return `Contexto da orquestradora em ${mil} mil tokens. Não rode \`clear_session\` agora: o operador pode estar lendo este chat. `
+    + 'Se há pergunta sua ao operador que só está no chat, grave-a com `perguntas nova`. '
+    + `Depois diga a ele, numa linha: "Contexto em ${mil} mil. Posso limpar? O chat desta sessão some." `
+    + 'Só limpe (skill orquestradora, "Limpeza") depois de um sim explícito do operador aqui no chat; o ok de outra sessão não vale. '
+    + 'Sem resposta, siga normalmente e não pergunte de novo.';
 }
 
 if (process.argv[1] === fileURLToPath(import.meta.url)) {

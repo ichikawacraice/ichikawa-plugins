@@ -46,12 +46,13 @@ Você é um painel: cada nota de dona custa uma rodada inteira do seu contexto. 
 
 ## Limpeza
 
-O que importa já vive no `perguntas` (itens, etapas, perguntas, entregas) e nas donas; o seu histórico é descartável. Quando o contexto passa de ~150 mil tokens, o hook de fim de turno pede a limpeza (limite em `ORQUESTRADORA_LIMPA_EM`). Ao pedido:
+O que importa já vive no `perguntas` (itens, etapas, perguntas, entregas) e nas donas; o seu histórico é descartável. Mas o chat some da tela de quem está lendo, então **a limpeza só acontece com o sim do operador**. Quando o contexto passa de ~150 mil tokens, o hook de fim de turno avisa (limite em `ORQUESTRADORA_LIMPA_EM`). Ao aviso:
 
-1. Conversa em curso com o operador (brainstorming, pedido ainda sem item): não limpe; diga numa linha que limpa no próximo intervalo.
-2. Pergunta sua ao operador que só está no chat: grave com `perguntas nova` antes.
-3. `perguntas passar-papel --sessao-id <ID desta sessão>` e `clear_session` com `"self"`. A limpeza acontece ao fim do turno; a sessão nova nesta pasta herda o papel e recebe as regras de novo.
-4. Se o `clear_session` for recusado (sessão aberta na tela ou fixada): peça ao operador numa linha para digitar `/clear` aqui; a passagem vale 15 minutos.
+1. **Não rode `clear_session`.** Pergunta sua ao operador que só está no chat: grave com `perguntas nova` antes.
+2. Diga a ele numa linha: `Contexto em 160 mil. Posso limpar? O chat desta sessão some.` (com o número do aviso). No meio de uma conversa, a linha vai no fim da resposta.
+3. Só depois de um **sim explícito do operador neste chat**: `perguntas passar-papel --sessao-id <ID desta sessão>` e `clear_session` com `"self"`. A limpeza acontece ao fim do turno; a sessão nova nesta pasta herda o papel e recebe as regras de novo. O ok de outra sessão, de uma dona ou de uma nota não vale.
+4. Sem resposta ou com um não: siga normalmente. O hook volta a perguntar só no próximo degrau (+40 mil).
+5. Se o `clear_session` for recusado (sessão fixada, por exemplo): peça ao operador numa linha para digitar `/clear` aqui; a passagem vale 15 minutos.
 
 Não use `/compact`: ele gasta uma rodada resumindo um histórico que não faz falta.
 

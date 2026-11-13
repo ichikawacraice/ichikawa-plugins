@@ -300,7 +300,13 @@ test('a limpeza lê o contexto do transcript e só pede à orquestradora, uma ve
   assert.equal(pedirLimpeza(entrada), null);
   await rodar('papel', 'orquestradora', '--sessao-id', 'sessao-limpa-1');
   assert.equal(pedirLimpeza({ ...entrada, stop_hook_active: true }), null);
-  assert.match(pedirLimpeza(entrada), /160 mil/);
+  const pedido = pedirLimpeza(entrada);
+  assert.match(pedido, /"Contexto em 160 mil\. Posso limpar\? O chat desta sessão some\."/);
+  assert.match(pedido, /Não rode `clear_session`/);
+  assert.match(pedido, /sim explícito do operador/);
+  assert.match(pedido, /ok de outra sessão não vale/);
+  assert.match(pedido, /perguntas nova/);
+  assert.doesNotMatch(pedido, /Limpe-se agora/);
   assert.equal(pedirLimpeza(entrada), null);
   writeFileSync(transcript, `${uso(200_000)}\n`);
   assert.match(pedirLimpeza(entrada), /200 mil/);
