@@ -2,7 +2,7 @@ import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
 import { closeSync, existsSync, fsyncSync, openSync, readFileSync, statSync, statfsSync, utimesSync, writeFileSync, writeSync } from 'node:fs';
 import { join } from 'node:path';
-import { clonarArquivo, copiarArquivo, criarApp, escreverAtomico, idSeguro, lerObjetoConferido, pastaDeDados, pastaDoApp } from '../app-do-claude.mjs';
+import { clonarArquivo, controleReal, copiarArquivo, criarApp, escreverAtomico, idSeguro, lerObjetoConferido, pastaDeDados, pastaDoApp } from '../app-do-claude.mjs';
 import { CONTA_A, controleFalso, montar, textoDeConfig } from './fabrica.mjs';
 
 describe('app-do-claude: caminhos', () => {
@@ -158,5 +158,41 @@ describe('app-do-claude: a cópia clona de verdade (medido no volume)', () => {
     const comClone = antesComClone - livre();
     assert.ok(comClone < semClone / 4, `a cópia gastou ${comClone} bytes contra ${semClone} da cópia comum: não clonou`);
     assert.equal(readFileSync(join(m.dados, 'clonada.json'), 'utf8'), readFileSync(src, 'utf8'));
+  });
+});
+
+describe('app-do-claude: controle real do app', () => {
+  // Simula o macOS: o Claude roda até receber o quit; o pgrep sem `-a` não enxerga ancestral (a troca lançada de dentro do app).
+  const simular = () => {
+    const chamadas = [];
+    let vivo = true;
+    const executar = (cmd, args) => {
+      chamadas.push([cmd, ...args].join(' '));
+      if (cmd === 'pgrep') return { status: vivo && args.includes('-a') ? 0 : 1 };
+      if (cmd === 'osascript') vivo = false;
+      return { status: 0 };
+    };
+    return { chamadas, executar, controle: controleReal({ executar, dormir: async () => {} }) };
+  };
+
+  it('vê o app rodando mesmo quando a troca descende dele (pgrep -a) e o fecha antes de trocar', async () => {
+    const { chamadas, controle } = simular();
+    assert.equal(await controle.rodando(), true);
+    await controle.fechar();
+    assert.ok(chamadas.includes('osascript -e tell application "Claude" to quit'), chamadas.join(' | '));
+    assert.equal(await controle.rodando(), false);
+  });
+
+  it('o pkill de último caso leva o sinal antes das opções e também inclui ancestrais', async () => {
+    const chamadas = [];
+    let vivo = true;
+    const executar = (cmd, args) => {
+      chamadas.push([cmd, ...args].join(' '));
+      if (cmd === 'pgrep') return { status: vivo ? 0 : 1 };
+      if (cmd === 'pkill') vivo = false;
+      return { status: 0 };
+    };
+    await controleReal({ executar, dormir: async () => {}, esperaFechar: 0 }).fechar();
+    assert.ok(chamadas.includes('pkill -9 -a -x Claude'), chamadas.join(' | '));
   });
 });
