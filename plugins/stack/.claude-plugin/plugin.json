@@ -1,7 +1,7 @@
 {
   "name": "stack",
-  "description": "Padrões e revisores da stack da empresa: VTEX FastStore, Wake, React/TypeScript, Next.js, Node, Supabase/Postgres e Google Cloud — skills de consulta, agentes revisores e o Context7 para docs atuais.",
+  "description": "Padrões e revisores da stack da empresa: React/TypeScript, Next.js, Node, Supabase/Postgres e Google Cloud — skills de consulta, agentes revisores e o Context7 para docs atuais.",
   "author": { "name": "Ichikawa" },
   "license": "MIT",
-  "keywords": ["stack", "react", "typescript", "nextjs", "postgres", "supabase", "faststore", "revisao"]
+  "keywords": ["stack", "react", "typescript", "nextjs", "postgres", "supabase", "google-cloud", "revisao"]
 }

@@ -1,6 +1,6 @@
 # stack
 
-Conhecimento da stack da empresa em um plugin só: VTEX FastStore, Wake, React/TypeScript, Next.js, Node, Supabase/Postgres e Google Cloud. Skills de consulta, agentes revisores e o Context7 para ler a documentação atual em vez da memória. Sem gate e sem cobertura mínima: é material de consulta.
+Conhecimento da stack da empresa em um plugin só: React/TypeScript, Next.js, Node, Supabase/Postgres e Google Cloud. Skills de consulta, agentes revisores e o Context7 para ler a documentação atual em vez da memória. Sem gate e sem cobertura mínima: é material de consulta.
 
 ## O que traz
 
@@ -8,6 +8,7 @@ Conhecimento da stack da empresa em um plugin só: VTEX FastStore, Wake, React/T
 
 | Skill | Para quê |
 |---|---|
+| `stack:google-cloud` | Google Cloud: service account, ADC/WIF, Secret Manager, gatilhos, logs, Cloud SQL, custo |
 | `stack:react` | Hooks, componentes, Server/Client Components, render |
 | `stack:typescript` | Tipos, async, erros, validação na borda |
 | `stack:nextjs` | App Router, dados, cache, metadata, rotas |
@@ -27,6 +28,7 @@ Conhecimento da stack da empresa em um plugin só: VTEX FastStore, Wake, React/T
 
 | Agente | Papel |
 |---|---|
+| `stack:google-cloud` | Google Cloud: service account, ADC/WIF, Secret Manager, gatilhos, logs, Cloud SQL, custo |
 | `stack:revisor-react-ts` | Revisa React e TypeScript no diff |
 | `stack:revisor-banco` | Revisa SQL, schema, índice, RLS e migration |
 | `stack:seguranca` | Caça vulnerabilidade no diff ou no projeto |
@@ -50,6 +52,7 @@ Adaptações em PT-BR, reescritas e cortadas para esta stack. Cada arquivo diz d
 
 | Origem | Licença | Onde |
 |---|---|---|
+| `stack:google-cloud` | Google Cloud: service account, ADC/WIF, Secret Manager, gatilhos, logs, Cloud SQL, custo |
 | [ECC](https://github.com/affaan-m/ECC) (affaan-m) | MIT | base de quase todas as skills e agentes |
 | [claude-code-owasp](https://github.com/agamm/claude-code-owasp) (agamm) | MIT | `stack:seguranca` — licença em [`licencas/LICENSE-agamm`](licencas/LICENSE-agamm) |
 | Vercel Labs `react-best-practices` (via ECC `react-performance`) | MIT | `stack:desempenho` e, nas regras de React, `stack:react` |
