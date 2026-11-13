@@ -1,7 +1,7 @@
 import { atom, read, update } from 'claude-code'
 import type { ElementConstructor, EngineInterface, Register, SvgProps } from 'claude-code'
 
-import type { Ausente, Botao, Cache } from '../types'
+import type { Ausente, Botao, Cache, EscolhaDeTema } from '../types'
 import {
   CACHE_TTL_MS,
   COMANDO_COM_URL_PRAZO_MS,
@@ -14,6 +14,7 @@ import {
   lerAusente,
   lerBarraJson,
   lerContador,
+  lerTema,
   mesclarLigados,
   nivelDoCache,
   ordenarBotoes,
@@ -21,7 +22,10 @@ import {
   relogio,
   rotuloComSelo,
   segundosRestantes,
+  TEMA_PADRAO,
+  temaOposto,
   textoDoAusente,
+  textoDoTema,
 } from './logica'
 import {
   CICLO_CINTILA,
@@ -30,9 +34,7 @@ import {
   SVG_ALTURA,
   TEMAS,
   linhaDoCeu,
-  FUSO_PADRAO_MIN,
-  fusoDoDate,
-  modoDaHora,
+  modoDoTema,
   pedeMenosMovimento,
   svgDaCena,
 } from './ceu'
@@ -48,13 +50,15 @@ import {
   textoDoArquivo,
 } from './sessoes'
 
-// A barra acima do prompt: o relógio do cache de 1 h, o botão de ausente e os botões que os outros plugins
+// A barra acima do prompt: o relógio do cache de 1 h, o botão de tema, o botão de ausente e os botões que os outros plugins
 // declaram no `barra.json`. Só arquivos, os contadores declarados e, uma vez por minuto, a lista de sessões do app para a página.
 
 const SEM_CACHE: Cache = { expiraEm: null, segundos: null }
 export const cache = atom({ plugin: 'barra', key: 'cache' } as const, SEM_CACHE)
 export const ausente = atom({ plugin: 'barra', key: 'ausente' } as const, null as Ausente | null)
 export const trocando = atom({ plugin: 'barra', key: 'trocando' } as const, false)
+export const temaEscolhido = atom({ plugin: 'barra', key: 'tema' } as const, TEMA_PADRAO as EscolhaDeTema)
+export const trocandoTema = atom({ plugin: 'barra', key: 'trocandoTema' } as const, false)
 export const botoes = atom({ plugin: 'barra', key: 'botoes' } as const, [] as Botao[])
 export const selos = atom({ plugin: 'barra', key: 'selos' } as const, {} as Record<string, number | null>)
 /** O quadro da cintilação do terminal; `null` = parado (menos movimento pedido). */
@@ -73,9 +77,9 @@ let gravandoSessoes = false
 let erroDasSessoes = ''
 let atendendo = false
 let geracaoAusente = 0
+let geracaoTema = 0
 let errosVistos = ''
 let semMovimento = false
-let fusoMin = FUSO_PADRAO_MIN
 const PRAZO_DEFAULTS_MS = 3000
 
 /** Lido uma vez por session.start: a variável `BARRA_SEM_ANIMACAO` e o "Reduzir movimento" do macOS. */
@@ -89,16 +93,6 @@ async function lerMovimento($: EngineInterface): Promise<boolean> {
   }
 
   return pedeMenosMovimento(await $.env.get('BARRA_SEM_ANIMACAO'), saida)
-}
-
-/** O fuso do computador, lido uma vez por sessão (`date +%z`); sem resposta, o de São Paulo. */
-async function lerFuso($: EngineInterface): Promise<number> {
-  try {
-    const r = await $.process.run(['date', '+%z'], { timeoutMs: PRAZO_DEFAULTS_MS })
-    return fusoDoDate(r.exitCode === 0 ? r.stdout : null)
-  } catch {
-    return FUSO_PADRAO_MIN
-  }
 }
 
 async function pastaIchikawa($: EngineInterface): Promise<string> {
@@ -153,6 +147,37 @@ export async function alternarAusente($: EngineInterface): Promise<void> {
   }
 }
 
+// ---- tema ----
+
+/** A escolha gravada no `tema.json` (o mesmo que o Painel e o painel de cotas leem e gravam). */
+async function lerEscolhaDeTema($: EngineInterface): Promise<void> {
+  const geracao = geracaoTema
+  let valor: EscolhaDeTema = TEMA_PADRAO
+  try {
+    valor = lerTema(await lerSeExiste($, `${await pastaIchikawa($)}/tema.json`))
+  } catch (err) {
+    logar($, `tema.json: ${mensagem(err)}`)
+  }
+  // Um clique durante a leitura vence: a leitura antiga não escreve por cima.
+  if (geracao === geracaoTema && !(await read($, trocandoTema))) await update($, temaEscolhido, () => valor)
+}
+
+export async function alternarTema($: EngineInterface): Promise<void> {
+  if (await read($, trocandoTema)) return
+  const novo = temaOposto(await read($, temaEscolhido))
+  await update($, trocandoTema, () => true)
+  geracaoTema++
+  try {
+    await $.fs.write(`${await pastaIchikawa($)}/tema.json`, textoDoTema(novo, await $.clock.now()))
+    await update($, temaEscolhido, () => novo)
+  } catch (err) {
+    $.ui.toast(`Não consegui gravar o tema ${novo} (${mensagem(err)}).`)
+  } finally {
+    geracaoTema++
+    await update($, trocandoTema, () => false)
+  }
+}
+
 // ---- descoberta dos botões ----
 
 /** Os plugins instalados e ligados neste projeto e os botões dos `barra.json` deles. */
@@ -193,11 +218,12 @@ async function contar($: EngineInterface, b: Botao): Promise<number | null> {
   }
 }
 
-/** A leitura de 30 s: o ausente, os botões e os contadores. Uma por vez. */
+/** A leitura de 30 s: o tema, o ausente, os botões e os contadores. Uma por vez. */
 export async function ler($: EngineInterface): Promise<void> {
   if (lendo) return
   lendo = true
   try {
+    await lerEscolhaDeTema($)
     await lerModo($)
     const achado = await descobrir($)
     await update($, botoes, () => achado.botoes)
@@ -322,7 +348,7 @@ function iniciarRelogios($: EngineInterface): void {
 // ---- o desenho ----
 
 const ROTULO_AUSENTE = (a: Ausente | null, mudando: boolean): string =>
-  mudando ? `${ICONES.gravando} Gravando…` : a?.ligado ? `${ICONES.ausenteNoite} Estou de volta` : `${ICONES.ausenteDia} Ficar ausente`
+  mudando ? `${ICONES.gravando} Gravando…` : a?.ligado ? `${ICONES.ausenteLigado} Estou de volta` : `${ICONES.ausenteDesligado} Ficar ausente`
 
 /** O rótulo de um botão de plugin: o ícone do `barra.json` (ou o padrão), o rótulo e o selo. */
 const rotuloDoBotao = (b: Botao, selo: number | null | undefined): string =>
@@ -333,7 +359,6 @@ export const register: Register = on => {
     const r = await next(e)
     projeto = e.cwd ?? null
     semMovimento = await lerMovimento($)
-    fusoMin = await lerFuso($)
     await update($, fase, f => (semMovimento ? null : (f ?? 0)))
     iniciarRelogios($)
     await ler($)
@@ -366,14 +391,17 @@ export const register: Register = on => {
     const lista = await read($, botoes)
     const s = await read($, selos)
     const quadro = Svg ? null : await read($, fase)
-    // O céu segue a hora do computador; o relógio de 1 s redesenha a barra, então a troca acontece na virada.
-    const modo = modoDaHora(await $.clock.now(), fusoMin)
+    // O céu segue só a escolha do botão de tema (o `tema.json`); sem escolha, o escuro.
+    const escolha = await read($, temaEscolhido)
+    const modo = modoDoTema(escolha)
     const tema = TEMAS[modo]
     const nivel = nivelDoCache(c.segundos, e.props.isWorking)
     const texto = `⧗ ${e.props.isWorking ? 'ativo' : relogio(c.segundos)}`
     // No terminal o rótulo leva a cor do tema; no desktop o botão é nativo e se pinta sozinho (cor de texto ignorada).
     const rotulo = (chave: string, t: string) => (Svg ? t : <Text key={chave} color={tema.texto}>{t}</Text>)
     const rotuloAusente = ROTULO_AUSENTE(a, mudando)
+    // O botão de tema mostra só o ícone de para onde vai: o sol leva ao claro, a lua ao escuro.
+    const rotuloTema = (await read($, trocandoTema)) ? ICONES.gravando : escolha === 'claro' ? ICONES.paraEscuro : ICONES.paraClaro
     const rotulos = lista.map(b => rotuloDoBotao(b, s[b.chave]))
     const relogioDoCache =
       nivel === 'alerta' || nivel === 'venceu' ? (
@@ -386,6 +414,9 @@ export const register: Register = on => {
     // De dia o botão primário (claro e sólido) se destaca do céu claro; de noite o secundário (escuro) combina.
     const variante = modo === 'dia' ? 'primary' : 'secondary'
     const botoesDaBarra = [
+      <Button key="tema" variant={variante} onPress={() => void alternarTema($)}>
+        {rotulo('r-tema', rotuloTema)}
+      </Button>,
       <Button key="ausente" variant={variante} onPress={() => void alternarAusente($)}>
         {rotulo('r-ausente', rotuloAusente)}
       </Button>,
@@ -400,7 +431,7 @@ export const register: Register = on => {
     // ponta direita e 50 px de céu antes dos botões, e os botões encostados à direita. Sem `overflow`/`flexWrap`: com
     // eles o app deixava de pintar a cena.
     if (Svg) {
-      const largura = larguraDaCena(e.props.bodyColumns, texto, [rotuloAusente, ...rotulos])
+      const largura = larguraDaCena(e.props.bodyColumns, texto, [rotuloTema, rotuloAusente, ...rotulos])
 
       return (
         <Box key={`barra-${modo}`} flexDirection="row" alignItems="center" columnGap={1} paddingX={1} paddingY="xs" backgroundColor={tema.fundo}>

@@ -9,13 +9,16 @@ import {
   lerBarraJson,
   lerContador,
   lerPedido,
+  lerTema,
   mesclarLigados,
   nivelDoCache,
   ordenarBotoes,
   pluginsLigados,
   relogio,
   rotuloComSelo,
+  temaOposto,
   textoDoAusente,
+  textoDoTema,
   trocarRaiz,
 } from '../hooks/logica.js'
 
@@ -169,4 +172,18 @@ test('iconeValido: aceita um glifo curto e recusa vazio, espaço, texto longo e 
   expect(iconeValido(3)).toBeNull()
   const { botoes } = lerBarraJson(JSON.stringify({ botoes: [{ id: 'a', rotulo: 'A', icone: '◫', comando: ['x'] }, { id: 'b', rotulo: 'B', icone: 'longo', comando: ['x'] }] }), PLUGIN)
   expect(botoes.map(b => b.icone)).toEqual(['◫', undefined])
+})
+
+test('tema.json: claro só com "claro"; sem arquivo, ilegível ou outro valor, escuro', () => {
+  expect(lerTema(null)).toBe('escuro')
+  expect(lerTema('{"tema":"claro"}')).toBe('claro')
+  expect(lerTema('{"tema":"escuro"}')).toBe('escuro')
+  expect(lerTema('{"tema":"azul"}')).toBe('escuro')
+  expect(lerTema('não é json')).toBe('escuro')
+  expect(lerTema('null')).toBe('escuro')
+  expect(temaOposto('claro')).toBe('escuro')
+  expect(temaOposto('escuro')).toBe('claro')
+  const texto = textoDoTema('claro', Date.UTC(2026, 10, 14, 0, 15))
+  expect(JSON.parse(texto)).toEqual({ tema: 'claro', em: '2026-11-13T21:15:00-03:00', por: 'barra' })
+  expect(lerTema(texto)).toBe('claro')
 })

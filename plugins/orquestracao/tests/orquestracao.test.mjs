@@ -216,10 +216,59 @@ test('o topo avisa se o modo ausente está ligado ou desligado', () => {
   assert.match(topo, /desde 13\/11\/2026, 21:15/);
 });
 
-test('o céu segue o modo ausente: dia com ele desligado, a noite de hoje com ele ligado', () => {
-  assert.match(html(), /^<!doctype html><html lang="pt-BR" data-ceu="dia">/);
-  writeFileSync(join(process.env.ICHIKAWA_HOME, 'ausente.json'), '{"ligado":true}');
+test('o céu segue só o tema.json: escuro sem escolha (com ausente ligado ou não), claro quando gravado', () => {
   assert.match(html(), /^<!doctype html><html lang="pt-BR" data-ceu="noite">/);
+  writeFileSync(join(process.env.ICHIKAWA_HOME, 'ausente.json'), '{"ligado":false}');
+  assert.match(html(), /data-ceu="noite"/, 'o ausente desligado não traz mais o dia');
+  writeFileSync(join(process.env.ICHIKAWA_HOME, 'tema.json'), 'não é json');
+  assert.match(html(), /data-ceu="noite"/);
+  estado.gravarTema('claro', 'teste');
+  assert.match(html(), /data-ceu="dia"/);
+  writeFileSync(join(process.env.ICHIKAWA_HOME, 'ausente.json'), '{"ligado":true}');
+  assert.match(html(), /data-ceu="dia"/, 'o ausente ligado não traz mais a noite');
+});
+
+test('tema.json: lê e grava o contrato; valor desconhecido não grava', () => {
+  assert.equal(estado.lerTema(), 'escuro');
+  estado.gravarTema('claro', 'painel', new Date(Date.UTC(2026, 10, 14, 0, 15)));
+  assert.deepEqual(JSON.parse(readFileSync(join(process.env.ICHIKAWA_HOME, 'tema.json'), 'utf8')), { tema: 'claro', em: '2026-11-14T00:15:00.000Z', por: 'painel' });
+  assert.equal(estado.lerTema(), 'claro');
+  assert.throws(() => estado.gravarTema('azul', 'painel'), /tema desconhecido/);
+  assert.equal(estado.lerTema(), 'claro');
+});
+
+test('o topo traz o botão de tema e a página serve o tema.js', async () => {
+  assert.match(topoDe(html()), /<button type="button" class="botao-tema" id="b-tema"[\s\S]*icone-sol[\s\S]*icone-lua/);
+  assert.match(html(), /import \{ ligarBotaoDeTema \} from '\/tema\.js'/);
+  const porta = 4800 + Math.floor(Math.random() * 500);
+  const servidor = await servir(porta);
+  try {
+    const r = await fetch(`http://127.0.0.1:${porta}/tema.js`);
+    assert.equal(r.status, 200);
+    assert.match(await r.text(), /export function ligarBotaoDeTema/);
+  } finally {
+    servidor.close();
+  }
+});
+
+test('POST /tema grava a escolha só da própria origem e só com claro ou escuro', async () => {
+  const porta = 4800 + Math.floor(Math.random() * 500);
+  const servidor = await servir(porta);
+  try {
+    const url = `http://127.0.0.1:${porta}`;
+    const enviar = (corpo, origin = url) => fetch(`${url}/tema`, { method: 'POST', headers: { origin, 'content-type': 'application/x-www-form-urlencoded' }, body: corpo });
+    assert.equal((await enviar('tema=claro', 'http://evil.test')).status, 403);
+    assert.equal(estado.lerTema(), 'escuro');
+    assert.equal((await enviar('tema=azul')).status, 400);
+    assert.equal((await enviar('tema=claro')).status, 204);
+    assert.equal(estado.lerTema(), 'claro');
+    assert.equal(JSON.parse(readFileSync(join(process.env.ICHIKAWA_HOME, 'tema.json'), 'utf8')).por, 'painel');
+    assert.match(await (await fetch(url)).text(), /data-ceu="dia"/);
+    assert.equal((await enviar('tema=escuro')).status, 204);
+    assert.equal(estado.lerTema(), 'escuro');
+  } finally {
+    servidor.close();
+  }
 });
 
 test('a página só aceita POST da própria origem e grava o pedido de resposta', async () => {

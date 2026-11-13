@@ -1,8 +1,9 @@
-// As rotas que agem no painel: trocar, adicionar, sincronizar, cancelar, nomear e ler o uso das contas.
+// As rotas que agem no painel: trocar, adicionar, sincronizar, cancelar, nomear, ler o uso das contas e gravar o tema.
 // Toda ação é POST com a mesma guarda: cabeçalho próprio, `Host` e `Origin` do próprio painel, corpo JSON de até 16 KB.
 // Falhou a guarda: 403 e nada se grava.
 import { lancar, nomear as nomearConta, cancelarAdicionar } from './contas.mjs';
 import { iniciarUso } from './uso.mjs';
+import { TEMAS, gravarTema } from './tema.mjs';
 
 export const CABECALHO = 'x-painel-de-contas';
 export const LIMITE_DO_CORPO = 16 * 1024;
@@ -75,6 +76,11 @@ export const TRATADORES = {
     const r = iniciarUso(semUndefined({ env, app, lerSenha: u.lerSenha, fetch: u.fetch, agora: u.agora }));
     if (r.ok) return r;
     return r.codigo === 'ocupado' ? recusa('ocupado', MOTIVO_USO_OCUPADO) : recusa('outro');
+  },
+  // O botão de tema: grava `claro` ou `escuro` no `tema.json` do kit (o mesmo da barra e do Painel).
+  '/api/tema': async (corpo, ctx) => {
+    if (!TEMAS.includes(corpo.tema)) return recusa('invalida');
+    return { ok: true, tema: await gravarTema(dosContas(ctx).env, corpo.tema) };
   },
 };
 

@@ -9,6 +9,7 @@ Tudo o que é de máquina (não de projeto) mora em `~/.claude/ichikawa/` (`$ICH
 | Caminho | Dono (quem grava) | Quem lê |
 |---|---|---|
 | `ausente.json` | `barra` | `orquestracao` |
+| `tema.json` | `barra`, Painel do `orquestracao`, painel do `contas` (o botão de tema) | os três |
 | `perguntas/<projeto>/Q<n>.json` | `orquestracao` | `orquestracao` (página) |
 | `itens/<projeto>/F<n>.json` | `orquestracao` | `orquestracao` (página) |
 | `siglas.json` | `orquestracao` (`perguntas sigla`) | `orquestracao` |
@@ -26,6 +27,14 @@ Tudo o que é de máquina (não de projeto) mora em `~/.claude/ichikawa/` (`$ICH
 ```
 
 Ausente o arquivo, ou `ligado` diferente de `true`: o operador está presente. `desde` é o momento da última troca (ligar ou desligar), em horário de São Paulo; a barra grava `{ "ligado": false, "desde": …, "por": "barra" }` ao desligar.
+
+### `tema.json`
+
+```json
+{ "tema": "claro", "em": "2026-11-13T21:15:00-03:00", "por": "barra" }
+```
+
+A escolha do botão de tema, uma só para a barra, o Painel e o painel de contas. `tema` igual a `"claro"` é o claro (o céu de dia, `data-ceu="dia"`); sem arquivo, ilegível ou qualquer outro valor, o escuro (a noite, o padrão). `por` diz quem gravou (`barra`, `painel`, `cotas`); `em` é ISO-8601. Quem grava escreve ao lado e renomeia (a barra grava direto, o arquivo é de uma linha). Nem a hora nem o `ausente.json` mudam o tema.
 
 ### `perguntas/<projeto>/Q<n>.json`
 
@@ -140,9 +149,9 @@ Cada plugin que quer botão na barra traz um `barra.json` na raiz dele (ao lado 
 
 Toda página local dos plugins (perguntas, contas e as que vierem) usa o mesmo visual: céu com o astro no rodapé, cartões de vidro, títulos em Geist, topo centralizado (selo, título, subtítulo) e duas colunas em tela larga.
 
-- **A fonte é a página de perguntas**, `plugins/orquestracao/lib/publico/`: `estilo.css` (tokens, tipografia, topo, seções, botões, pé), `ceu.js`, `ceu-dia.js`, `planeta.js` e `fontes/` (`geist-medium.woff2` com a licença `OFL-geist.txt`).
+- **A fonte é a página de perguntas**, `plugins/orquestracao/lib/publico/`: `estilo.css` (tokens, tipografia, topo, seções, botões, pé), `ceu.js`, `ceu-dia.js`, `planeta.js`, `tema.js` (o botão de tema) e `fontes/` (`geist-medium.woff2` com a licença `OFL-geist.txt`).
 - As outras páginas levam **cópia idêntica** desses arquivos (o painel de contas, em `plugins/contas/src/painel/publico/`) e acrescentam só classes próprias num arquivo à parte (`perguntas.css`, `cotas.css`).
 - O arquivo próprio usa só os tokens da base (`var(--…)`; tom translúcido por `color-mix`), sem cor solta: o tema troca os tokens em `estilo.css` e todas as páginas acompanham.
-- **Dois céus, pelo modo ausente** (`ausente.json` em `ICHIKAWA_HOME`, padrão `~/.claude/ichikawa`): ligado, a noite (via láctea e planeta, os tokens de `:root`); desligado, sem arquivo ou ilegível, o dia (céu azul, nuvens e sol, os tokens de `:root[data-ceu="dia"]`). O servidor grava `data-ceu="noite|dia"` no `<html>`; `ceu.js` desenha o céu pedido e troca sozinho quando o atributo muda. A página de perguntas acompanha no recarregamento de 30 s; o painel de contas confere `GET /api/ceu` a cada 10 s.
+- **Dois céus, pelo botão de tema** (`tema.json` em `ICHIKAWA_HOME`, padrão `~/.claude/ichikawa`): escuro, sem arquivo ou ilegível, a noite (via láctea e planeta, os tokens de `:root`); claro, o dia (céu azul, nuvens e sol, os tokens de `:root[data-ceu="dia"]`). O servidor grava `data-ceu="noite|dia"` no `<html>` e põe o botão (`BOTAO_DE_TEMA` de `tema.js`) no canto do topo; `ligarBotaoDeTema` troca o atributo na hora e grava pela rota da página (Painel: `POST /tema`, formulário; contas: `POST /api/tema`, JSON com a guarda das ações). `ceu.js` desenha o céu pedido e troca sozinho quando o atributo muda. A escolha feita em outro lugar chega ao Painel no recarregamento de 30 s e ao painel de contas pelo `GET /api/ceu` de 10 s; a barra relê a cada 30 s. A hora e o modo ausente não mudam o céu; o aviso de ausente do Painel continua.
 - O arquivo próprio pode trazer ajustes só do dia sob `:root[data-ceu="dia"]` (ex.: tirar brilhos), nunca cor que valha só para um céu fora desse bloco.
 - Mudar o visual é mudar a fonte e copiar nas outras no mesmo PR. `plugins/contas/src/painel/test/layout-comum.test.mjs` falha se as cópias divergirem.

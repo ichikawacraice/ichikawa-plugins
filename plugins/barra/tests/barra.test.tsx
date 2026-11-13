@@ -17,8 +17,6 @@ type Opcoes = {
   arquivos?: Record<string, string>
   settings?: Partial<Record<'user' | 'project' | 'local' | 'flag' | 'policy', Record<string, unknown>>>
   contador?: (argv: string[]) => Rodada | 'trava'
-  /** Saída de `date +%z`; padrão `-0300` (AGORA é 21:15 em São Paulo: noite). */
-  fuso?: string
   ferramenta?: (tool: string, e: Record<string, unknown>) => { text?: string; isError?: boolean; deny?: string }
   mvFalha?: boolean
   env?: Record<string, string>
@@ -89,7 +87,6 @@ function motor(on: On, opc: Opcoes = {}) {
       return ok({ exitCode: 0 })
     }
     if (argv[0] === '/bin/sh') return ok({ exitCode: 0 })
-    if (argv[0] === 'date') return ok({ exitCode: 0, stdout: `${opc.fuso ?? '-0300'}\n` })
     const r = opc.contador?.(argv) ?? { exitCode: 0, stdout: '3\n' }
     if (r === 'trava') throw new Error('timeout')
     return ok(r)
@@ -449,9 +446,10 @@ test('sessões: a lista do app falhou: o arquivo antigo fica e o erro vai ao log
 const estrelas = async (ui: { findAll: (q: object) => Promise<Array<{ text: string }>> }) =>
   (await ui.findAll({ type: 'Text' })).map(x => x.text).find(t => /[·✦⋆]/.test(t) && !/⧗/.test(t)) ?? ''
 
-test('céu: de dia pela hora do computador — fundo azul, cena do sol entre o relógio e os botões no desktop, nuvens no terminal', async ($, on) => {
-  // 00:15 UTC com fuso +09:00 são 9h15: dia.
-  await iniciar($, on, { fuso: '+0900' })
+const CLARO = { [`${ICH}/tema.json`]: '{"tema": "claro", "em": "2026-11-13T09:00:00-03:00", "por": "painel"}' }
+
+test('céu: tema claro gravado — fundo azul, cena do sol entre o relógio e os botões no desktop, nuvens no terminal', async ($, on) => {
+  await iniciar($, on, { arquivos: CLARO })
   for (const surface of SUPERFICIES) {
     const ui = await montar($, surface)
     const raiz = (await ui.findAll({ type: 'Box' }))[0]
@@ -464,33 +462,62 @@ test('céu: de dia pela hora do computador — fundo azul, cena do sol entre o r
       expect(t.indexOf('Contas'), 'a cena vem depois dos botões').toBeGreaterThan(-1)
     } else {
       expect(svg).toBeUndefined()
-      expect((await textos(ui))).toMatch(/☀/)
+      expect((await textos(ui))).toMatch(/☁/)
     }
-    expect(await ui.find({ type: 'Button', text: /☀ Ficar ausente/ })).toBeDefined()
+    expect(await ui.find({ type: 'Button', text: /^☾$/ }), 'no claro, a lua leva ao escuro').toBeDefined()
+    expect(await ui.find({ type: 'Button', text: /◌ Ficar ausente/ })).toBeDefined()
     await ui.unmount()
   }
 })
 
-test('céu: de noite pela hora do computador, com o ausente desligado — fundo do painel, lua no desktop, estrelas no terminal', async ($, on) => {
-  // 21:15 em São Paulo: noite, e o ausente (desligado) não muda o céu.
-  await iniciar($, on)
-  for (const surface of SUPERFICIES) {
-    const ui = await montar($, surface)
-    expect((await ui.findAll({ type: 'Box' }))[0]?.props.backgroundColor).toBe('#030014')
-    if (surface === 'desktop') expect(String((await ui.find({ type: 'Svg' }))?.props.source)).toMatch(/mask id="crescente"/)
-    else expect(await estrelas(ui)).toMatch(/[·✦⋆]/)
-    expect(await ui.find({ type: 'Button', text: /☀ Ficar ausente/ })).toBeDefined()
-    await ui.unmount()
-  }
-})
+const ESCUROS: Array<[string, Record<string, string>]> = [
+  ['sem tema.json', {}],
+  ['com o ausente ligado', { [`${ICH}/ausente.json`]: '{"ligado": true}' }],
+  ['com tema.json ilegível', { [`${ICH}/tema.json`]: 'lixo' }],
+]
+for (const [caso, arquivos] of ESCUROS) {
+  test(`céu: ${caso} é o escuro — fundo do painel, lua no desktop, estrelas no terminal`, async ($, on) => {
+    await iniciar($, on, { arquivos })
+    for (const surface of SUPERFICIES) {
+      const ui = await montar($, surface)
+      expect((await ui.findAll({ type: 'Box' }))[0]?.props.backgroundColor).toBe('#030014')
+      if (surface === 'desktop') expect(String((await ui.find({ type: 'Svg' }))?.props.source)).toMatch(/mask id="crescente"/)
+      else expect(await estrelas(ui)).toMatch(/[·✦⋆]/)
+      expect(await ui.find({ type: 'Button', text: /^☀$/ }), 'no escuro, o sol leva ao claro').toBeDefined()
+      await ui.unmount()
+    }
+  })
+}
 
-test('céu: vira dia às 6h e noite às 18h, no redesenho seguinte', async ($, on) => {
-  // 00:15 UTC com fuso +05:44 são 5h59; um minuto depois, 6h00.
-  const m = await iniciar($, on, { fuso: '+0544' })
+test('tema: o clique troca na hora e grava o tema.json; o seguinte volta', async ($, on) => {
+  const m = await iniciar($, on)
   const ui = await montar($, 'desktop')
-  expect((await ui.findAll({ type: 'Box' }))[0]?.props.backgroundColor).toBe('#030014')
-  await m.relogio.advance(60_000)
+  await ui.press({ key: 'tema' })
+  await m.relogio.settle()
+  expect(JSON.parse(m.arquivos.get(`${ICH}/tema.json`) as string)).toEqual({ tema: 'claro', em: '2026-11-13T21:15:00-03:00', por: 'barra' })
   expect((await ui.findAll({ type: 'Box' }))[0]?.props.backgroundColor).toBe('#74b6ef')
+  await ui.press({ key: 'tema' })
+  await m.relogio.settle()
+  expect(JSON.parse(m.arquivos.get(`${ICH}/tema.json`) as string).tema).toBe('escuro')
+  expect((await ui.findAll({ type: 'Box' }))[0]?.props.backgroundColor).toBe('#030014')
+  await ui.unmount()
+})
+
+test('tema: a escolha feita numa página aparece na leitura de 30 s', async ($, on) => {
+  const m = await iniciar($, on)
+  const ui = await montar($, 'desktop')
+  m.arquivos.set(`${ICH}/tema.json`, '{"tema": "claro"}')
+  await m.relogio.advance(30_000)
+  expect((await ui.findAll({ type: 'Box' }))[0]?.props.backgroundColor).toBe('#74b6ef')
+  await ui.unmount()
+})
+
+test('tema: ICHIKAWA_HOME troca a pasta', async ($, on) => {
+  const m = await iniciar($, on, { env: { ICHIKAWA_HOME: '/tmp/outra' } })
+  const ui = await montar($, 'desktop')
+  await ui.press({ key: 'tema' })
+  await m.relogio.settle()
+  expect(m.arquivos.has('/tmp/outra/tema.json')).toBe(true)
   await ui.unmount()
 })
 

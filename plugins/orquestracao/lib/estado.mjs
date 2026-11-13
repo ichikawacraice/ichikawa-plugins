@@ -124,6 +124,24 @@ export function lerAusente() {
   return a?.ligado === true ? a : null;
 }
 
+// ---- tema.json: a escolha do botão de tema, a mesma na barra, no Painel e no painel de cotas ----
+
+export const TEMAS = ['claro', 'escuro'];
+/** Sem escolha gravada (ou arquivo ilegível), o escuro. */
+export const TEMA_PADRAO = 'escuro';
+const arquivoDoTema = () => join(raiz(), 'tema.json');
+
+export function lerTema() {
+  return lerJson(arquivoDoTema())?.tema === 'claro' ? 'claro' : TEMA_PADRAO;
+}
+
+/** Grava a escolha (`claro` ou `escuro`); outro valor lança e nada se grava. */
+export function gravarTema(tema, por, agora = new Date()) {
+  if (!TEMAS.includes(tema)) throw new Error(`tema desconhecido: ${tema}`);
+  gravarJson(arquivoDoTema(), { tema, em: agora.toISOString(), por });
+  return tema;
+}
+
 const TAMANHO_DA_SIGLA = 3;
 const SIGLA_VALIDA = /^[A-Z0-9]{3}$/;
 const ID_COM_SIGLA = /^(?:([A-Za-z0-9]{3})-)?([QFqf]\d+)$/;
