@@ -2,10 +2,10 @@
 // Só lê os arquivos de estado (e, uma vez por dia, move para arquivo/ a entrega que já saiu dela); grava a resposta dada aqui e os pedidos que o mod da barra executa
 // (abrir a sessão, entregar a resposta). Nenhuma batida, nenhum laço em segundo plano.
 import { createServer } from 'node:http';
-import { spawn } from 'node:child_process';
+import { execFileSync, spawn } from 'node:child_process';
 import { randomUUID } from 'node:crypto';
 import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
-import { join } from 'node:path';
+import { join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import * as estado from './estado.mjs';
 
@@ -18,6 +18,11 @@ const DIA_MS = 24 * 60 * 60 * 1000;
 const ENTREGAS_A_MOSTRAR = 10;
 const RESPOSTA_PADRAO = 'Sim, siga a recomendação.';
 const SESSAO_DO_APP = /^local_[0-9a-f-]{36}$/;
+const NOME_DO_KIT = 'orquestracao';
+/** A pasta deste plugin (no cache, uma por versão): é o que distingue o servidor desta versão do de outra. */
+export const PASTA_DO_KIT = resolve(fileURLToPath(new URL('..', import.meta.url)));
+// `node <pasta do kit>/lib/cli.mjs pagina …`: a linha de comando com que `abrirPagina` sobe o servidor.
+const COMANDO_DA_PAGINA = /^\S*\bnode\s+(\/\S*\/orquestracao(?:\/[^/\s]+)?)\/lib\/cli\.mjs\s+pagina(?:\s|$)/;
 const PUBLICO = fileURLToPath(new URL('./publico/', import.meta.url));
 // Texto vai com charset; a fonte (binária) vai só com o tipo.
 const ARQUIVOS = {
@@ -234,7 +239,10 @@ export function criarServidor(porta = PORTA_PADRAO) {
   return createServer(async (req, res) => {
     try {
       const caminho = (req.url ?? '/').split('?')[0];
-      if (req.method === 'GET' && caminho === '/saude') { res.writeHead(200).end('ok'); return; }
+      if (req.method === 'GET' && caminho === '/saude') {
+        res.writeHead(200, { 'Content-Type': 'application/json' }).end(JSON.stringify({ kit: NOME_DO_KIT, pasta: PASTA_DO_KIT }));
+        return;
+      }
       if (req.method === 'GET' && ARQUIVOS[caminho]) {
         res.writeHead(200, { 'Content-Type': ARQUIVOS[caminho] }).end(readFileSync(join(PUBLICO, caminho.slice(1))));
         return;
@@ -262,24 +270,81 @@ export function servir(porta = PORTA_PADRAO) {
   });
 }
 
-async function noAr(porta) {
+/** O que responde em `/saude`: `null` se nada; `{ pasta }` do servidor do kit (`pasta: null` na versão antiga, que só dizia `ok`). */
+async function saudeNaPorta(porta) {
   try {
     const r = await fetch(`http://${HOST}:${porta}/saude`, { signal: AbortSignal.timeout(500) });
-    return r.ok;
-  } catch { return false; }
+    if (!r.ok) return null;
+    const corpo = await r.text();
+    try {
+      const j = JSON.parse(corpo);
+      return { pasta: j?.kit === NOME_DO_KIT && typeof j.pasta === 'string' ? j.pasta : null };
+    } catch { return { pasta: null }; }
+  } catch { return null; }
+}
+
+/** Processos escutando na porta, com a linha de comando de cada um (`lsof` + `ps`); vazio se não der para saber. */
+function processosNaPorta(porta) {
+  try {
+    const pids = execFileSync('lsof', ['-nP', `-iTCP:${porta}`, '-sTCP:LISTEN', '-t'], { encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] })
+      .split('\n').map(Number).filter((n) => Number.isInteger(n) && n > 0);
+    return pids.map((pid) => {
+      try {
+        return { pid, comando: execFileSync('ps', ['-o', 'command=', '-p', String(pid)], { encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] }).trim() };
+      } catch { return null; }
+    }).filter(Boolean);
+  } catch { return []; }
+}
+
+/** A pasta do kit de quem rodou `node <pasta>/lib/cli.mjs pagina`; `null` se a linha não é a do servidor da página. */
+export function pastaDoServidorDoKit(comando) {
+  return COMANDO_DA_PAGINA.exec(comando ?? '')?.[1] ?? null;
+}
+
+function subirDesacoplado(porta) {
+  const cli = fileURLToPath(new URL('./cli.mjs', import.meta.url));
+  spawn(process.execPath, [cli, 'pagina', '--porta', String(porta)], { detached: true, stdio: 'ignore' }).unref();
+}
+
+async function esperarAte(condicao, prazoMs) {
+  const ate = Date.now() + prazoMs;
+  while (Date.now() < ate) {
+    if (await condicao()) return true;
+    await new Promise((r) => setTimeout(r, INTERVALO_DE_CONFERENCIA_MS));
+  }
+  return condicao();
 }
 
 /**
- * Sobe a página se não estiver no ar e devolve o endereço. Com `navegador`, abre no navegador do sistema;
- * sem ele (`--subir`, o botão da barra), quem chamou abre no navegador do app.
+ * Se a porta tem o servidor da página de outra pasta do kit (outra versão), encerra-o e devolve `true`.
+ * Só encerra o que a linha de comando prova ser o servidor do kit; outro programa na porta fica como está.
  */
-export async function abrirPagina(porta = PORTA_PADRAO, { navegador = true } = {}) {
+async function trocarServidorDeOutraVersao(porta, pasta, { saude, processos, encerrar, prazoMs, aviso }) {
+  const dono = processos(porta).find((p) => pastaDoServidorDoKit(p.comando));
+  if (!dono) { aviso(`pagina: a porta ${porta} responde, mas não por um servidor do kit que eu possa provar; deixei como está`); return false; }
+  if (resolve(pastaDoServidorDoKit(dono.comando)) === pasta) return false;
+  encerrar(dono.pid);
+  if (await esperarAte(async () => !(await saude(porta)), prazoMs)) return true;
+  aviso(`pagina: o servidor antigo (pid ${dono.pid}) não saiu da porta ${porta}`);
+  return false;
+}
+
+/**
+ * Sobe a página se não estiver no ar e devolve o endereço. Se o servidor no ar é de outra versão do kit (outra pasta
+ * no cache do plugin), troca-o pelo desta. Com `navegador`, abre no navegador do sistema; sem ele (`--subir`, o botão
+ * da barra), quem chamou abre no navegador do app. Dependências trocáveis no teste.
+ */
+export async function abrirPagina(porta = PORTA_PADRAO, {
+  navegador = true, pasta = PASTA_DO_KIT, saude = saudeNaPorta, processos = processosNaPorta,
+  encerrar = (pid) => process.kill(pid, 'SIGTERM'), subir = subirDesacoplado, prazoMs = PRAZO_PARA_SUBIR_MS,
+  aviso = (t) => process.stderr.write(`${t}\n`),
+} = {}) {
   const url = `http://${HOST}:${porta}`;
-  if (!(await noAr(porta))) {
-    const cli = fileURLToPath(new URL('./cli.mjs', import.meta.url));
-    spawn(process.execPath, [cli, 'pagina', '--porta', String(porta)], { detached: true, stdio: 'ignore' }).unref();
-    const ate = Date.now() + PRAZO_PARA_SUBIR_MS;
-    while (Date.now() < ate && !(await noAr(porta))) await new Promise((r) => setTimeout(r, INTERVALO_DE_CONFERENCIA_MS));
+  let noAr = await saude(porta);
+  if (noAr && noAr.pasta !== pasta && await trocarServidorDeOutraVersao(porta, pasta, { saude, processos, encerrar, prazoMs, aviso })) noAr = null;
+  if (!noAr) {
+    subir(porta);
+    await esperarAte(async () => Boolean(await saude(porta)), prazoMs);
   }
   if (navegador && process.platform === 'darwin' && !process.env.ICHIKAWA_SEM_NAVEGADOR) {
     spawn('open', [url], { detached: true, stdio: 'ignore' }).unref();

@@ -5,7 +5,8 @@ import { tmpdir, homedir } from 'node:os';
 import { join } from 'node:path';
 import * as estado from '../lib/estado.mjs';
 import { main } from '../lib/cli.mjs';
-import { dados, html, servir, criarServidor } from '../lib/pagina.mjs';
+import { dados, html, servir, criarServidor, abrirPagina, pastaDoServidorDoKit, PASTA_DO_KIT } from '../lib/pagina.mjs';
+import { createServer } from 'node:http';
 import { decidir as orquestradoraNaoEdita } from '../hooks/orquestradora-nao-edita.mjs';
 import { decidir as configProtegida } from '../hooks/config-protegida.mjs';
 import { decidir as segredoSai } from '../hooks/segredo-sai.mjs';
@@ -564,4 +565,76 @@ test('abrir a página arquiva no máximo uma vez por dia', async () => {
   } finally {
     servidor.close();
   }
+});
+
+// ICH-F18: o servidor da página de outra versão do kit é trocado pelo desta; o resto fica.
+const PASTA_VELHA = '/Users/x/.claude/plugins/cache/ichikawa-plugins/orquestracao/3084fc400022';
+const comandoDaPagina = (pasta) => `/usr/local/bin/node ${pasta}/lib/cli.mjs pagina --porta 4747`;
+
+async function servidorFalso(porta, corpo) {
+  const s = createServer((req, res) => res.writeHead(200).end(corpo));
+  await new Promise((ok) => s.listen(porta, '127.0.0.1', ok));
+  return s;
+}
+
+/** Roda `abrirPagina` com um servidor falso na porta e devolve o que ele encerrou e se subiu outro. */
+async function abrirSobre(corpo, comando) {
+  const porta = 4800 + Math.floor(Math.random() * 500);
+  const falso = await servidorFalso(porta, corpo);
+  const r = { encerrados: [], subiu: false, avisos: [] };
+  let novo;
+  try {
+    await abrirPagina(porta, {
+      navegador: false, prazoMs: 1000, aviso: (t) => r.avisos.push(t),
+      processos: () => [{ pid: 4242, comando }],
+      encerrar: (pid) => { r.encerrados.push(pid); falso.close(); falso.closeAllConnections(); },
+      subir: (p) => { r.subiu = true; novo = servir(p); },
+    });
+  } finally {
+    falso.close();
+    (await novo)?.close();
+  }
+  return r;
+}
+
+test('/saude diz que é o kit e de que pasta', async () => {
+  const porta = 4800 + Math.floor(Math.random() * 500);
+  const servidor = await servir(porta);
+  try {
+    assert.deepEqual(await (await fetch(`http://127.0.0.1:${porta}/saude`)).json(), { kit: 'orquestracao', pasta: PASTA_DO_KIT });
+  } finally {
+    servidor.close();
+  }
+});
+
+test('a linha de comando prova o servidor da página do kit, no cache ou no repositório', () => {
+  assert.equal(pastaDoServidorDoKit(comandoDaPagina(PASTA_VELHA)), PASTA_VELHA);
+  assert.equal(pastaDoServidorDoKit('node /repo/plugins/orquestracao/lib/cli.mjs pagina'), '/repo/plugins/orquestracao');
+  assert.equal(pastaDoServidorDoKit('python3 -m http.server 4747'), null);
+  assert.equal(pastaDoServidorDoKit('node /repo/plugins/orquestracao/lib/cli.mjs nova --titulo x'), null);
+  assert.equal(pastaDoServidorDoKit('node /outro/app/lib/cli.mjs pagina'), null);
+});
+
+test('servidor da mesma pasta fica como está', async () => {
+  const r = await abrirSobre(JSON.stringify({ kit: 'orquestracao', pasta: PASTA_DO_KIT }), comandoDaPagina(PASTA_DO_KIT));
+  assert.deepEqual(r, { encerrados: [], subiu: false, avisos: [] });
+});
+
+test('servidor de outra versão do kit é encerrado e o desta sobe', async () => {
+  const r = await abrirSobre(JSON.stringify({ kit: 'orquestracao', pasta: PASTA_VELHA }), comandoDaPagina(PASTA_VELHA));
+  assert.deepEqual(r.encerrados, [4242]);
+  assert.equal(r.subiu, true);
+});
+
+test('servidor antigo que só diz ok também é trocado, provado pela linha de comando', async () => {
+  const r = await abrirSobre('ok', comandoDaPagina(PASTA_VELHA));
+  assert.deepEqual(r.encerrados, [4242]);
+  assert.equal(r.subiu, true);
+});
+
+test('outro programa na porta nunca é encerrado', async () => {
+  const r = await abrirSobre('ok', 'python3 -m http.server 4747');
+  assert.deepEqual(r.encerrados, []);
+  assert.equal(r.subiu, false);
+  assert.match(r.avisos[0], /deixei como está/);
 });
