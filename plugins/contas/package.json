@@ -1,0 +1,19 @@
+{
+  "name": "claude-account-switcher",
+  "version": "0.1.0",
+  "description": "Painel local para várias contas do app do Claude no Mac: cota de cada conta, troca sem Sign out e as sessões do Code continuando na conta nova.",
+  "private": true,
+  "type": "module",
+  "bin": {
+    "trocar-conta": "src/troca/cli.mjs",
+    "painel-de-contas": "src/painel/cli.mjs",
+    "abrir-painel-de-contas": "src/painel/abrir.mjs"
+  },
+  "engines": { "node": ">=20" },
+  "os": ["darwin"],
+  "scripts": {
+    "test": "node --test --test-concurrency=4 'src/**/test/*.test.mjs'",
+    "painel": "node src/painel/cli.mjs"
+  },
+  "license": "Apache-2.0"
+}

@@ -1,0 +1,11 @@
+{
+  "botoes": [
+    {
+      "id": "contas",
+      "rotulo": "Contas",
+      "dica": "Abre o painel de contas: cota de cada conta e a troca sem Sign out",
+      "comando": ["node", "${CLAUDE_PLUGIN_ROOT}/src/painel/abrir.mjs"],
+      "ordem": 30
+    }
+  ]
+}
