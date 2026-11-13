@@ -7,8 +7,8 @@ Você faz o pedido uma vez. A **orquestradora** quebra o pedido em itens e abre 
 Junto vêm os padrões da stack (React, TypeScript, Next, Postgres, Google Cloud), uma barra acima do prompt com o relógio do cache e os botões do kit, e um painel para trocar de conta do app sem Sign out.
 
 <p align="center">
-  <img src="docs/imagens/painel-noite.jpg" alt="O Painel do kit no tema noite: perguntas abertas com caso, consequência e recomendação, as entregas dos últimos 30 dias e as sessões em andamento" width="49%">
-  <img src="docs/imagens/painel-dia.jpg" alt="O mesmo Painel no tema dia, com céu azul, nuvens e o sol" width="49%">
+  <img src="docs/imagens/painel-noite.jpg" alt="O Painel do kit no celular, tema noite: uma pergunta aberta com o caso, o que acontece se ninguém decidir e a recomendação, e o começo da seção Sessões" width="300">
+  <img src="docs/imagens/painel-dia.jpg" alt="O mesmo Painel no celular, tema dia, com céu azul e nuvens" width="300">
 </p>
 <p align="center"><sub>O Painel (<code>http://127.0.0.1:4747</code>) nos dois céus, noite e dia. O botão no canto troca o tema, e a escolha vale para a barra e para o painel de contas. Dados de exemplo.</sub></p>
 
@@ -281,8 +281,8 @@ Configuração e testes: [`plugins/design-wicomm/README.md`](plugins/design-wico
 ## `contas`: várias contas do app sem Sign out
 
 <p align="center">
-  <img src="docs/imagens/contas-noite.jpg" alt="O painel de contas no tema noite: três contas com a cota de 5 h e da semana e a lista de sessões do Code" width="49%">
-  <img src="docs/imagens/contas-dia.jpg" alt="O painel de contas no tema dia" width="49%">
+  <img src="docs/imagens/contas-noite.jpg" alt="O painel de contas no celular, tema noite: três contas com a cota de 5 h e da semana" width="300">
+  <img src="docs/imagens/contas-dia.jpg" alt="O painel de contas no celular, tema dia" width="300">
 </p>
 <p align="center"><sub>O painel de contas (<code>http://127.0.0.1:4791</code>) com contas de exemplo.</sub></p>
 
