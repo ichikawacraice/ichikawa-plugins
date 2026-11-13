@@ -23,7 +23,7 @@ test('estrelas do terminal: cintilam pelo quadro e, paradas, ficam acesas e igua
 test('cena da noite: começa no fundo do painel, lua crescente, cintilação em degraus de 1 s e parada', () => {
   const svg = svgDaCena('noite', 960, false)
   expect(svg.startsWith('<svg')).toBe(true)
-  expect(svg).toMatch(new RegExp(`stop-color="${TEMAS.noite.fundo}"`))
+  expect(svg).toContain(`fill="${TEMAS.noite.fundo}"`)
   expect(svg).toMatch(/mask id="crescente"/)
   expect(svg).toMatch(new RegExp(`animation:cintila ${CICLO_CINTILA}s steps\\(${CICLO_CINTILA}`))
   expect(svg).toMatch(/prefers-reduced-motion:reduce/)
@@ -34,12 +34,12 @@ test('cena da noite: começa no fundo do painel, lua crescente, cintilação em 
   expect(parado).toMatch(/<circle/)
 })
 
-test('cena do dia: começa no azul do fundo, sol com raios, nuvens que derivam e param', () => {
+test('cena do dia: o azul liso da barra, nuvens paradas atrás do sol, sem animação', () => {
   const svg = svgDaCena('dia', 960, false)
-  expect(svg).toMatch(new RegExp(`stop-color="${TEMAS.dia.fundo}"`))
+  expect(svg).toContain(`fill="${TEMAS.dia.fundo}"`)
   expect(svg).toMatch(/radialGradient id="sol"/)
-  expect(svg).toMatch(/class="nuvens"/)
-  expect(svg).toMatch(/animation:deriva/)
+  expect(svg.indexOf('class="nuvens"')).toBeLessThan(svg.indexOf('fill="url(#sol)"'))
+  expect(svg).not.toMatch(/animation|<style/)
   expect(svg).not.toMatch(/<script|on[a-z]+=/i)
   expect(svgDaCena('dia', 960, true)).not.toMatch(/animation/)
   expect(svgDaCena('dia', 50, false)).toMatch(/width="200"/)
@@ -71,7 +71,7 @@ test('menos movimento: a variável liga (0/false desligam), e o macOS com 1', ()
   expect(pedeMenosMovimento(undefined, '0\n')).toBe(false)
 })
 
-test('cena do dia: o sol na ponta direita, com 50 px de céu antes dos botões, e a cena da altura da barra', () => {
+test('cena do dia: o sol colado na ponta direita, antes dos botões, e a cena da altura da barra', () => {
   const svg = svgDaCena('dia', 300, true)
   expect(svg).toContain(`height="${SVG_ALTURA}"`)
   expect(svg).toContain(`<circle cx="${300 - ESPACO_SOL_BOTOES - 10}" cy="${SVG_ALTURA / 2}" r="10" fill="url(#sol)"/>`)

@@ -105,8 +105,10 @@ export const linhaDoCeu = (modo: Modo, colunas: number, fase: number | null): st
 
 /** Altura da cena, em pixels CSS: um botão do app com folga em cima e embaixo, longe da moldura nativa da faixa. */
 export const SVG_ALTURA = 40
-/** Céu livre entre a borda do sol e o primeiro botão, em pixels. */
-export const ESPACO_SOL_BOTOES = 50
+/** Céu livre entre a borda do sol (ou da lua) e a ponta direita da cena, colada nos botões, em pixels. */
+export const ESPACO_SOL_BOTOES = 18
+/** Raio do brilho em volta do sol e da lua: some antes da borda da cena, para não aparecer corte. */
+const RAIO_BRILHO = 28
 const RAIO_SOL = 10
 /** Largura mínima e máxima da cena; abaixo do mínimo a barra fica sem cena. */
 export const CENA_MIN = 140
@@ -128,9 +130,6 @@ const ESTILO_NOITE =
   `.c{animation:cintila ${CICLO_CINTILA}s steps(${CICLO_CINTILA},jump-none) infinite}` +
   Array.from({ length: CICLO_CINTILA - 1 }, (_, k) => `.c${k + 1}{animation-delay:-${k + 1}s}`).join('') +
   `@media (prefers-reduced-motion:reduce){.c{animation:none}}`
-const ESTILO_DIA =
-  `@keyframes deriva{from{transform:translateX(0)}to{transform:translateX(-50px)}}` +
-  `.nuvens{animation:deriva 60s linear infinite alternate}@media (prefers-reduced-motion:reduce){.nuvens{animation:none}}`
 
 /** Noite: o fundo escurece para a direita, estrelas e a lua crescente na ponta direita, onde de dia fica o sol. */
 function cenaDaNoite(l: number, parado: boolean): string {
@@ -153,18 +152,16 @@ function cenaDaNoite(l: number, parado: boolean): string {
   return (
     `<svg xmlns="http://www.w3.org/2000/svg" width="${l}" height="${a}" viewBox="0 0 ${l} ${a}">` +
     (parado ? '' : `<style>${ESTILO_NOITE}</style>`) +
-    `<defs><linearGradient id="fundo" x1="0" x2="1"><stop offset="0" stop-color="${TEMAS.noite.fundo}"/>` +
-    `<stop offset=".6" stop-color="#07021a"/><stop offset="1" stop-color="#120632"/></linearGradient>` +
-    `<radialGradient id="luar" cx="${mx}" cy="${my}" r="60" gradientUnits="userSpaceOnUse">` +
-    `<stop offset="0" stop-color="#e1d6ff" stop-opacity=".55"/><stop offset=".3" stop-color="#a78bfa" stop-opacity=".18"/>` +
+    `<defs><radialGradient id="luar" cx="${mx}" cy="${my}" r="${RAIO_BRILHO}" gradientUnits="userSpaceOnUse">` +
+    `<stop offset="0" stop-color="#e1d6ff" stop-opacity=".55"/><stop offset=".5" stop-color="#a78bfa" stop-opacity=".2"/>` +
     `<stop offset="1" stop-color="#8f7cff" stop-opacity="0"/></radialGradient>` +
     `<radialGradient id="lua" cx="35%" cy="35%" r="75%"><stop offset="0" stop-color="#ffffff"/>` +
     `<stop offset=".7" stop-color="#e9e3ff"/><stop offset="1" stop-color="#c8b8ff"/></radialGradient>` +
     `<mask id="crescente"><rect width="${l}" height="${a}" fill="#fff"/>` +
     `<circle cx="${mx + 5}" cy="${my - 3}" r="${RAIO_SOL}" fill="#000"/></mask></defs>` +
-    `<rect width="${l}" height="${a}" fill="url(#fundo)"/>` +
+    `<rect width="${l}" height="${a}" fill="${TEMAS.noite.fundo}"/>` +
     estrelas.join('') +
-    `<circle cx="${mx}" cy="${my}" r="60" fill="url(#luar)"/>` +
+    `<circle cx="${mx}" cy="${my}" r="${RAIO_BRILHO}" fill="url(#luar)"/>` +
     `<circle cx="${mx}" cy="${my}" r="${RAIO_SOL}" fill="url(#lua)" mask="url(#crescente)"/>` +
     `</svg>`
   )
@@ -179,40 +176,40 @@ function nuvem(x: number, y: number, escala: number, opacidade: number): string 
   )
 }
 
-/** Dia: o azul clareia para a direita, o sol com brilho e raios na ponta e nuvens que derivam devagar. */
-function cenaDoDia(l: number, parado: boolean): string {
+/** Dia: o azul liso da barra, nuvens paradas ao fundo e o sol com brilho e raios na ponta direita, colado nos botões. */
+function cenaDoDia(l: number): string {
   const a = SVG_ALTURA
   const sx = l - ESPACO_SOL_BOTOES - RAIO_SOL
   const sy = Math.round(a / 2)
   const raios = Array.from({ length: 12 }, (_, k) => {
     const ang = (k * Math.PI) / 6
-    const p = (d: number) => `${d1(sx + Math.cos(ang + d) * 64)} ${d1(sy + Math.sin(ang + d) * 64)}`
+    const p = (d: number) => `${d1(sx + Math.cos(ang + d) * 17)} ${d1(sy + Math.sin(ang + d) * 17)}`
 
-    return `<path d="M${sx} ${sy} L${p(-0.09)} L${p(0.09)}Z"/>`
+    return `<path d="M${sx} ${sy} L${p(-0.16)} L${p(0.16)}Z"/>`
   }).join('')
+  // Nuvens ao fundo, espalhadas pela cena toda e atrás do sol; mais apagadas quanto mais longe dele.
   const nuvens = [
-    nuvem(l - 230, 26, 0.75, 0.95),
-    nuvem(l - 380, 16, 0.45, 0.7),
-    nuvem(l - 140, 32, 0.5, 0.8),
-    nuvem(l - 540, 28, 0.6, 0.55),
-    nuvem(l - 700, 14, 0.4, 0.4),
+    nuvem(l - 48, 27, 0.5, 0.9),
+    nuvem(l - 120, 22, 0.6, 0.85),
+    nuvem(l - 200, 28, 0.45, 0.7),
+    nuvem(l - 280, 18, 0.5, 0.6),
+    nuvem(l - 370, 26, 0.4, 0.5),
+    nuvem(l - 450, 20, 0.35, 0.4),
   ].join('')
 
   return (
     `<svg xmlns="http://www.w3.org/2000/svg" width="${l}" height="${a}" viewBox="0 0 ${l} ${a}">` +
-    (parado ? '' : `<style>${ESTILO_DIA}</style>`) +
-    `<defs><linearGradient id="fundo" x1="0" x2="1"><stop offset="0" stop-color="${TEMAS.dia.fundo}"/>` +
-    `<stop offset=".55" stop-color="#9ccdf4"/><stop offset="1" stop-color="#d6ebfb"/></linearGradient>` +
-    `<radialGradient id="brilho" cx="${sx}" cy="${sy}" r="110" gradientUnits="userSpaceOnUse">` +
-    `<stop offset="0" stop-color="#fff6d6" stop-opacity=".95"/><stop offset=".18" stop-color="#ffe7a0" stop-opacity=".6"/>` +
-    `<stop offset=".5" stop-color="#ffe7a0" stop-opacity=".12"/><stop offset="1" stop-color="#ffe7a0" stop-opacity="0"/></radialGradient>` +
+    `<defs><radialGradient id="brilho" cx="${sx}" cy="${sy}" r="${RAIO_BRILHO}" gradientUnits="userSpaceOnUse">` +
+    `<stop offset="0" stop-color="#fff6d6" stop-opacity=".95"/><stop offset=".45" stop-color="#ffe7a0" stop-opacity=".45"/>` +
+    `<stop offset="1" stop-color="#ffe7a0" stop-opacity="0"/></radialGradient>` +
     `<radialGradient id="sol" cx="35%" cy="35%" r="70%"><stop offset="0" stop-color="#fff3c8"/>` +
     `<stop offset=".6" stop-color="#ffe08a"/><stop offset="1" stop-color="#ffb83f"/></radialGradient>` +
     `<linearGradient id="nuvem" x1="0" y1="-20" x2="0" y2="10" gradientUnits="userSpaceOnUse">` +
     `<stop offset="0" stop-color="#ffffff"/><stop offset="1" stop-color="#e3f1fd"/></linearGradient></defs>` +
-    `<rect width="${l}" height="${a}" fill="url(#fundo)"/><circle cx="${sx}" cy="${sy}" r="110" fill="url(#brilho)"/>` +
-    `<g fill="#fff4c4" opacity=".6">${raios}</g><circle cx="${sx}" cy="${sy}" r="10" fill="url(#sol)"/>` +
-    `<g class="nuvens">${nuvens}</g></svg>`
+    `<rect width="${l}" height="${a}" fill="${TEMAS.dia.fundo}"/>` +
+    `<g class="nuvens">${nuvens}</g>` +
+    `<circle cx="${sx}" cy="${sy}" r="${RAIO_BRILHO}" fill="url(#brilho)"/>` +
+    `<g fill="#fff4c4" opacity=".7">${raios}</g><circle cx="${sx}" cy="${sy}" r="${RAIO_SOL}" fill="url(#sol)"/></svg>`
   )
 }
 
@@ -232,13 +229,12 @@ export function larguraDaCena(colunas: number, texto: string, rotulos: string[])
 
 /**
  * A cena do desktop para o modo, com `largura` pixels: fica entre o relógio e os botões, com o sol (ou a lua) na
- * ponta direita e `ESPACO_SOL_BOTOES` de céu livre antes do primeiro botão; começa na cor do fundo para emendar sem borda. A animação é CSS do próprio SVG (estrelas em degraus de 1 s, nuvens a
- * deriva lenta); `prefers-reduced-motion` a para no app, e `parado` a tira do desenho.
+ * ponta direita, colado nos botões; o fundo é a cor lisa da barra, para emendar sem borda. A animação é CSS do próprio SVG (só as estrelas, em degraus de 1 s; o dia é parado); `prefers-reduced-motion` a para no app, e `parado` a tira do desenho.
  */
 export function svgDaCena(modo: Modo, largura: number, parado: boolean): string {
   const l = Math.max(200, Math.round(largura))
 
-  return modo === 'noite' ? cenaDaNoite(l, parado) : cenaDoDia(l, parado)
+  return modo === 'noite' ? cenaDaNoite(l, parado) : cenaDoDia(l)
 }
 
 /** Pede menos movimento: `BARRA_SEM_ANIMACAO` ligado, ou o "Reduzir movimento" do macOS (`defaults` imprime 1). */
