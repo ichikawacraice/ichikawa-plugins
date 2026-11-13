@@ -100,10 +100,10 @@ export function dados(agora = Date.now()) {
   const emOrdemDeF = (a, b) => numero(a.i.id) - numero(b.i.id) || a.projeto.localeCompare(b.projeto);
   perguntas.sort(antiga);
   andamento.sort(emOrdemDeF);
-  // Entregas: escolhe as mais recentes pela data; dentro de cada bloco, a ordem de F.
+  // Entregas: da mais recente para a mais antiga (pela data da entrega), nos 10 primeiros e no "Ver mais".
   recentes.sort((a, b) => quandoEntregou(b.i) - quandoEntregou(a.i));
-  const entregas = recentes.slice(0, ENTREGAS_A_MOSTRAR).sort(emOrdemDeF);
-  const maisEntregas = recentes.slice(ENTREGAS_A_MOSTRAR).sort(emOrdemDeF);
+  const entregas = recentes.slice(0, ENTREGAS_A_MOSTRAR);
+  const maisEntregas = recentes.slice(ENTREGAS_A_MOSTRAR);
   return { perguntas, andamento, entregas, maisEntregas };
 }
 
