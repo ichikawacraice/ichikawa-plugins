@@ -1,0 +1,6 @@
+{
+  "name": "fixture-wicontrol",
+  "private": true,
+  "dependencies": { "react": "^19.2.0", "lucide-react": "^0.577.0", "class-variance-authority": "^0.7.1" },
+  "devDependencies": { "tailwindcss": "^3.4.19", "vite": "^7.3.1" }
+}

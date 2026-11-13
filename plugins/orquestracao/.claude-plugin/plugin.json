@@ -1,0 +1,7 @@
+{
+  "name": "orquestracao",
+  "description": "Orquestradora que abre sessões donas por item, perguntas ao operador numa página local, entregas registradas e o processo de planejar, testar, depurar, revisar e soltar release — sem fila de merge.",
+  "author": { "name": "Ichikawa" },
+  "license": "MIT",
+  "keywords": ["orquestracao", "sessoes", "planejamento", "tdd", "revisao", "release"]
+}

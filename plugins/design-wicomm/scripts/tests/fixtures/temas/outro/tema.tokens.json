@@ -1,0 +1,15 @@
+{
+  "$description": "Uma marca de teste, só para provar que o slot troca a marca por um arquivo. Não é marca de ninguém.",
+  "marca": {
+    "$type": "color",
+    "cor": { "$value": "#0057D9" },
+    "hover": { "$value": "#004BBD", "$extensions": { "com.wicomm": { "escuro": "#2A74E8" } } },
+    "sobre": { "$value": "#FEFEFE" },
+    "tinta": { "$value": "#E6EFFC", "$extensions": { "com.wicomm": { "escuro": "#132440" } } },
+    "gradiente": {
+      "inicio": { "$value": "#003C99", "$extensions": { "com.wicomm": { "escuro": "#0048B8" } } },
+      "meio": { "$value": "#0066FF" },
+      "fim": { "$value": "#66A3FF", "$extensions": { "com.wicomm": { "escuro": "#8AB8FF" } } }
+    }
+  }
+}

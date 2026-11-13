@@ -1,0 +1,25 @@
+@tailwind base;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --radius: .625rem;
+    --background: #fafafa;
+    --foreground: #242424;
+    --card: #ffffff;
+    --muted: #ececf0;
+    --accent: #e9ebef;
+    --muted-foreground: #717182;
+    --primary: #ff012e;
+    --primary-foreground: #ffffff;
+    --ring: #ff012e80;
+    --input: transparent;
+    --marca: 345 91% 50%;
+    --chart-1: #f54900;
+    --mention-color: #ff012e;
+  }
+  .dark {
+    --background: #242424;
+    --foreground: #fafafa;
+  }
+}

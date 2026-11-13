@@ -1,0 +1,30 @@
+{
+  "$description": "O slot da marca: o único arquivo que declara a cor da marca. O sistema (sistema.tokens.json) só aponta para cá, por alias; trocar a marca é trocar este arquivo e gerar de novo. A marca dos apps Wicomm é sempre a Wicomm (Q628) — o slot existe para a marca mudar num lugar só, não para troca por cliente.",
+  "marca": {
+    "$type": "color",
+    "cor": {
+      "$value": "#F30B42",
+      "$description": "MARCA-01: a cor da marca é declarada, igual nos dois temas, e não cede a contraste. Branco sobre ela mede 4,25 (aceito)."
+    },
+    "hover": {
+      "$value": "#DB0A3B",
+      "$description": "MARCA-01: o hover muda só a luz, na mesma matiz (345,9°). Claro -5pp de luz; escuro +9pp.",
+      "$extensions": { "com.wicomm": { "escuro": "#F63663" } }
+    },
+    "sobre": {
+      "$value": "#FFFFFF",
+      "$description": "A tinta que escreve sobre o preenchimento da marca."
+    },
+    "tinta": {
+      "$value": "#FFE9EE",
+      "$description": "MARCA-02: fundo tingido opaco da marca. Ela tinge; não escreve.",
+      "$extensions": { "com.wicomm": { "escuro": "#331320" } }
+    },
+    "gradiente": {
+      "$description": "MARCA-03: a assinatura, só em desenho e preenchimento, nunca em texto. As pontas pagam 2:1 de luminância entre si.",
+      "inicio": { "$value": "#C4002A", "$extensions": { "com.wicomm": { "escuro": "#D6002E" } } },
+      "meio": { "$value": "#FF0041" },
+      "fim": { "$value": "#FF5C96", "$extensions": { "com.wicomm": { "escuro": "#FF7AAB" } } }
+    }
+  }
+}

@@ -1,0 +1,26 @@
+{
+  "name": "ichikawa-plugins",
+  "owner": { "name": "ichikawacraice" },
+  "plugins": [
+    {
+      "name": "orquestracao",
+      "source": "./plugins/orquestracao",
+      "description": "A orquestradora abre uma sessão dona por item, as perguntas e as entregas ficam numa página local, e o processo (planejar, TDD, depurar, revisar, release develop→main) vem junto — sem fila de merge."
+    },
+    {
+      "name": "barra",
+      "source": "./plugins/barra",
+      "description": "A barra acima do prompt: o tempo do cache, o modo ausente e os botões dos outros plugins ligados (barra.json)."
+    },
+    {
+      "name": "design-wicomm",
+      "source": "./plugins/design-wicomm",
+      "description": "Design system dos apps React internos da Wicomm, com o tema da marca. Só para projetos internos."
+    },
+    {
+      "name": "contas",
+      "source": { "source": "github", "repo": "ichikawacraice/claude-account-switcher", "ref": "develop" },
+      "description": "O painel de contas do Claude: ver o uso de cada conta e trocar de conta."
+    }
+  ]
+}

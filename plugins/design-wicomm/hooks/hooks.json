@@ -1,0 +1,20 @@
+{
+  "description": "Só avisos, nenhum bloqueio: o lembrete do processo de design no pedido e o aviso de valor solto na escrita de tela.",
+  "hooks": {
+    "UserPromptSubmit": [
+      {
+        "hooks": [
+          { "type": "command", "command": "node \"${CLAUDE_PLUGIN_ROOT}/hooks/lembrete-de-design.mjs\"", "timeout": 10 }
+        ]
+      }
+    ],
+    "PreToolUse": [
+      {
+        "matcher": "Edit|Write|MultiEdit",
+        "hooks": [
+          { "type": "command", "command": "node \"${CLAUDE_PLUGIN_ROOT}/hooks/valor-solto.mjs\"", "timeout": 10 }
+        ]
+      }
+    ]
+  }
+}

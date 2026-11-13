@@ -1,0 +1,28 @@
+{
+  "$description": "O tema Wicomm: o que é da marca e não do sistema. As cores moram em tema.tokens.json (DTCG, o slot `marca`); aqui, o resto. Trocar a marca é trocar esta pasta.",
+  "id": "wicomm",
+  "nome": "Wicomm",
+  "logotipo": {
+    "horizontal": "wicomm",
+    "monograma": "w",
+    "imagem": {
+      "sobreClaro": "logotipo/sobre-claro.png",
+      "sobreEscuro": "logotipo/sobre-escuro.png",
+      "origem": "https://wicomm.com.br/wp-content/themes/wp-wicomm/assets/img/"
+    },
+    "simbolo": {
+      "sobreClaro": "logotipo/simbolo-sobre-claro.png",
+      "origem": "https://wicomm.com.br/wp-content/uploads/2026/03/cropped-monograma-positivo-1920w-192x192.webp"
+    }
+  },
+  "fonte": {
+    "familia": "Archivo",
+    "variavel": "--font-archivo",
+    "utilitaria": "font-archivo",
+    "eixoDeLargura": true
+  },
+  "contrasteAceitoSobreAMarca": 4.25,
+  "registro": {
+    "prefixo": "@wicomm"
+  }
+}

@@ -1,0 +1,22 @@
+{
+  "name": "design-wicomm",
+  "description": "Design system dos apps React internos da Wicomm, com a marca: a base (direção de design, anatomia, convenções), o tema Wicomm, o designer (antes do código, em tela nova) e o crítico de UI com nota, mais as skills de projeto novo, auditoria, padronização, peça do kit, acessibilidade, textos e atualização.",
+  "author": {
+    "name": "Wicomm"
+  },
+  "keywords": ["design-system", "react", "shadcn", "wicomm"],
+  "userConfig": {
+    "pasta_do_front": {
+      "type": "string",
+      "title": "Pasta do front",
+      "description": "Pasta das telas (ex.: web). Vazio usa `pasta` do design/design-system.json; se o projeto diz a pasta, ele vence.",
+      "default": ""
+    },
+    "largura": {
+      "type": "number",
+      "title": "Largura de referência (px)",
+      "description": "Largura em que o designer e o crítico olham a tela. `largura` do design/design-system.json vence esta opção.",
+      "default": 1280
+    }
+  }
+}

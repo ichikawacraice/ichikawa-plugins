@@ -1,0 +1,19 @@
+{
+  "$description": "Um tema de teste, só para provar que trocar a pasta do tema troca a marca e a fonte sem tocar no núcleo. Não é marca de ninguém.",
+  "id": "outro",
+  "nome": "Outro",
+  "logotipo": {
+    "horizontal": "outro",
+    "monograma": "o"
+  },
+  "fonte": {
+    "familia": "Inter",
+    "variavel": "--font-inter",
+    "utilitaria": "font-inter",
+    "eixoDeLargura": false
+  },
+  "contrasteAceitoSobreAMarca": 4.5,
+  "registro": {
+    "prefixo": "@outro"
+  }
+}

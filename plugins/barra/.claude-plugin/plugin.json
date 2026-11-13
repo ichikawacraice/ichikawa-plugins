@@ -1,0 +1,6 @@
+{
+  "name": "barra",
+  "description": "A barra acima do prompt: quanto falta do cache de 1 h, o botão de ausente e os botões que os outros plugins ligados declaram no barra.json.",
+  "author": { "name": "ichikawacraice" },
+  "types": "./types/index.d.ts"
+}

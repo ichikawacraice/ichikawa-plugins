@@ -1,0 +1,23 @@
+/* Só o que a página de perguntas acrescenta ao layout comum (estilo.css, cópia do painel de contas). */
+.cartoes > li { padding: 10px 12px; background: var(--vidro); border: 1px solid var(--fio); border-radius: var(--raio); -webkit-backdrop-filter: blur(4px); backdrop-filter: blur(4px); }
+.cartao-cab { display: flex; gap: 6px 8px; align-items: baseline; flex-wrap: wrap; }
+.cartao-titulo { font-size: 14px; font-weight: 650; flex: 1 1 200px; min-width: 0; overflow-wrap: anywhere; }
+.id { font: 600 12px var(--mono); color: var(--violeta); }
+.projeto { color: var(--texto-2); font-size: 11.5px; }
+.campos { margin: 6px 0 0; display: grid; gap: 4px; }
+.campos dt { color: var(--texto-2); font-size: 11px; letter-spacing: 0.04em; text-transform: uppercase; }
+.campos dd { margin: 0; font-size: 13px; overflow-wrap: anywhere; }
+.responder { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 8px; }
+.responder textarea {
+  font: inherit; font-size: 13px; flex: 1 1 100%; min-width: 0; padding: 6px 10px; resize: vertical;
+  color: var(--texto); background: rgba(8, 10, 30, 0.8); border: 1px solid var(--fio-forte); border-radius: 10px;
+}
+.responder button { flex: 1 1 0; min-height: 30px; }
+.responder textarea:focus-visible { outline: 2px solid #c8b8ff; outline-offset: 2px; }
+.selo-entregue { color: var(--ok); background: rgba(110, 231, 200, 0.08); }
+.selo-parcial { color: var(--alto); background: rgba(214, 166, 255, 0.08); }
+.selo-parado { color: var(--critico); background: rgba(255, 122, 168, 0.08); }
+.selo-etapa { color: var(--texto-2); }
+.quando { color: var(--texto-2); font-size: 11.5px; font-variant-numeric: tabular-nums; margin-top: 6px; }
+.proximos { margin: 2px 0 0; padding-left: 16px; list-style: disc; display: block; }
+.proximos li { font-size: 13px; }
