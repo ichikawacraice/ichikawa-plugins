@@ -11,6 +11,8 @@ export type Botao = {
   dica?: string
   comando: string[]
   contador?: string[]
+  /** Página local que o clique abre no painel de navegador do app, depois que o `comando` termina. */
+  url?: string
   ordem: number
 }
 

@@ -208,6 +208,50 @@ test('botões: o clique roda o comando desacoplado, com a raiz trocada', async (
   await ui.unmount()
 })
 
+const BARRA_JSON_COM_URL = JSON.stringify({
+  botoes: [{ id: 'perguntas', rotulo: 'Perguntas', comando: ['node', '${CLAUDE_PLUGIN_ROOT}/lib/cli.mjs', 'pagina', '--subir'], url: 'http://127.0.0.1:4747', ordem: 20 }],
+})
+
+test('botões: com url, espera o comando subir a página e abre no navegador do app', async ($, on) => {
+  const m = await iniciar($, on, { arquivos: { [`${ORQ}/barra.json`]: BARRA_JSON_COM_URL } })
+  const ui = await montar($, 'desktop')
+  await ui.press({ key: 'orquestracao@ichikawa/perguntas' })
+  expect(m.rodadas).toContainEqual(['node', `${ORQ}/lib/cli.mjs`, 'pagina', '--subir'])
+  expect(m.rodadas.find(a => a[0] === '/bin/sh')).toBeUndefined()
+  const navegador = m.chamadas.find(c => c.tool === 'mcp__Claude_Browser__preview_start')
+  expect(navegador?.url).toBe('http://127.0.0.1:4747')
+  expect(m.rodadas.find(a => a[0] === 'open')).toBeUndefined()
+  expect(m.toasts).toEqual([])
+  await ui.unmount()
+})
+
+test('botões: com url e sem o navegador do app (terminal), abre no navegador do sistema', async ($, on) => {
+  const m = await iniciar($, on, {
+    arquivos: { [`${ORQ}/barra.json`]: BARRA_JSON_COM_URL },
+    ferramenta: tool => {
+      if (tool === 'mcp__Claude_Browser__preview_start') throw new Error('no tool named mcp__Claude_Browser__preview_start')
+      return { text: 'ok' }
+    },
+  })
+  const ui = await montar($, 'terminal')
+  await ui.press({ key: 'orquestracao@ichikawa/perguntas' })
+  expect(m.rodadas).toContainEqual(['open', 'http://127.0.0.1:4747'])
+  expect(m.toasts).toEqual([])
+  await ui.unmount()
+})
+
+test('botões: com url, comando que falha não abre navegador e avisa', async ($, on) => {
+  const m = await iniciar($, on, {
+    arquivos: { [`${ORQ}/barra.json`]: BARRA_JSON_COM_URL },
+    contador: argv => (argv.includes('--subir') ? { exitCode: 1, stderr: 'porta ocupada' } : { exitCode: 0, stdout: '3' }),
+  })
+  const ui = await montar($, 'desktop')
+  await ui.press({ key: 'orquestracao@ichikawa/perguntas' })
+  expect(m.chamadas.find(c => c.tool === 'mcp__Claude_Browser__preview_start')).toBeUndefined()
+  expect(m.toasts.join('\n')).toMatch(/porta ocupada/)
+  await ui.unmount()
+})
+
 test('botões: contador que falha ou trava fica sem selo, e o botão segue', async ($, on) => {
   await iniciar($, on, { contador: () => 'trava' })
   const ui = await montar($, 'terminal')

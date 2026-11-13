@@ -12,9 +12,9 @@ Só lê arquivos e roda os contadores declarados; nunca `list_sessions` em laço
 ## Contrato `barra.json` (resumo)
 
 1. Fica na raiz do plugin, ao lado de `.claude-plugin/`: `{ "botoes": [ … ] }`.
-2. Cada botão: `id`, `rotulo`, `comando` (argv, sem shell), `ordem` (menor à esquerda); `dica` e `contador` são opcionais.
+2. Cada botão: `id`, `rotulo`, `comando` (argv, sem shell), `ordem` (menor à esquerda); `dica`, `contador` e `url` são opcionais.
 3. `${CLAUDE_PLUGIN_ROOT}` em qualquer argumento vira a pasta do plugin dono.
-4. O clique roda o `comando` desacoplado; a barra não espera.
+4. O clique roda o `comando` desacoplado; a barra não espera. Com `url` (só página local), espera o `comando` e abre a página no navegador do app; no terminal, no navegador do sistema.
 5. `contador` imprime um inteiro, mostrado como selo (`Perguntas · 3`), rodado no máximo a cada 30 s com prazo de 3 s.
 
 O contrato completo está em [`docs/contratos.md`](../../docs/contratos.md).

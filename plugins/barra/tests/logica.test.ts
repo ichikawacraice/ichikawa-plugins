@@ -82,15 +82,20 @@ test('lerBarraJson: botões válidos com a raiz trocada; os inválidos viram err
       { id: 'a b', rotulo: 'id ruim', comando: ['true'] },
       { id: 'shell', rotulo: 'Shell', comando: 'node x' },
       { id: 'simples', rotulo: '  Simples  ', comando: ['open', '.'] },
+      { id: 'pagina', rotulo: 'Página', comando: ['true'], url: 'http://127.0.0.1:4747' },
+      { id: 'fora', rotulo: 'Fora', comando: ['true'], url: 'https://evil.test' },
     ],
   })
   const { botoes, erros } = lerBarraJson(texto, PLUGIN)
-  expect(botoes.map(b => b.chave)).toEqual(['orquestracao@ichikawa/perguntas', 'orquestracao@ichikawa/simples'])
+  expect(botoes.map(b => b.chave)).toEqual(['orquestracao@ichikawa/perguntas', 'orquestracao@ichikawa/simples', 'orquestracao@ichikawa/pagina'])
+  expect(botoes[2]?.url).toBe('http://127.0.0.1:4747')
+  expect(botoes[0]?.url, 'sem url: nada').toBeUndefined()
   expect(botoes[0]?.comando).toEqual(['node', `${RAIZ}/bin/p.mjs`, 'pagina'])
   expect(botoes[0]?.contador).toEqual(['node', `${RAIZ}/bin/p.mjs`, 'contar'])
   expect(botoes[1]?.rotulo).toBe('Simples')
   expect(botoes[1]?.ordem, 'sem ordem: 100').toBe(100)
-  expect(erros.length).toBe(4)
+  expect(erros.length).toBe(5)
+  expect(erros.some(e => /"url" não é página local/.test(e))).toBe(true)
   expect(lerBarraJson('{', PLUGIN).erros[0]).toMatch(/não é JSON/)
   expect(lerBarraJson('{}', PLUGIN).erros[0]).toMatch(/sem a lista/)
 })

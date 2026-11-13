@@ -29,6 +29,12 @@ const horaSP = (iso) => {
   } catch { return ''; }
 };
 
+/** O número do id (`F12` → 12, `Q3` → 3); id sem número vai para o fim. */
+const numero = (id) => {
+  const m = /(\d+)$/.exec(String(id ?? ''));
+  return m ? Number(m[1]) : Number.MAX_SAFE_INTEGER;
+};
+
 const ehSessaoDoApp = (v) => typeof v === 'string' && SESSAO_DO_APP.test(v);
 
 function campos(pares) {
@@ -42,8 +48,9 @@ function cartaoDePergunta(projeto, p) {
   return `<li><div class="cartao-cab"><span class="id">${esc(p.id)}</span><span class="cartao-titulo">${esc(p.titulo)}</span><span class="projeto">${esc(projeto)}${p.item ? ` · ${esc(p.item)}` : ''}</span></div>
 ${campos([['O caso', esc(p.caso)], ['Se ninguém decidir', esc(p.seNaoDecidir)], ['Recomendação', esc(p.recomendacao)]])}
 <form class="responder" method="post" action="/responder">${oculto}
-<textarea name="resposta" rows="2" aria-label="Resposta para ${esc(p.id)}" placeholder="${esc(RESPOSTA_PADRAO)}"></textarea>
-<button type="submit" class="primario">Responder</button>${abrir}</form>
+<textarea name="resposta" rows="2" required aria-label="Resposta para ${esc(p.id)}" placeholder="Escreva a resposta, ou aceite a recomendação"></textarea>
+<button type="submit" name="acao" value="aceitar" formnovalidate class="primario" title="Grava “${esc(RESPOSTA_PADRAO)}”">Aceitar recomendação</button>
+<button type="submit" name="acao" value="enviar">Enviar resposta</button>${abrir}</form>
 <p class="quando">${esc(horaSP(p.criadoEm))}${p.item ? ` · no app, a sessão é a <b>${esc(p.item)} · …</b> na barra lateral` : ''}</p></li>`;
 }
 
@@ -70,10 +77,12 @@ export function dados(agora = Date.now()) {
       else if (!['feito', 'parado', 'descartado'].includes(i.etapa)) andamento.push({ projeto, i });
     }
   }
-  const recente = (a, b) => (b < a ? -1 : b > a ? 1 : 0);
-  perguntas.sort((a, b) => recente(a.p.criadoEm, b.p.criadoEm));
-  andamento.sort((a, b) => recente(a.i.atualizadoEm, b.i.atualizadoEm));
-  entregas.sort((a, b) => recente(a.i.entrega.em ?? '', b.i.entrega.em ?? ''));
+  // Perguntas: da mais antiga para a mais nova. Itens: em ordem de F (F1, F2, …), empate pelo projeto.
+  const antiga = (a, b) => (a.p.criadoEm ?? '').localeCompare(b.p.criadoEm ?? '') || numero(a.p.id) - numero(b.p.id) || a.projeto.localeCompare(b.projeto);
+  const emOrdemDeF = (a, b) => numero(a.i.id) - numero(b.i.id) || a.projeto.localeCompare(b.projeto);
+  perguntas.sort(antiga);
+  andamento.sort(emOrdemDeF);
+  entregas.sort(emOrdemDeF);
   return { perguntas, andamento, entregas };
 }
 
@@ -141,7 +150,9 @@ async function responder(req, res, porta) {
   const lido = await lerPergunta(req, res, porta);
   if (!lido) return;
   const { f, projeto, p } = lido;
-  const resposta = f.get('resposta')?.trim() || RESPOSTA_PADRAO;
+  // "Aceitar recomendação" grava a resposta padrão; "Enviar resposta" exige texto (vazio não envia).
+  const resposta = f.get('acao') === 'aceitar' ? RESPOSTA_PADRAO : f.get('resposta')?.trim();
+  if (!resposta) { res.writeHead(400, { 'Content-Type': 'text/plain; charset=utf-8' }).end('resposta vazia: escreva a resposta ou use "Aceitar recomendação"'); return; }
   estado.atualizar('perguntas', projeto, p.id, { estado: 'respondida', resposta, respondidaEm: new Date().toISOString(), lida: false });
   if (ehSessaoDoApp(p.sessao)) gravarPedido('responder', p.sessao, `${p.id} (resposta pela página): ${resposta}`);
   res.writeHead(303, { Location: '/' }).end();
@@ -193,8 +204,11 @@ async function noAr(porta) {
   } catch { return false; }
 }
 
-/** Sobe a página se não estiver no ar e a abre no navegador; devolve o endereço. */
-export async function abrirPagina(porta = PORTA_PADRAO) {
+/**
+ * Sobe a página se não estiver no ar e devolve o endereço. Com `navegador`, abre no navegador do sistema;
+ * sem ele (`--subir`, o botão da barra), quem chamou abre no navegador do app.
+ */
+export async function abrirPagina(porta = PORTA_PADRAO, { navegador = true } = {}) {
   const url = `http://${HOST}:${porta}`;
   if (!(await noAr(porta))) {
     const cli = fileURLToPath(new URL('./cli.mjs', import.meta.url));
@@ -202,7 +216,7 @@ export async function abrirPagina(porta = PORTA_PADRAO) {
     const ate = Date.now() + PRAZO_PARA_SUBIR_MS;
     while (Date.now() < ate && !(await noAr(porta))) await new Promise((r) => setTimeout(r, INTERVALO_DE_CONFERENCIA_MS));
   }
-  if (process.platform === 'darwin' && !process.env.ICHIKAWA_SEM_NAVEGADOR) {
+  if (navegador && process.platform === 'darwin' && !process.env.ICHIKAWA_SEM_NAVEGADOR) {
     spawn('open', [url], { detached: true, stdio: 'ignore' }).unref();
   }
   return url;
