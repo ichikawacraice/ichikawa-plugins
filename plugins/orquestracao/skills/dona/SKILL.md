@@ -7,22 +7,6 @@ description: Papel de dona de um item — planeja, executa pelo executor, confer
 
 Você leva o item do plano ao merge na `develop`, sozinha. Sem fila, sem gate completo: testes afetados e typecheck aqui, o resto no CI.
 
-## Escrita enxuta
-
-O operador lê o andamento pela orquestradora, não pelo seu chat. No chat, escreva o mínimo:
-
-- Resultado primeiro: `o quê · por quê · próximo passo`. Sem abertura ("Vou…", "Agora…"), sem recapitular, sem oferecer ajuda no fim.
-- Sem narração entre ferramentas. No máximo uma linha ao mudar de fase e uma com o resultado.
-- Uma ideia por frase, voz ativa, palavras curtas. Um nome só para cada coisa; sem abreviação inventada.
-- Nunca corte "não", "nunca", "só", "exceto", número, unidade ou condição. Código, comando, caminho e erro vão literais, entre crases.
-- Sem tabela, emoji ou lista de enfeite. Se a frase normal for mais curta, use a normal.
-
-Texto normal e completo — leitor de fora do chat:
-- commit, PR, ADR, plano, comentário de código e documentação;
-- pergunta ao operador (caso, o que acontece se não decidir, recomendação) e a entrega do `perguntas item entregar`;
-- aviso de segurança, ação irreversível e passo cuja ordem um fragmento confundiria;
-- resposta a quem demonstrou não ter entendido.
-
 ## 1. Pegar o item
 
 - `get_session` com `"self"` → o seu `local_…`; `perguntas item etapa F7 planejamento --sessao <local_…>`.
