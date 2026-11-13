@@ -2,7 +2,8 @@
   "botoes": [
     {
       "id": "perguntas",
-      "rotulo": "Perguntas",
+      "rotulo": "Painel",
+      "icone": "◫",
       "dica": "Abre no navegador do app a página com as perguntas abertas, os itens em andamento e as entregas",
       "comando": ["node", "${CLAUDE_PLUGIN_ROOT}/lib/cli.mjs", "pagina", "--subir"],
       "url": "http://127.0.0.1:4747",

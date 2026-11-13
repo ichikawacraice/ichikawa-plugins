@@ -17,6 +17,8 @@ type Opcoes = {
   arquivos?: Record<string, string>
   settings?: Partial<Record<'user' | 'project' | 'local' | 'flag' | 'policy', Record<string, unknown>>>
   contador?: (argv: string[]) => Rodada | 'trava'
+  /** Saída de `date +%z`; padrão `-0300` (AGORA é 21:15 em São Paulo: noite). */
+  fuso?: string
   ferramenta?: (tool: string, e: Record<string, unknown>) => { text?: string; isError?: boolean; deny?: string }
   mvFalha?: boolean
   env?: Record<string, string>
@@ -25,7 +27,7 @@ type Opcoes = {
 const BARRA_JSON_ORQ = JSON.stringify({
   botoes: [{ id: 'perguntas', rotulo: 'Perguntas', comando: ['node', '${CLAUDE_PLUGIN_ROOT}/bin/perguntas.mjs', 'pagina', '--abrir'], contador: ['node', '${CLAUDE_PLUGIN_ROOT}/bin/perguntas.mjs', 'contar'], ordem: 20 }],
 })
-const BARRA_JSON_CONTAS = JSON.stringify({ botoes: [{ id: 'contas', rotulo: 'Contas', comando: ['node', '${CLAUDE_PLUGIN_ROOT}/bin/contas.mjs'], ordem: 10 }] })
+const BARRA_JSON_CONTAS = JSON.stringify({ botoes: [{ id: 'contas', rotulo: 'Contas', icone: '◉', comando: ['node', '${CLAUDE_PLUGIN_ROOT}/bin/contas.mjs'], ordem: 10 }] })
 const INSTALADOS_JSON = JSON.stringify({
   version: 2,
   plugins: {
@@ -87,6 +89,7 @@ function motor(on: On, opc: Opcoes = {}) {
       return ok({ exitCode: 0 })
     }
     if (argv[0] === '/bin/sh') return ok({ exitCode: 0 })
+    if (argv[0] === 'date') return ok({ exitCode: 0, stdout: `${opc.fuso ?? '-0300'}\n` })
     const r = opc.contador?.(argv) ?? { exitCode: 0, stdout: '3\n' }
     if (r === 'trava') throw new Error('timeout')
     return ok(r)
@@ -446,25 +449,62 @@ test('sessões: a lista do app falhou: o arquivo antigo fica e o erro vai ao log
 const estrelas = async (ui: { findAll: (q: object) => Promise<Array<{ text: string }>> }) =>
   (await ui.findAll({ type: 'Text' })).map(x => x.text).find(t => /[·✦⋆]/.test(t) && !/⧗/.test(t)) ?? ''
 
-test('céu: fundo escuro nas duas superfícies; desktop desenha o SVG atrás dos botões, terminal as estrelas', async ($, on) => {
-  await iniciar($, on)
+test('céu: de dia pela hora do computador — fundo azul, cena do sol entre o relógio e os botões no desktop, nuvens no terminal', async ($, on) => {
+  // 00:15 UTC com fuso +09:00 são 9h15: dia.
+  await iniciar($, on, { fuso: '+0900' })
   for (const surface of SUPERFICIES) {
     const ui = await montar($, surface)
     const raiz = (await ui.findAll({ type: 'Box' }))[0]
-    expect(raiz?.props.backgroundColor).toBe('#030014')
-    const ceu = await ui.find({ key: 'ceu' })
-    expect(ceu?.props.position).toBe('absolute')
+    expect(raiz?.props.backgroundColor).toBe('#74b6ef')
     const svg = await ui.find({ type: 'Svg' })
-    if (surface === 'desktop') expect(String(svg?.props.source)).toMatch(/prefers-reduced-motion/)
-    else expect(svg).toBeUndefined()
-    if (surface === 'terminal') expect(await estrelas(ui)).toMatch(/[·✦⋆]/)
-    expect(await ui.find({ type: 'Button', text: /Ficar ausente/ })).toBeDefined()
+    if (surface === 'desktop') {
+      expect(String(svg?.props.source)).toMatch(/radialGradient id="sol"/)
+      expect((await ui.find({ key: 'ceu' }))?.props.position, 'o app não pinta Svg em camada').toBeUndefined()
+      const t = await textos(ui)
+      expect(t.indexOf('Contas'), 'a cena vem depois dos botões').toBeGreaterThan(-1)
+    } else {
+      expect(svg).toBeUndefined()
+      expect((await textos(ui))).toMatch(/☀/)
+    }
+    expect(await ui.find({ type: 'Button', text: /☀ Ficar ausente/ })).toBeDefined()
     await ui.unmount()
   }
 })
 
+test('céu: de noite pela hora do computador, com o ausente desligado — fundo do painel, lua no desktop, estrelas no terminal', async ($, on) => {
+  // 21:15 em São Paulo: noite, e o ausente (desligado) não muda o céu.
+  await iniciar($, on)
+  for (const surface of SUPERFICIES) {
+    const ui = await montar($, surface)
+    expect((await ui.findAll({ type: 'Box' }))[0]?.props.backgroundColor).toBe('#030014')
+    if (surface === 'desktop') expect(String((await ui.find({ type: 'Svg' }))?.props.source)).toMatch(/mask id="crescente"/)
+    else expect(await estrelas(ui)).toMatch(/[·✦⋆]/)
+    expect(await ui.find({ type: 'Button', text: /☀ Ficar ausente/ })).toBeDefined()
+    await ui.unmount()
+  }
+})
+
+test('céu: vira dia às 6h e noite às 18h, no redesenho seguinte', async ($, on) => {
+  // 00:15 UTC com fuso +05:44 são 5h59; um minuto depois, 6h00.
+  const m = await iniciar($, on, { fuso: '+0544' })
+  const ui = await montar($, 'desktop')
+  expect((await ui.findAll({ type: 'Box' }))[0]?.props.backgroundColor).toBe('#030014')
+  await m.relogio.advance(60_000)
+  expect((await ui.findAll({ type: 'Box' }))[0]?.props.backgroundColor).toBe('#74b6ef')
+  await ui.unmount()
+})
+
+test('ícones: todo botão abre com um glifo — o do barra.json, ou o padrão', async ($, on) => {
+  await iniciar($, on)
+  const ui = await montar($, 'desktop')
+  const t = await textos(ui)
+  expect(t).toMatch(/◉ Contas/)
+  expect(t).toMatch(/✦ Perguntas · 3/)
+  await ui.unmount()
+})
+
 test('céu: no terminal as estrelas cintilam a cada segundo; com BARRA_SEM_ANIMACAO ficam paradas', async ($, on) => {
-  const m = await iniciar($, on)
+  const m = await iniciar($, on, { arquivos: { [`${ICH}/ausente.json`]: '{"ligado": true}' } })
   const ui = await montar($, 'terminal')
   const vistos = new Set<string>()
   for (let i = 0; i < 4; i++) {
@@ -476,7 +516,7 @@ test('céu: no terminal as estrelas cintilam a cada segundo; com BARRA_SEM_ANIMA
 })
 
 test('céu: menos movimento pedido deixa as estrelas paradas e o SVG sem animação', async ($, on) => {
-  const m = await iniciar($, on, { env: { BARRA_SEM_ANIMACAO: '1' } })
+  const m = await iniciar($, on, { env: { BARRA_SEM_ANIMACAO: '1' }, arquivos: { [`${ICH}/ausente.json`]: '{"ligado": true}' } })
   const ui = await montar($, 'terminal')
   const antes = await estrelas(ui)
   await m.relogio.advance(3000)
@@ -488,7 +528,7 @@ test('céu: menos movimento pedido deixa as estrelas paradas e o SVG sem animaç
 })
 
 test('céu: o "Reduzir movimento" do macOS também para', async ($, on) => {
-  const m = await iniciar($, on, { contador: argv => (argv[0] === 'defaults' ? { exitCode: 0, stdout: '1\n' } : { exitCode: 0, stdout: '3\n' }) })
+  const m = await iniciar($, on, { arquivos: { [`${ICH}/ausente.json`]: '{"ligado": true}' }, contador: argv => (argv[0] === 'defaults' ? { exitCode: 0, stdout: '1\n' } : { exitCode: 0, stdout: '3\n' }) })
   const ui = await montar($, 'terminal')
   const antes = await estrelas(ui)
   await m.relogio.advance(2000)

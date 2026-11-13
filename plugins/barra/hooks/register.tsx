@@ -25,15 +25,16 @@ import {
 } from './logica'
 import {
   CICLO_CINTILA,
-  COR_BOTAO_TERMINAL,
-  COR_BRILHO_TERMINAL,
-  COR_ESTRELA_TERMINAL,
-  COR_FUNDO,
-  COR_TEXTO,
-  PX_POR_COLUNA,
-  linhaDeEstrelas,
+  ICONES,
+  larguraDaCena,
+  SVG_ALTURA,
+  TEMAS,
+  linhaDoCeu,
+  FUSO_PADRAO_MIN,
+  fusoDoDate,
+  modoDaHora,
   pedeMenosMovimento,
-  svgDoCeu,
+  svgDaCena,
 } from './ceu'
 import { atenderPedidos } from './pedidos'
 import {
@@ -74,6 +75,7 @@ let atendendo = false
 let geracaoAusente = 0
 let errosVistos = ''
 let semMovimento = false
+let fusoMin = FUSO_PADRAO_MIN
 const PRAZO_DEFAULTS_MS = 3000
 
 /** Lido uma vez por session.start: a variável `BARRA_SEM_ANIMACAO` e o "Reduzir movimento" do macOS. */
@@ -87,6 +89,16 @@ async function lerMovimento($: EngineInterface): Promise<boolean> {
   }
 
   return pedeMenosMovimento(await $.env.get('BARRA_SEM_ANIMACAO'), saida)
+}
+
+/** O fuso do computador, lido uma vez por sessão (`date +%z`); sem resposta, o de São Paulo. */
+async function lerFuso($: EngineInterface): Promise<number> {
+  try {
+    const r = await $.process.run(['date', '+%z'], { timeoutMs: PRAZO_DEFAULTS_MS })
+    return fusoDoDate(r.exitCode === 0 ? r.stdout : null)
+  } catch {
+    return FUSO_PADRAO_MIN
+  }
 }
 
 async function pastaIchikawa($: EngineInterface): Promise<string> {
@@ -310,13 +322,18 @@ function iniciarRelogios($: EngineInterface): void {
 // ---- o desenho ----
 
 const ROTULO_AUSENTE = (a: Ausente | null, mudando: boolean): string =>
-  mudando ? '☾ Gravando…' : a?.ligado ? '☾ Estou de volta' : '☾ Ficar ausente'
+  mudando ? `${ICONES.gravando} Gravando…` : a?.ligado ? `${ICONES.ausenteNoite} Estou de volta` : `${ICONES.ausenteDia} Ficar ausente`
+
+/** O rótulo de um botão de plugin: o ícone do `barra.json` (ou o padrão), o rótulo e o selo. */
+const rotuloDoBotao = (b: Botao, selo: number | null | undefined): string =>
+  `${b.icone ?? ICONES.padrao} ${rotuloComSelo(b.rotulo, selo)}`
 
 export const register: Register = on => {
   on('session.start', async ($, e, next) => {
     const r = await next(e)
     projeto = e.cwd ?? null
     semMovimento = await lerMovimento($)
+    fusoMin = await lerFuso($)
     await update($, fase, f => (semMovimento ? null : (f ?? 0)))
     iniciarRelogios($)
     await ler($)
@@ -349,41 +366,63 @@ export const register: Register = on => {
     const lista = await read($, botoes)
     const s = await read($, selos)
     const quadro = Svg ? null : await read($, fase)
+    // O céu segue a hora do computador; o relógio de 1 s redesenha a barra, então a troca acontece na virada.
+    const modo = modoDaHora(await $.clock.now(), fusoMin)
+    const tema = TEMAS[modo]
     const nivel = nivelDoCache(c.segundos, e.props.isWorking)
     const texto = `⧗ ${e.props.isWorking ? 'ativo' : relogio(c.segundos)}`
-    const moldura = nivel ? { borderStyle: 'round' as const, borderColor: nivel === 'aviso' ? ('warning' as const) : ('error' as const) } : {}
-    // No terminal o rótulo leva a cor clara (o fundo agora é escuro); no desktop o botão é nativo e se pinta sozinho.
-    const rotulo = (chave: string, t: string) => (Svg ? t : <Text key={chave} color={COR_BOTAO_TERMINAL}>{t}</Text>)
-    const ceu = Svg ? (
-      <Box key="ceu" position="absolute" top={0} left={0}>
-        <Svg source={svgDoCeu((e.props.bodyColumns + 6) * PX_POR_COLUNA, semMovimento)} alt="" />
-      </Box>
-    ) : (
-      <Box key="ceu" position="absolute" top={0} left={0}>
-        <Text color={COR_ESTRELA_TERMINAL} wrap="truncate-end">
-          {linhaDeEstrelas(e.props.bodyColumns, quadro)}
+    // No terminal o rótulo leva a cor do tema; no desktop o botão é nativo e se pinta sozinho (cor de texto ignorada).
+    const rotulo = (chave: string, t: string) => (Svg ? t : <Text key={chave} color={tema.texto}>{t}</Text>)
+    const rotuloAusente = ROTULO_AUSENTE(a, mudando)
+    const rotulos = lista.map(b => rotuloDoBotao(b, s[b.chave]))
+    const relogioDoCache =
+      nivel === 'alerta' || nivel === 'venceu' ? (
+        <Text key="cache" inverse bold color="error">{` ${texto} `}</Text>
+      ) : (
+        <Text key="cache" bold color={nivel === 'aviso' ? tema.aviso : tema.texto}>
+          {texto}
         </Text>
-      </Box>
-    )
-
-    return (
-      <Box flexDirection="row" flexWrap="wrap" columnGap={1} alignItems="center" paddingX={1} backgroundColor={COR_FUNDO} {...moldura}>
-        {ceu}
-        {nivel === 'alerta' || nivel === 'venceu' ? (
-          <Text inverse bold>{` ${texto} `}</Text>
-        ) : (
-          <Text bold={nivel === 'aviso'} color={nivel === 'aviso' ? COR_BRILHO_TERMINAL : COR_TEXTO}>
-            {texto}
-          </Text>
-        )}
-        <Button key="ausente" variant="secondary" dimColor={!a?.ligado} onPress={() => void alternarAusente($)}>
-          {rotulo('r-ausente', ROTULO_AUSENTE(a, mudando))}
+      )
+    // De dia o botão primário (claro e sólido) se destaca do céu claro; de noite o secundário (escuro) combina.
+    const variante = modo === 'dia' ? 'primary' : 'secondary'
+    const botoesDaBarra = [
+      <Button key="ausente" variant={variante} onPress={() => void alternarAusente($)}>
+        {rotulo('r-ausente', rotuloAusente)}
+      </Button>,
+      ...lista.map((b, i) => (
+        <Button key={b.chave} variant={variante} onPress={() => void clicar($, b)}>
+          {rotulo(`r-${b.chave}`, rotulos[i] ?? b.rotulo)}
         </Button>
-        {lista.map(b => (
-          <Button key={b.chave} variant="secondary" onPress={() => void clicar($, b)}>
-            {rotulo(`r-${b.chave}`, rotuloComSelo(b.rotulo, s[b.chave]))}
-          </Button>
-        ))}
+      )),
+    ]
+
+    // Desktop: relógio à esquerda, a cena em fluxo no meio (o app não pinta Svg em camada) com o sol ou o planeta na
+    // ponta direita e 50 px de céu antes dos botões, e os botões encostados à direita. Sem `overflow`/`flexWrap`: com
+    // eles o app deixava de pintar a cena.
+    if (Svg) {
+      const largura = larguraDaCena(e.props.bodyColumns, texto, [rotuloAusente, ...rotulos])
+
+      return (
+        <Box key={`barra-${modo}`} flexDirection="row" alignItems="center" columnGap={1} paddingX={1} paddingY="xs" backgroundColor={tema.fundo}>
+          {relogioDoCache}
+          <Box key="ceu" flexGrow={1} flexDirection="row" justifyContent="flex-end">
+            {largura ? <Svg source={svgDaCena(modo, largura, semMovimento)} alt={modo === 'noite' ? 'Céu estrelado com a lua' : 'Céu com o sol'} width={largura} height={SVG_ALTURA} /> : null}
+          </Box>
+          {botoesDaBarra}
+        </Box>
+      )
+    }
+
+    // Terminal: a linha de estrelas ou nuvens em camada atrás de tudo, como antes.
+    return (
+      <Box key={`barra-${modo}`} flexDirection="row" flexWrap="wrap" columnGap={1} alignItems="center" paddingX={1} backgroundColor={tema.fundo} overflow="hidden">
+        <Box key="ceu" position="absolute" top={0} left={0}>
+          <Text color={tema.detalheTerminal} wrap="truncate-end">
+            {linhaDoCeu(modo, e.props.bodyColumns, quadro)}
+          </Text>
+        </Box>
+        {relogioDoCache}
+        {botoesDaBarra}
       </Box>
     )
   })

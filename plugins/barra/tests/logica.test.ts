@@ -4,6 +4,7 @@ import {
   argvDesacoplado,
   instalacaoAqui,
   isoSaoPaulo,
+  iconeValido,
   lerAusente,
   lerBarraJson,
   lerContador,
@@ -157,4 +158,15 @@ test('lerPedido: tipos, sessão, texto e o prazo de 30 min', () => {
   expect(lerPedido(JSON.stringify({ ...ok, tipo: 'apagar' }), agora)).toEqual({ motivo: 'tipo desconhecido: apagar' })
   expect(lerPedido(JSON.stringify({ ...ok, criadoEm: new Date(agora - 31 * 60_000).toISOString() }), agora)).toEqual({ motivo: 'vencido (mais de 30 min)' })
   expect(lerPedido('{', agora)).toEqual({ motivo: 'não é JSON' })
+})
+
+test('iconeValido: aceita um glifo curto e recusa vazio, espaço, texto longo e não texto', () => {
+  expect(iconeValido('◫')).toBe('◫')
+  expect(iconeValido(' ◉ ')).toBe('◉')
+  expect(iconeValido('')).toBeNull()
+  expect(iconeValido('a b')).toBeNull()
+  expect(iconeValido('ícone')).toBeNull()
+  expect(iconeValido(3)).toBeNull()
+  const { botoes } = lerBarraJson(JSON.stringify({ botoes: [{ id: 'a', rotulo: 'A', icone: '◫', comando: ['x'] }, { id: 'b', rotulo: 'B', icone: 'longo', comando: ['x'] }] }), PLUGIN)
+  expect(botoes.map(b => b.icone)).toEqual(['◫', undefined])
 })

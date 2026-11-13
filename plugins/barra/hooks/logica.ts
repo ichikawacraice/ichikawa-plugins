@@ -137,11 +137,13 @@ export function lerBarraJson(texto: string, plugin: PluginLigado): { botoes: Bot
     if (o.contador !== undefined && !ehArgv(o.contador)) return void erros.push(`${onde}: "contador" não é uma lista de textos`)
     if (o.url !== undefined && (typeof o.url !== 'string' || !URL_LOCAL.test(o.url))) return void erros.push(`${onde}: "url" não é página local (http://127.0.0.1 ou http://localhost)`)
     vistos.add(o.id)
+    const icone = iconeValido(o.icone)
     botoes.push({
       chave: `${plugin.id}/${o.id}`,
       plugin: plugin.id,
       raiz: plugin.raiz,
       rotulo: o.rotulo.trim(),
+      ...(icone ? { icone } : {}),
       ...(typeof o.dica === 'string' ? { dica: o.dica } : {}),
       comando: trocarRaiz(o.comando, plugin.raiz),
       ...(o.contador !== undefined ? { contador: trocarRaiz(o.contador as string[], plugin.raiz) } : {}),
@@ -152,6 +154,18 @@ export function lerBarraJson(texto: string, plugin: PluginLigado): { botoes: Bot
 
   return { botoes, erros }
 }
+
+const ICONE_MAX = 2
+
+/** O `icone` do `barra.json`: um glifo curto (até 2 caracteres visíveis), sem espaço; outro valor é ignorado. */
+export function iconeValido(v: unknown): string | null {
+  if (typeof v !== 'string') return null
+  const t = v.trim()
+  if (t === '' || /\s/.test(t) || [...t].length > ICONE_MAX) return null
+
+  return t
+}
+
 
 /** Menor `ordem` à esquerda; empate pelo plugin e depois pelo id. */
 export const ordenarBotoes = (botoes: readonly Botao[]): Botao[] =>
