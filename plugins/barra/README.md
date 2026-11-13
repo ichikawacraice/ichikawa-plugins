@@ -5,10 +5,10 @@ A barra acima do prompt do Claude Code (app desktop e terminal). Mostra:
 - **Cache**: quanto falta do cache de 1 h desde a última resposta da conversa principal (`⧗ 42:10`), com moldura amarela aos 20 min e vermelha aos 10.
 - **Ausente**: botão que liga e desliga o modo ausente, gravando `~/.claude/ichikawa/ausente.json` (`$ICHIKAWA_HOME` troca a pasta).
 - **Botões de outros plugins**: de cada plugin instalado e ligado neste projeto, lê o `barra.json` da raiz e mostra os botões, na ordem.
-- **Sessões**: o botão `▦ Sessões` abre e fecha, ao lado do chat, o painel das sessões abertas do projeto (worktree conta como o projeto): ícone de status (`●` trabalhando, `◐` aguarda você, `○` parada, `✓` PR mergeado), título, etapa do item e PR, há quanto tempo foi a última atividade e há quanto a sessão está aberta. Clicar numa sessão a põe em foco no app (só a própria ou uma que esta abriu; nas outras, copia o endereço). É interface do mod: nada entra no contexto do modelo.
+- **Sessões para a página**: a cada 60 s grava `~/.claude/ichikawa/sessoes-do-app.json` com a lista de sessões do app (`list_sessions`, que só o app enxerga), para a seção Sessões da página do kit. Se outra sessão gravou há menos de 50 s, não lê de novo. É interface do mod: nada entra no contexto do modelo.
 - **Pedidos da página**: a cada 5 s confere `~/.claude/ichikawa/pedidos/` e executa o que a página de perguntas pediu (abrir uma sessão, responder a uma sessão).
 
-Só lê arquivos e roda os contadores declarados. `list_sessions` só com o painel de sessões aberto, uma vez por minuto; fechado, nada.
+Só lê arquivos, roda os contadores declarados e lê `list_sessions` no máximo uma vez por minuto entre todas as sessões abertas.
 
 ## Tema (céu noturno)
 

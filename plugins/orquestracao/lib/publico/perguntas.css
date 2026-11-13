@@ -51,7 +51,7 @@
 .quando { margin: 10px 0 0; color: var(--texto-3); font-size: var(--t-meta); line-height: 16px; font-variant-numeric: tabular-nums; }
 .quando b { color: var(--texto-2); font-weight: 500; }
 
-/* Em andamento: um grupo por projeto, com o nome como subtítulo. */
+/* Sessões: um grupo por projeto, com o nome como subtítulo. */
 .cartoes > li.grupo-de-projeto { padding: 0; background: none; border: 0; -webkit-backdrop-filter: none; backdrop-filter: none; }
 .cartoes > li.grupo-de-projeto + li.grupo-de-projeto { margin-top: 8px; }
 .grupo { margin: 0; color: var(--texto-2); font-size: var(--t-apoio); line-height: 18px; }
@@ -78,4 +78,51 @@
 .ver-mais > summary:focus-visible { outline: 2px solid var(--foco); outline-offset: 2px; border-radius: 6px; }
 .ver-mais > .cartoes { margin-top: 8px; }
 
-@media (prefers-reduced-motion: reduce) { .entrega > summary .cartao-cab::after { transition: none; } }
+/* Sessões (como a vista do kit antigo): marcador de estado, esteira de etapas, espera e motivo. */
+.so-leitor { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+.marcador {
+  flex: none; width: 10px; height: 10px; align-self: center; border-radius: 50%;
+  border: 2px solid currentColor; box-sizing: border-box; color: var(--texto-3);
+}
+.cartao-cab > .marcador { align-self: flex-start; margin-top: 5px; }
+.marcador-esperando { color: var(--alto); background: currentColor; }
+.marcador-parada { color: var(--critico); }
+.marcador-no-pr, .marcador-revisando { color: var(--lilas); }
+.marcador-trabalhando { color: var(--ok); }
+/* Rodando: o anel gira (aberto num lado), parado com "reduzir movimento". */
+.marcador.girando { border-right-color: transparent; background: none; animation: gira 1.2s linear infinite; }
+@keyframes gira { to { transform: rotate(360deg); } }
+
+.selo-sessao-esperando { color: var(--alto); background: rgba(226, 194, 255, 0.08); border-color: rgba(226, 194, 255, 0.35); }
+.selo-sessao-parada { color: var(--critico); background: rgba(255, 156, 189, 0.08); border-color: rgba(255, 156, 189, 0.35); }
+.selo-sessao-no-pr, .selo-sessao-revisando { color: var(--lilas); background: var(--violeta-fundo); border-color: rgba(196, 181, 253, 0.35); }
+.selo-sessao-trabalhando { color: var(--ok); background: rgba(134, 227, 200, 0.08); border-color: rgba(134, 227, 200, 0.35); }
+
+.esteira { display: flex; flex-wrap: wrap; gap: 4px 14px; margin: 10px 0 0; padding: 0; list-style: none; font-size: var(--t-meta); line-height: 16px; }
+.passo { display: inline-flex; align-items: center; gap: 5px; color: var(--texto-3); }
+.passo::before { content: ''; width: 7px; height: 7px; border-radius: 50%; border: 1.5px solid currentColor; box-sizing: border-box; }
+.passo-feito { color: var(--texto-2); }
+.passo-feito::before { content: '✓'; width: auto; height: auto; border: 0; font-size: 11px; line-height: 1; color: var(--ok); }
+.passo-agora { color: var(--texto); font-weight: 500; }
+.passo-agora::before { background: var(--lilas); border-color: var(--lilas); }
+
+.espera, .motivo { margin: 10px 0 0; font-size: var(--t-apoio); line-height: 18px; }
+.espera { color: var(--alto); }
+.espera a, .abrir-app { color: var(--lilas); text-decoration: none; font-weight: 500; }
+.espera a:hover, .abrir-app:hover { color: var(--texto); text-decoration: underline; }
+.espera a:focus-visible, .abrir-app:focus-visible { outline: 2px solid var(--foco); outline-offset: 2px; border-radius: 4px; }
+.motivo { color: var(--critico); }
+
+/* Sem item: linhas compactas, sem cartão. */
+.cartoes > li.sem-item { padding: 10px 16px; background: none; border: 1px dashed var(--fio-forte); -webkit-backdrop-filter: none; backdrop-filter: none; }
+.rotulo-sem-item { margin: 0; color: var(--texto-3); font-size: var(--t-meta); line-height: 16px; font-weight: 500; }
+.sem-item ul { margin: 6px 0 0; gap: 6px; }
+.sem-item li { display: flex; align-items: baseline; gap: 4px 8px; flex-wrap: wrap; }
+.sem-item .marcador { width: 8px; height: 8px; align-self: center; }
+.titulo-sem-item { font-size: var(--t-apoio); line-height: 18px; overflow-wrap: anywhere; min-width: 0; }
+.sem-item .quando { margin: 0; }
+
+@media (prefers-reduced-motion: reduce) {
+  .entrega > summary .cartao-cab::after { transition: none; }
+  .marcador.girando { animation: none; }
+}

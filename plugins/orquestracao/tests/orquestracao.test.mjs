@@ -129,7 +129,7 @@ test('o início traz as regras, o ausente e o id da sessão', () => {
   assert.match(ctx, /sessao-teste-2/);
 });
 
-test('a página escapa o texto e separa perguntas, andamento e entregas', () => {
+test('a página escapa o texto e separa perguntas, sessões e entregas', () => {
   estado.criar('perguntas', 'p', { titulo: '<script>x</script>', estado: 'aberta', sessao: SESSAO_DO_APP, item: 'F1' });
   estado.criar('itens', 'p', { titulo: 'vivo', etapa: 'execucao' });
   estado.criar('itens', 'p', { titulo: 'feito', etapa: 'feito', entrega: { desfecho: 'entregue', resultado: 'ok', em: new Date().toISOString() } });
@@ -137,7 +137,8 @@ test('a página escapa o texto e separa perguntas, andamento e entregas', () => 
   assert.ok(!h.includes('<script>x'));
   assert.match(h, /&lt;script&gt;x/);
   assert.match(h, /Abrir sessão/);
-  assert.match(h, /Em andamento/);
+  assert.match(h, /id="h-sessoes">Sessões</);
+  assert.doesNotMatch(h, /Em andamento/);
   assert.match(h, /selo-entregue/);
 });
 
@@ -175,10 +176,10 @@ test('o topo da página resume o que espera por você', () => {
   estado.criar('itens', 'p', { titulo: 'vivo', etapa: 'execucao' });
   const topo = /<header class="topo">([\s\S]*?)<\/header>/.exec(html())[1];
   assert.match(topo, /<h1>Perguntas do kit<\/h1>/);
-  assert.match(topo, /1 pergunta esperando · 1 em andamento/);
+  assert.match(topo, /1 pergunta esperando · 1 sessão ativa/);
   assert.match(html(), /<link rel="preload" href="\/fontes\/geist-medium\.woff2" as="font" type="font\/woff2" crossorigin>/);
   estado.criar('perguntas', 'p', { titulo: 'B', estado: 'aberta' });
-  assert.match(html(), /<p class="subtitulo">2 perguntas esperando · 1 em andamento<\/p>/);
+  assert.match(html(), /<p class="subtitulo">2 perguntas esperando · 1 sessão ativa<\/p>/);
 });
 
 test('com nada esperando, o topo diz que está tudo em dia', () => {
@@ -444,7 +445,7 @@ test('o CLI aceita F3 e IZA-F3; a sigla escolhe o projeto e não deixa mexer no 
   assert.deepEqual(saida, ['IZA-F1 · Login — execucao']);
 });
 
-test('a página separa Em andamento por projeto e põe o projeto na primeira linha de Perguntas e Entregues', () => {
+test('a página separa Sessões por projeto e põe o projeto na primeira linha de Perguntas e Entregues', () => {
   const agora = new Date().toISOString();
   estado.criar('itens', 'WiControl', { titulo: 'painel', etapa: 'execucao' });
   estado.criar('itens', 'Izanagi', { titulo: 'login', etapa: 'execucao' });
@@ -452,12 +453,12 @@ test('a página separa Em andamento por projeto e põe o projeto na primeira lin
   estado.criar('itens', 'Izanagi', { titulo: 'feito', etapa: 'feito', entrega: { desfecho: 'entregue', resultado: 'ok', em: agora } });
   estado.criar('perguntas', 'WiControl', { titulo: 'apagar?', estado: 'aberta', item: 'F1' });
   const h = html();
-  const andamento = h.slice(h.indexOf('id="h-andamento"'), h.indexOf('id="h-entregas"'));
+  const andamento = h.slice(h.indexOf('id="h-sessoes"'), h.indexOf('id="h-entregas"'));
   const grupos = [...andamento.matchAll(/<h3 class="grupo">([^<]+)<\/h3>/g)].map((m) => m[1]);
-  assert.deepEqual(grupos, ['Izanagi', 'WiControl']);
-  assert.ok(andamento.indexOf('IZA-F2') < andamento.indexOf('WiControl'), 'os itens ficam sob o próprio projeto');
-  assert.doesNotMatch(andamento, /cartao-projeto/, 'em andamento não repete o projeto no cartão');
-  const pergunta = /<li><p class="cartao-projeto">([^<]+)<\/p><div class="cartao-cab"><span class="id">([^<]+)<\/span>/.exec(h);
+  assert.deepEqual(grupos, ['WiControl', 'Izanagi'], 'o projeto com sessão esperando você sobe');
+  assert.ok(andamento.indexOf('WIC-F1') < andamento.indexOf('Izanagi') && andamento.indexOf('Izanagi') < andamento.indexOf('IZA-F2'), 'os itens ficam sob o próprio projeto');
+  assert.doesNotMatch(andamento, /cartao-projeto/, 'sessões não repete o projeto no cartão');
+  const pergunta = /<li id="[^"]+"><p class="cartao-projeto">([^<]+)<\/p><div class="cartao-cab"><span class="id">([^<]+)<\/span>/.exec(h);
   assert.deepEqual([pergunta[1], pergunta[2]], ['WiControl', 'WIC-Q1']);
   assert.match(h, /WIC-F1/);
   const entregues = h.slice(h.indexOf('id="h-entregas"'));

@@ -13,6 +13,7 @@ Tudo o que é de máquina (não de projeto) mora em `~/.claude/ichikawa/` (`$ICH
 | `itens/<projeto>/F<n>.json` | `orquestracao` | `orquestracao` (página) |
 | `siglas.json` | `orquestracao` (`perguntas sigla`) | `orquestracao` |
 | `pedidos/<uuid>.json` | página do `orquestracao` | `barra` (o mod toma, executa e apaga) |
+| `sessoes-do-app.json` | `barra` (a cada 60 s) | `orquestracao` (página, seção Sessões) |
 
 - **`<projeto>`** é o nome da pasta raiz do repositório principal (pai do `git rev-parse --path-format=absolute --git-common-dir`), para todos os worktrees darem o mesmo nome.
 - **Sigla do projeto**: 3 letras ou dígitos que antecedem o id na leitura (`IZA-F3`, `IZA-Q12`). Sai das 3 primeiras letras ou dígitos do nome, em maiúsculas, ou de `siglas.json` (`{ "<projeto>": "IZA" }`, gravado por `perguntas sigla`). O arquivo e o campo `id` seguem sem sigla (`F3.json`, `"id": "F3"`); o CLI aceita os dois formatos.
@@ -81,6 +82,14 @@ Ausente o arquivo, ou `ligado` diferente de `true`: o operador está presente. `
 ```
 
 `desfecho`: `entregue` (PR aberto ou mergeado) · `parcial` (parte entregue, o resto em `proximos`) · `parado` (não deu, com o motivo em `resultado`). Com `entregue` ou `parcial` a etapa vai a `feito`; com `parado`, a `parado`.
+
+### `sessoes-do-app.json`
+
+```json
+{ "lidoEm": "ISO-8601", "por": "local_…", "sessoes": [ { "sessionId": "local_…", "title": "ICH-F7 · tema", "cwd": "…", "originCwd": "…", "isArchived": false, "isRunning": true, "prNumber": 12, "prState": "OPEN", "lastActivityAt": "ISO-8601", "link": "claude://…" } ] }
+```
+
+O status ao vivo das sessões, que só o app enxerga. O mod da barra de toda sessão aberta, a cada 60 s, lê `list_sessions` (até 50) e a própria sessão (`get_session self`, que a lista não traz, vem primeiro) e grava por cima, de forma atômica (`.tmp` e `mv`). Arquivo com `lidoEm` de menos de 50 s: não lê de novo (outra sessão acabou de gravar). Falha da leitura não apaga o arquivo. A página casa a sessão com o item pelo `sessao` do item; com `lidoEm` de mais de 3 min, ela só mostra a idade e não deduz parada nem "rodando". Nada disso entra no contexto do modelo.
 
 ### `pedidos/<uuid>.json`
 
