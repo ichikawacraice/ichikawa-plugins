@@ -10,10 +10,10 @@ A barra acima do prompt do Claude Code (app desktop e terminal). Mostra:
 
 Só lê arquivos, roda os contadores declarados e lê `list_sessions` no máximo uma vez por minuto entre todas as sessões abertas.
 
-## Tema (noite e dia, pelo modo ausente)
+## Tema (noite e dia, pela hora do computador)
 
-- **Ausente ligado, noite**: fundo `#030014`, estrelas que cintilam e a lua crescente à direita, no lugar do sol (a paleta do painel).
-- **Ausente desligado, dia**: o céu da paleta de dia do Painel (ICH-F21: `#74b6ef` → `#d6ebfb`, texto `#0b1f3a`), o sol com brilho e raios à direita e nuvens que derivam devagar.
+- **Noite, das 18h às 6h**: fundo `#030014`, estrelas que cintilam e a lua crescente à direita, no lugar do sol (a paleta do painel).
+- **Dia, das 6h às 18h**: o céu da paleta de dia do Painel (ICH-F21: `#74b6ef` → `#d6ebfb`, texto `#0b1f3a`), o sol com brilho e raios à direita e nuvens paradas ao fundo. A hora é a local do computador (fuso lido uma vez por sessão com `date +%z`; sem resposta, o de São Paulo), e a troca acontece no redesenho de 1 s seguinte à virada. O modo ausente não muda mais o céu.
 - **Ícones**: todo botão abre com um glifo (`☾ Estou de volta`, `☀ Ficar ausente`, `◫ Painel`, `◉ Contas`); outro plugin escolhe o dele pelo `icone` do `barra.json`, e sem ele vem `✦`.
 - **Desktop**: o fundo da barra é a cor lisa do céu. O relógio do cache fica à esquerda, os botões encostados à direita e, entre eles, a cena em SVG (26 px, a altura de um botão) com o sol ou a lua na ponta direita colado nos botões; janela estreita demais fica sem cena. O app não pinta SVG numa caixa em camada (`position="absolute"`, medido no ICH-F22) nem SVG com `alt` vazio, por isso a cena vai em fluxo e sempre com texto alternativo. As nuvens do dia são paradas; só as estrelas cintilam. A animação é CSS do SVG e para com o "Reduzir movimento" do sistema.
 - **Terminal**: a linha de estrelas (`· ✦ ⋆`, cintilando pelo relógio de 1 s) ou de nuvens (`☁`, com `☀` na ponta) atrás dos botões, e os rótulos na cor do tema.

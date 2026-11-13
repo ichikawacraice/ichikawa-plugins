@@ -1,6 +1,6 @@
 import { expect, test } from 'claude-code/testing'
 
-import { CENA_MAX, CICLO_CINTILA, ESPACO_SOL_BOTOES, SVG_ALTURA, TEMAS, estrelasDaLinha, larguraDaCena, linhaDeEstrelas, linhaDeNuvens, linhaDoCeu, modoDoAusente, pedeMenosMovimento, svgDaCena } from '../hooks/ceu'
+import { CENA_MAX, CICLO_CINTILA, ESPACO_SOL_BOTOES, SVG_ALTURA, TEMAS, estrelasDaLinha, larguraDaCena, linhaDeEstrelas, linhaDeNuvens, linhaDoCeu, FUSO_PADRAO_MIN, fusoDoDate, modoDaHora, pedeMenosMovimento, svgDaCena } from '../hooks/ceu'
 
 test('estrelas do terminal: a linha tem a largura pedida, o mesmo céu a cada desenho e só estrela onde há', () => {
   const linha = linhaDeEstrelas(80, 0)
@@ -45,10 +45,17 @@ test('cena do dia: o azul liso da barra, nuvens paradas atrás do sol, sem anima
   expect(svgDaCena('dia', 50, false)).toMatch(/width="200"/)
 })
 
-test('modo: ausente ligado é noite; desligado ou não lido, dia', () => {
-  expect(modoDoAusente(true)).toBe('noite')
-  expect(modoDoAusente(false)).toBe('dia')
-  expect(modoDoAusente(undefined)).toBe('dia')
+test('modo: dia das 6h às 18h na hora local; o fuso vem do date +%z', () => {
+  const h = (hora: number, min = 0) => Date.UTC(2026, 10, 14, hora + 3, min)
+  expect(modoDaHora(h(5, 59), -180)).toBe('noite')
+  expect(modoDaHora(h(6), -180)).toBe('dia')
+  expect(modoDaHora(h(17, 59), -180)).toBe('dia')
+  expect(modoDaHora(h(18), -180)).toBe('noite')
+  expect(modoDaHora(Date.UTC(2026, 10, 14, 0, 15), -180)).toBe('noite')
+  expect(fusoDoDate('-0300\n')).toBe(-180)
+  expect(fusoDoDate('+0530')).toBe(330)
+  expect(fusoDoDate('lixo')).toBe(FUSO_PADRAO_MIN)
+  expect(fusoDoDate(null)).toBe(FUSO_PADRAO_MIN)
 })
 
 test('terminal de dia: nuvens e o sol perto da ponta, largura certa e sem cintilar', () => {

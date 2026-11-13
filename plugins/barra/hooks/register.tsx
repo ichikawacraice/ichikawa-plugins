@@ -30,7 +30,9 @@ import {
   SVG_ALTURA,
   TEMAS,
   linhaDoCeu,
-  modoDoAusente,
+  FUSO_PADRAO_MIN,
+  fusoDoDate,
+  modoDaHora,
   pedeMenosMovimento,
   svgDaCena,
 } from './ceu'
@@ -73,6 +75,7 @@ let atendendo = false
 let geracaoAusente = 0
 let errosVistos = ''
 let semMovimento = false
+let fusoMin = FUSO_PADRAO_MIN
 const PRAZO_DEFAULTS_MS = 3000
 
 /** Lido uma vez por session.start: a variável `BARRA_SEM_ANIMACAO` e o "Reduzir movimento" do macOS. */
@@ -86,6 +89,16 @@ async function lerMovimento($: EngineInterface): Promise<boolean> {
   }
 
   return pedeMenosMovimento(await $.env.get('BARRA_SEM_ANIMACAO'), saida)
+}
+
+/** O fuso do computador, lido uma vez por sessão (`date +%z`); sem resposta, o de São Paulo. */
+async function lerFuso($: EngineInterface): Promise<number> {
+  try {
+    const r = await $.process.run(['date', '+%z'], { timeoutMs: PRAZO_DEFAULTS_MS })
+    return fusoDoDate(r.exitCode === 0 ? r.stdout : null)
+  } catch {
+    return FUSO_PADRAO_MIN
+  }
 }
 
 async function pastaIchikawa($: EngineInterface): Promise<string> {
@@ -320,6 +333,7 @@ export const register: Register = on => {
     const r = await next(e)
     projeto = e.cwd ?? null
     semMovimento = await lerMovimento($)
+    fusoMin = await lerFuso($)
     await update($, fase, f => (semMovimento ? null : (f ?? 0)))
     iniciarRelogios($)
     await ler($)
@@ -352,7 +366,8 @@ export const register: Register = on => {
     const lista = await read($, botoes)
     const s = await read($, selos)
     const quadro = Svg ? null : await read($, fase)
-    const modo = modoDoAusente(a?.ligado)
+    // O céu segue a hora do computador; o relógio de 1 s redesenha a barra, então a troca acontece na virada.
+    const modo = modoDaHora(await $.clock.now(), fusoMin)
     const tema = TEMAS[modo]
     const nivel = nivelDoCache(c.segundos, e.props.isWorking)
     const texto = `⧗ ${e.props.isWorking ? 'ativo' : relogio(c.segundos)}`

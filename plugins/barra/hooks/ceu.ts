@@ -1,5 +1,5 @@
-// O céu da barra, puro e testado direto. Dois temas pelo modo ausente: noite (ligado; a paleta do painel, #030014,
-// estrelas e a lua) e dia (desligado; céu azul, sol e nuvens). Posições vêm de uma semente fixa: a barra não
+// O céu da barra, puro e testado direto. Dois temas pela hora do computador: noite (das 18h às 6h; a paleta do painel,
+// #030014, estrelas e a lua) e dia (das 6h às 18h; céu azul, sol e nuvens). Posições vêm de uma semente fixa: a barra não
 // "pula" a cada desenho.
 //
 // O app não pinta `Svg` numa caixa `position="absolute"` (medido no ICH-F22): o desktop leva a cor lisa do céu
@@ -24,8 +24,29 @@ export const TEMAS: Record<Modo, Tema> = {
   dia: { fundo: '#74b6ef', texto: '#0b1f3a', aviso: '#744700', detalheTerminal: '#e3f1fd' },
 }
 
-/** O ausente ligado é a noite; desligado, ou ainda não lido, o dia. */
-export const modoDoAusente = (ligado: boolean | undefined): Modo => (ligado ? 'noite' : 'dia')
+/** Hora local em que o céu vira dia e em que vira noite (inclusiva no começo). */
+export const HORA_AMANHECE = 6
+export const HORA_ANOITECE = 18
+/** Fuso usado quando o `date +%z` do computador não responde: o de São Paulo, em minutos. */
+export const FUSO_PADRAO_MIN = -180
+const MIN_POR_DIA = 24 * 60
+
+/** O fuso do computador em minutos a partir da saída de `date +%z` (`-0300` → -180); fora do formato, o padrão. */
+export function fusoDoDate(saida: string | null | undefined): number {
+  const m = /^([+-])(\d{2})(\d{2})$/.exec(saida?.trim() ?? '')
+  if (!m) return FUSO_PADRAO_MIN
+  const minutos = Number(m[2]) * 60 + Number(m[3])
+
+  return m[1] === '-' ? -minutos : minutos
+}
+
+/** Dia das 6h às 18h na hora local do computador; noite no resto. */
+export function modoDaHora(agoraMs: number, fusoMin: number): Modo {
+  const minutoDoDia = (((Math.floor(agoraMs / 60_000) + fusoMin) % MIN_POR_DIA) + MIN_POR_DIA) % MIN_POR_DIA
+  const hora = Math.floor(minutoDoDia / 60)
+
+  return hora >= HORA_AMANHECE && hora < HORA_ANOITECE ? 'dia' : 'noite'
+}
 
 /** Ícone de cada botão: um glifo antes do rótulo (o app desenha o botão nativo, só com texto). */
 export const ICONES = { ausenteNoite: '☾', ausenteDia: '☀', gravando: '⋯', padrao: '✦' } as const
