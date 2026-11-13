@@ -259,6 +259,14 @@ async function carregarSessoes() {
   desenharSessoes();
 }
 
+/** O céu segue o modo ausente (ligado, noite; desligado, dia): o ceu.js e o estilo.css trocam pelo `data-ceu`. */
+async function conferirCeu() {
+  try {
+    const { ceu } = await lerJson('/api/ceu');
+    if (ceu === 'dia' || ceu === 'noite') document.documentElement.dataset.ceu = ceu;
+  } catch { /* fica o céu que está */ }
+}
+
 function agendar() {
   clearTimeout(relogio);
   const rapido = estado.dados?.andamento || estado.dados?.lendoUso;
@@ -278,7 +286,7 @@ $('b-adicionar').addEventListener('click', adicionar);
 $('b-sincronizar').addEventListener('click', sincronizar);
 $('b-uso').addEventListener('click', lerCota);
 $('b-uso-aviso').addEventListener('click', lerCota);
-document.addEventListener('visibilitychange', () => { if (!document.hidden) { carregarContas(); carregarSessoes(); } });
-setInterval(carregarSessoes, INTERVALO_SESSOES_MS);
+document.addEventListener('visibilitychange', () => { if (!document.hidden) { carregarContas(); carregarSessoes(); conferirCeu(); } });
+setInterval(() => { carregarSessoes(); conferirCeu(); }, INTERVALO_SESSOES_MS);
 carregarContas();
 carregarSessoes();

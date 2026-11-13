@@ -32,6 +32,7 @@ const ARQUIVOS = {
   '/estilo.css': 'text/css; charset=utf-8',
   '/perguntas.css': 'text/css; charset=utf-8',
   '/ceu.js': 'text/javascript; charset=utf-8',
+  '/ceu-dia.js': 'text/javascript; charset=utf-8',
   '/planeta.js': 'text/javascript; charset=utf-8',
   '/fontes/geist-medium.woff2': 'font/woff2',
 };
@@ -194,15 +195,17 @@ function avisoDeAusente(ausente) {
 
 export function html(agora = Date.now()) {
   const { perguntas, andamento, sessoes, entregas, maisEntregas } = dados(agora);
+  const ausente = estado.lerAusente();
   const esquerda = secao('h-perguntas', 'Perguntas', perguntas.length || '', perguntas.map(({ projeto, p }) => cartaoDePergunta(projeto, p)), 'Nada esperando por você.')
     + (sessoes.total ? secao('h-sessoes', 'Sessões', esc(frescor(sessoes, agora)), grupos(sessoes, agora), '') : '');
   const direita = secao('h-entregas', 'Entregues', `últimos ${estado.DIAS_DE_ENTREGAS} dias`, entregas.map(({ projeto, i }) => cartaoDeEntrega(projeto, i)), 'Nenhuma entrega ainda.', verMais(maisEntregas));
-  return `<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+  // O céu segue o modo ausente: ligado, a noite; desligado, o dia (estilo.css e ceu.js leem o `data-ceu`).
+  return `<!doctype html><html lang="pt-BR" data-ceu="${ausente ? 'noite' : 'dia'}"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
 <title>${esc(NOME_DA_PAGINA)}</title><link rel="preload" href="/fontes/geist-medium.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="stylesheet" href="/estilo.css"><link rel="stylesheet" href="/perguntas.css"></head>
-<body><canvas id="ceu" class="ceu" aria-hidden="true"></canvas><header class="topo"><h1>${esc(NOME_DA_PAGINA)}</h1>${selosDoTopo(perguntas.length, andamento.length, entregas.length + maisEntregas.length)}${avisoDeAusente(estado.lerAusente())}</header>
+<body><canvas id="ceu" class="ceu" aria-hidden="true"></canvas><header class="topo"><h1>${esc(NOME_DA_PAGINA)}</h1>${selosDoTopo(perguntas.length, andamento.length, entregas.length + maisEntregas.length)}${avisoDeAusente(ausente)}</header>
 <main><div>${esquerda}</div><div>${direita}</div></main>
-<footer class="pe"><p>Lido às ${esc(horaSP(new Date(agora).toISOString()))}. A página se atualiza sozinha enquanto você não está escrevendo.</p></footer>
+<footer class="pe"><p>Lido às ${esc(horaSP(new Date(agora).toISOString()))}. A página se atualiza sozinha enquanto você não está escrevendo.</p><p class="assinatura">made by Ichikawa</p></footer>
 <script type="module">
 import { iniciarCeu } from '/ceu.js';
 const escrevendo = () => [...document.querySelectorAll('textarea')].some((t) => t.value.trim() || t === document.activeElement);

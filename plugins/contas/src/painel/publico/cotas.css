@@ -145,6 +145,18 @@ code { font: 12px var(--mono); background: var(--vidro-forte); padding: 1px 5px;
 .sessao-titulo { font-size: var(--t-corpo); line-height: 20px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .sessao-apoio { color: var(--texto-3); font-size: var(--t-meta); line-height: 16px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
+/* ---- o dia (modo ausente desligado, ICH-F21): plano, sem os brilhos da noite; as barras de cota com preenchimento
+   claro, para o texto escuro por cima seguir legível (azul-marinho sobre o cobalto claro: ≥6:1) ---- */
+:root[data-ceu="dia"] .aviso-cota,
+:root[data-ceu="dia"] .aviso-cota.erro,
+:root[data-ceu="dia"] .lista-contas > li.conta-ativa { box-shadow: none; }
+:root[data-ceu="dia"] .barra { background: rgba(255, 255, 255, 0.55); }
+:root[data-ceu="dia"] .barra-cheia { background: linear-gradient(90deg, #c9dbf8, #93b5ef); box-shadow: none; }
+:root[data-ceu="dia"] .barra.alto .barra-cheia { background: linear-gradient(90deg, #f6e2b8, #efc77c); box-shadow: none; }
+:root[data-ceu="dia"] .barra.critico .barra-cheia { background: linear-gradient(90deg, #f8d0d7, #f0a2b0); box-shadow: none; }
+:root[data-ceu="dia"] .barra-texto { text-shadow: none; }
+:root[data-ceu="dia"] .ponto.respondendo { box-shadow: none; animation: none; }
+
 @media (prefers-reduced-motion: reduce) {
   .faixa-andamento::before, .ponto.respondendo, .aviso-cota-titulo::before { animation: none; }
 }

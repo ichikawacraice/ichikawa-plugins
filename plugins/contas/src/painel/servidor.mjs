@@ -3,6 +3,7 @@
 // recentes da conta em uso. Host tem de ser local: outra página no navegador não fala com o painel.
 import { createServer } from 'node:http';
 import { readFile } from 'node:fs/promises';
+import { homedir } from 'node:os';
 import { join } from 'node:path';
 import { tratarAcao } from './acoes.mjs';
 import { lerContas } from './contas.mjs';
@@ -16,6 +17,7 @@ const ESTATICOS = {
   '/app.js': ['app.js', 'text/javascript; charset=utf-8'],
   '/regras.js': ['regras.js', 'text/javascript; charset=utf-8'],
   '/ceu.js': ['ceu.js', 'text/javascript; charset=utf-8'],
+  '/ceu-dia.js': ['ceu-dia.js', 'text/javascript; charset=utf-8'],
   '/planeta.js': ['planeta.js', 'text/javascript; charset=utf-8'],
   '/estilo.css': ['estilo.css', 'text/css; charset=utf-8'],
   '/cotas.css': ['cotas.css', 'text/css; charset=utf-8'],
@@ -27,6 +29,17 @@ const SEGURANCA = {
   'Referrer-Policy': 'no-referrer',
 };
 const NO_STORE = { 'Cache-Control': 'no-store' };
+
+/**
+ * O céu do painel segue o modo ausente do kit (o `ausente.json` que a barra grava, o mesmo que a página de perguntas
+ * lê): ligado, a noite; desligado, sem arquivo ou ilegível, o dia.
+ */
+export async function ceuDoAusente(env) {
+  const raiz = env.ICHIKAWA_HOME || join(env.HOME || homedir(), '.claude', 'ichikawa');
+  try {
+    return JSON.parse(await readFile(join(raiz, 'ausente.json'), 'utf8'))?.ligado === true ? 'noite' : 'dia';
+  } catch { return 'dia'; }
+}
 
 /** `contas`: `{ env, app, spawn, cli, kill, comandoDoPid, uso: { fetch, agora, lerSenha } }`, tudo opcional (os testes injetam). */
 export function criarServidor({ publico, versao = '0.0.0', contas = {} }) {
@@ -45,14 +58,17 @@ export function criarServidor({ publico, versao = '0.0.0', contas = {} }) {
       if (req.method === 'POST' && caminho && await tratarAcao(req, res, { caminho, porta, json, contas })) return;
       if (req.method !== 'GET' && req.method !== 'HEAD') return json(405, { erro: 'só GET e HEAD' }, { Allow: 'GET, HEAD' });
       if (caminho === null) return json(404, { erro: 'não encontrado' });
+      const env = contas.env ?? process.env;
       if (Object.hasOwn(ESTATICOS, caminho)) {
         const [arquivo, tipo] = ESTATICOS[caminho];
         let corpo;
         try { corpo = await readFile(join(publico, arquivo)); } catch { return json(404, { erro: 'não encontrado' }); }
+        // A tela já sai com o céu certo (sem piscar a noite antes do dia); o app.js confere depois por /api/ceu.
+        if (caminho === '/') return enviar(200, tipo, corpo.toString('utf8').replace('<html lang="pt-BR">', `<html lang="pt-BR" data-ceu="${await ceuDoAusente(env)}">`), NO_STORE);
         return enviar(200, tipo, corpo, { 'Cache-Control': 'no-cache' });
       }
       if (caminho === '/api/saude') return json(200, { painel: 'contas', versao, pid: process.pid }, NO_STORE);
-      const env = contas.env ?? process.env;
+      if (caminho === '/api/ceu') return json(200, { ceu: await ceuDoAusente(env) }, NO_STORE);
       if (caminho === '/api/contas') {
         if (req.method === 'HEAD') return json(200, {}, NO_STORE);
         const lido = lerContas({ env, app: contas.app });

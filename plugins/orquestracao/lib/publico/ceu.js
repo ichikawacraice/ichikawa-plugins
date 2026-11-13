@@ -1,9 +1,10 @@
-// O céu do fundo: uma via láctea em diagonal (pintada uma vez numa camada fixa), poucas constelações que cintilam
+// O céu do fundo. De noite (modo ausente ligado): uma via láctea em diagonal (pintada uma vez numa camada fixa), poucas constelações que cintilam
 // e um planeta nascendo no rodapé (planeta.js).
 // Leve de propósito: o painel fica aberto o dia todo. Até 12 quadros por segundo, para quando a aba some e,
 // com `prefers-reduced-motion`, desenha um quadro só.
 
 import { prepararPlaneta, quadroPlaneta } from './planeta.js';
+import { iniciarCeuDia } from './ceu-dia.js';
 
 const QUADRO_MS = 1000 / 12;
 const DPR_MAX = 2;
@@ -106,8 +107,8 @@ function estrela(ctx, x, y, raio, alfa) {
   ctx.fillRect(x - raio * 4, y - raio * 4, raio * 8, raio * 8);
 }
 
-/** Liga o céu num `<canvas>`. Devolve uma função que o desliga. */
-export function iniciarCeu(canvas) {
+/** O céu de noite num `<canvas>`. Devolve uma função que o desliga. */
+function iniciarNoite(canvas) {
   const ctx = canvas.getContext('2d');
   if (!ctx) return () => {};
   const calmo = window.matchMedia('(prefers-reduced-motion: reduce)');
@@ -178,4 +179,27 @@ export function iniciarCeu(canvas) {
     document.removeEventListener('visibilitychange', andar);
     calmo.removeEventListener('change', andar);
   };
+}
+
+/** Qual céu o `<html>` pede: `data-ceu="dia"` (modo ausente desligado) ou a noite (ligado, e o padrão). */
+const ceuPedido = () => (document.documentElement.dataset.ceu === 'dia' ? 'dia' : 'noite');
+
+/**
+ * Liga o céu num `<canvas>`: a noite ou o dia, pelo `data-ceu` do `<html>`, e troca sozinho quando o atributo muda
+ * (o painel de cotas muda sem recarregar). Devolve uma função que o desliga.
+ */
+export function iniciarCeu(canvas) {
+  let atual = null;
+  let desligar = () => {};
+  const ligar = () => {
+    const pedido = ceuPedido();
+    if (pedido === atual) return;
+    desligar();
+    atual = pedido;
+    desligar = pedido === 'dia' ? iniciarCeuDia(canvas) : iniciarNoite(canvas);
+  };
+  const observador = new MutationObserver(ligar);
+  observador.observe(document.documentElement, { attributes: true, attributeFilter: ['data-ceu'] });
+  ligar();
+  return () => { observador.disconnect(); desligar(); };
 }

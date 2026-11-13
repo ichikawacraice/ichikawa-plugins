@@ -21,7 +21,7 @@
 .campos { margin: 12px 0 0; }
 .campos dt { margin-top: 12px; color: var(--texto-2); font-size: var(--t-meta); line-height: 16px; font-weight: 500; }
 .campos dt:first-child { margin-top: 0; }
-.campos dd { margin: 2px 0 0; color: rgba(255, 255, 255, 0.9); font-size: var(--t-corpo); line-height: 20px; overflow-wrap: anywhere; }
+.campos dd { margin: 2px 0 0; color: var(--texto-campo); font-size: var(--t-corpo); line-height: 20px; overflow-wrap: anywhere; }
 .proximos { margin: 2px 0 0; padding-left: 18px; list-style: disc; display: block; }
 .proximos li { margin-top: 2px; }
 .proximos li::marker { color: var(--texto-3); }
@@ -30,7 +30,7 @@
 .responder { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 14px; padding-top: 14px; border-top: 1px solid var(--fio); }
 .responder textarea {
   font: inherit; flex: 1 1 100%; min-width: 0; min-height: 44px; padding: 10px 12px; resize: vertical;
-  color: var(--texto); background: rgba(3, 0, 20, 0.6);
+  color: var(--texto); background: var(--campo-fundo);
   border: 1px solid var(--fio-forte); border-radius: var(--raio-botao);
 }
 .responder textarea::placeholder { color: var(--texto-3); }
@@ -43,10 +43,10 @@
   font: 500 11px/18px var(--fonte);
   border-radius: 999px; border: 1px solid currentColor;
 }
-.selo-entregue { color: var(--ok); background: rgba(134, 227, 200, 0.08); border-color: rgba(134, 227, 200, 0.35); }
-.selo-parcial { color: var(--alto); background: rgba(226, 194, 255, 0.08); border-color: rgba(226, 194, 255, 0.35); }
-.selo-parado { color: var(--critico); background: rgba(255, 156, 189, 0.08); border-color: rgba(255, 156, 189, 0.35); }
-.selo-etapa { color: var(--texto-2); background: rgba(255, 255, 255, 0.03); border-color: var(--fio-forte); }
+.selo-entregue { color: var(--ok); background: color-mix(in srgb, var(--ok) 8%, transparent); border-color: color-mix(in srgb, var(--ok) 35%, transparent); }
+.selo-parcial { color: var(--alto); background: color-mix(in srgb, var(--alto) 8%, transparent); border-color: color-mix(in srgb, var(--alto) 35%, transparent); }
+.selo-parado { color: var(--critico); background: color-mix(in srgb, var(--critico) 8%, transparent); border-color: color-mix(in srgb, var(--critico) 35%, transparent); }
+.selo-etapa { color: var(--texto-2); background: var(--botao-fundo); border-color: var(--fio-forte); }
 
 .quando { margin: 10px 0 0; color: var(--texto-3); font-size: var(--t-meta); line-height: 16px; font-variant-numeric: tabular-nums; }
 .quando b { color: var(--texto-2); font-weight: 500; }
@@ -93,10 +93,10 @@
 .marcador.girando { border-right-color: transparent; background: none; animation: gira 1.2s linear infinite; }
 @keyframes gira { to { transform: rotate(360deg); } }
 
-.selo-sessao-esperando { color: var(--alto); background: rgba(226, 194, 255, 0.08); border-color: rgba(226, 194, 255, 0.35); }
-.selo-sessao-parada { color: var(--critico); background: rgba(255, 156, 189, 0.08); border-color: rgba(255, 156, 189, 0.35); }
-.selo-sessao-no-pr, .selo-sessao-revisando { color: var(--lilas); background: var(--violeta-fundo); border-color: rgba(196, 181, 253, 0.35); }
-.selo-sessao-trabalhando { color: var(--ok); background: rgba(134, 227, 200, 0.08); border-color: rgba(134, 227, 200, 0.35); }
+.selo-sessao-esperando { color: var(--alto); background: color-mix(in srgb, var(--alto) 8%, transparent); border-color: color-mix(in srgb, var(--alto) 35%, transparent); }
+.selo-sessao-parada { color: var(--critico); background: color-mix(in srgb, var(--critico) 8%, transparent); border-color: color-mix(in srgb, var(--critico) 35%, transparent); }
+.selo-sessao-no-pr, .selo-sessao-revisando { color: var(--lilas); background: var(--violeta-fundo); border-color: color-mix(in srgb, var(--lilas) 35%, transparent); }
+.selo-sessao-trabalhando { color: var(--ok); background: color-mix(in srgb, var(--ok) 8%, transparent); border-color: color-mix(in srgb, var(--ok) 35%, transparent); }
 
 .esteira { display: flex; flex-wrap: wrap; gap: 4px 14px; margin: 10px 0 0; padding: 0; list-style: none; font-size: var(--t-meta); line-height: 16px; }
 .passo { display: inline-flex; align-items: center; gap: 5px; color: var(--texto-3); }
