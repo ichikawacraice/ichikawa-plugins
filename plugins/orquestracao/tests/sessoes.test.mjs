@@ -100,3 +100,20 @@ test('a página mostra as sessões: marcador, esteira, pergunta com âncora, PR 
   assert.match(h, /<span class="so-leitor">1 pergunta esperando você<\/span>/);
   assert.match(h, /<span class="so-leitor">1 item em andamento<\/span>/);
 });
+
+test('sessão sem item rodando vira cartão como as ativas; no pontilhado ficam só as paradas', () => {
+  const agora = Date.now();
+  estado.criar('itens', 'kit', { titulo: 'Login', etapa: 'execucao', sessao: 'local_1' });
+  writeFileSync(join(process.env.ICHIKAWA_HOME, 'sessoes-do-app.json'), JSON.stringify({ lidoEm: new Date(agora - 30_000).toISOString(), sessoes: [
+    { sessionId: 'local_1', title: 'KIT-F1 · Login', cwd: '/p/kit', isRunning: true },
+    { sessionId: 'local_doc', title: 'Documentação do kit', cwd: '/p/kit', isRunning: true, link: 'claude://claude.ai/epitaxy/local_doc' },
+    { sessionId: 'local_orq', title: '🎛 orquestradora', cwd: '/p/kit', lastActivityAt: new Date(agora - 5 * 60_000).toISOString() },
+  ] }));
+  const h = html(agora);
+  const sec = h.slice(h.indexOf('id="h-sessoes"'), h.indexOf('id="h-entregas"'));
+  const pontilhado = sec.slice(sec.indexOf('class="sem-item"'));
+  assert.match(sec, /<li class="sessao sessao-trabalhando sessao-sem-item"><div class="cartao-cab"><span class="marcador marcador-trabalhando girando"[^>]*><\/span><span class="cartao-titulo">Documentação do kit<\/span><span class="selo selo-sessao-trabalhando">trabalhando<\/span><\/div>/);
+  assert.match(sec, /Documentação do kit[\s\S]*rodando agora · <a class="abrir-app" href="claude:\/\/claude.ai\/epitaxy\/local_doc">/);
+  assert.doesNotMatch(pontilhado, /Documentação do kit/);
+  assert.match(pontilhado, /Sessões paradas[\s\S]*🎛 orquestradora/);
+});
