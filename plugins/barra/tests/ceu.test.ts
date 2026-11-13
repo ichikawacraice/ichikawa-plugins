@@ -74,7 +74,7 @@ test('menos movimento: a variável liga (0/false desligam), e o macOS com 1', ()
 test('cena do dia: o sol colado na ponta direita, antes dos botões, e a cena da altura da barra', () => {
   const svg = svgDaCena('dia', 300, true)
   expect(svg).toContain(`height="${SVG_ALTURA}"`)
-  expect(svg).toContain(`<circle cx="${300 - ESPACO_SOL_BOTOES - 10}" cy="${SVG_ALTURA / 2}" r="10" fill="url(#sol)"/>`)
+  expect(svg).toContain(`<circle cx="${300 - ESPACO_SOL_BOTOES - 6}" cy="${SVG_ALTURA / 2}" r="6" fill="url(#sol)"/>`)
 })
 
 test('largura da cena: o que sobra entre o relógio e os botões, com teto, e nada quando não cabe', () => {

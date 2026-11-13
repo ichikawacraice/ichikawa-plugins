@@ -388,7 +388,7 @@ export const register: Register = on => {
       const largura = larguraDaCena(e.props.bodyColumns, texto, [rotuloAusente, ...rotulos])
 
       return (
-        <Box key={`barra-${modo}`} flexDirection="row" alignItems="center" columnGap={1} paddingX={1} paddingY="sm" backgroundColor={tema.fundo}>
+        <Box key={`barra-${modo}`} flexDirection="row" alignItems="center" columnGap={1} paddingX={1} paddingY="xs" backgroundColor={tema.fundo}>
           {relogioDoCache}
           <Box key="ceu" flexGrow={1} flexDirection="row" justifyContent="flex-end">
             {largura ? <Svg source={svgDaCena(modo, largura, semMovimento)} alt={modo === 'noite' ? 'Céu estrelado com a lua' : 'Céu com o sol'} width={largura} height={SVG_ALTURA} /> : null}

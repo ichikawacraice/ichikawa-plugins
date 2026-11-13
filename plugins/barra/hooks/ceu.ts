@@ -103,13 +103,13 @@ export const linhaDoCeu = (modo: Modo, colunas: number, fase: number | null): st
 
 // ---- desktop: a cena em SVG ----
 
-/** Altura da cena, em pixels CSS: um botão do app com folga em cima e embaixo, longe da moldura nativa da faixa. */
-export const SVG_ALTURA = 40
+/** Altura da cena, em pixels CSS: a de um botão do app, para a barra ficar fina. */
+export const SVG_ALTURA = 26
 /** Céu livre entre a borda do sol (ou da lua) e a ponta direita da cena, colada nos botões, em pixels. */
-export const ESPACO_SOL_BOTOES = 18
+export const ESPACO_SOL_BOTOES = 14
 /** Raio do brilho em volta do sol e da lua: some antes da borda da cena, para não aparecer corte. */
-const RAIO_BRILHO = 28
-const RAIO_SOL = 10
+const RAIO_BRILHO = 18
+const RAIO_SOL = 6
 /** Largura mínima e máxima da cena; abaixo do mínimo a barra fica sem cena. */
 export const CENA_MIN = 140
 export const CENA_MAX = 480
@@ -158,7 +158,7 @@ function cenaDaNoite(l: number, parado: boolean): string {
     `<radialGradient id="lua" cx="35%" cy="35%" r="75%"><stop offset="0" stop-color="#ffffff"/>` +
     `<stop offset=".7" stop-color="#e9e3ff"/><stop offset="1" stop-color="#c8b8ff"/></radialGradient>` +
     `<mask id="crescente"><rect width="${l}" height="${a}" fill="#fff"/>` +
-    `<circle cx="${mx + 5}" cy="${my - 3}" r="${RAIO_SOL}" fill="#000"/></mask></defs>` +
+    `<circle cx="${mx + 3}" cy="${my - 2}" r="${RAIO_SOL}" fill="#000"/></mask></defs>` +
     `<rect width="${l}" height="${a}" fill="${TEMAS.noite.fundo}"/>` +
     estrelas.join('') +
     `<circle cx="${mx}" cy="${my}" r="${RAIO_BRILHO}" fill="url(#luar)"/>` +
@@ -183,18 +183,18 @@ function cenaDoDia(l: number): string {
   const sy = Math.round(a / 2)
   const raios = Array.from({ length: 12 }, (_, k) => {
     const ang = (k * Math.PI) / 6
-    const p = (d: number) => `${d1(sx + Math.cos(ang + d) * 17)} ${d1(sy + Math.sin(ang + d) * 17)}`
+    const p = (d: number) => `${d1(sx + Math.cos(ang + d) * 11)} ${d1(sy + Math.sin(ang + d) * 11)}`
 
     return `<path d="M${sx} ${sy} L${p(-0.16)} L${p(0.16)}Z"/>`
   }).join('')
   // Nuvens ao fundo, espalhadas pela cena toda e atrás do sol; mais apagadas quanto mais longe dele.
   const nuvens = [
-    nuvem(l - 48, 27, 0.5, 0.9),
-    nuvem(l - 120, 22, 0.6, 0.85),
-    nuvem(l - 200, 28, 0.45, 0.7),
-    nuvem(l - 280, 18, 0.5, 0.6),
-    nuvem(l - 370, 26, 0.4, 0.5),
-    nuvem(l - 450, 20, 0.35, 0.4),
+    nuvem(l - 34, 18, 0.32, 0.9),
+    nuvem(l - 95, 15, 0.4, 0.85),
+    nuvem(l - 165, 18, 0.32, 0.7),
+    nuvem(l - 235, 13, 0.36, 0.6),
+    nuvem(l - 315, 17, 0.3, 0.5),
+    nuvem(l - 390, 14, 0.28, 0.4),
   ].join('')
 
   return (
