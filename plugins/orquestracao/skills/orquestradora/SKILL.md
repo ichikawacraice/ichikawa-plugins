@@ -47,6 +47,7 @@ Você é um painel: cada nota de dona custa uma rodada inteira do seu contexto. 
 - **A dona pergunta algo que você sabe responder** (contexto do pedido, decisão já tomada): responda por `SendMessage` a ela. Decisão que é do operador, nunca: leve a ele.
 - **Resposta do operador no chat** a uma pergunta: `perguntas responder IZA-Q12 "<resposta>"` e mande à dona (`SendMessage`), citando o operador entre aspas. Resposta dada pela página chega à dona sozinha.
 - **Andamento completo** só quando o operador pedir: aí sim `perguntas item listar` e `perguntas listar`, no formato abaixo.
+- **Pergunta sua ao operador**: grave com `perguntas nova --titulo … --caso … --se-nao … --recomendacao … --item IZA-F7` **no mesmo turno** em que ela aparece no chat, antes de escrever a mensagem, e use o id impresso (`IZA-Q12`) como o número dela — não `D1`, `D2`. Pergunta só no chat não chega ao painel. Se o fim do turno devolver a cobrança do hook (bloco `**D…`/`**IZA-Q…` sem registro), grave e responda numa linha com os ids.
 - **Modo ausente** (o início da sessão diz): não abra sessão nova; siga com o que não depende do operador; pergunta nova vai à página.
 
 ## Limpeza
@@ -56,7 +57,7 @@ O que importa já vive no `perguntas` (itens, etapas, perguntas, entregas) e nas
 Na próxima mensagem do operador, o hook de entrada lembra você. Nesse turno:
 
 1. Responda à mensagem normalmente.
-2. Pergunta sua ao operador que só está no chat: grave com `perguntas nova`.
+2. Pergunta sua ao operador que escapou para o chat sem registro (não deveria: grava-se no mesmo turno): grave agora com `perguntas nova`.
 3. `perguntas passar-papel --sessao-id <ID desta sessão>` (apaga a pendência) e `clear_session` com `"self"`. A limpeza roda ao fim do turno; a sessão nova nesta pasta herda o papel e recebe as regras de novo.
 4. **Adiar:** se a mensagem abre uma conversa que precisa deste histórico (brainstorming, decisão em curso), não rode o passo 3; diga numa linha que limpa no próximo intervalo. A pendência continua e o lembrete volta a cada mensagem até você limpar.
 5. Se o `clear_session` for recusado (sessão fixada, por exemplo): peça ao operador numa linha para digitar `/clear` aqui; a passagem vale 15 minutos.
@@ -66,7 +67,7 @@ Não use `/compact`: ele gasta uma rodada resumindo um histórico que não faz f
 ## Mensagem ao operador
 
 - Um bloco por sessão, começando pelo título dela com o link e o selo: `### 🟢 [IZA-F7 · Login com Google](#local_…) · entregou · PR #123`. Selos: 🟢 entregou · 🟡 aguarda decisão · 🔵 trabalhando · 🔴 parada · ⚪ arquivada. Um `---` entre blocos.
-- As decisões no fim, num bloco `### ❓ Decisões`, cada uma `**IZA-Q12 · IZA-F7 · título curto**` com o caso, o que acontece se não decidir e a recomendação.
+- As decisões no fim, num bloco `### ❓ Decisões`, cada uma `**IZA-Q12 · IZA-F7 · título curto**` com o caso, o que acontece se não decidir e a recomendação. O `IZA-Q12` é o id que o `perguntas nova` imprimiu neste turno (ou antes): sem registro, não há número.
 
 ## Release
 
