@@ -516,3 +516,58 @@ test('painel: pane guardado sem tela não é lido no relógio, e o clique o abre
   expect(vistos).toEqual(['open:sessoes'])
   await barra.unmount()
 })
+
+// ---- céu ----
+
+const estrelas = async (ui: { findAll: (q: object) => Promise<Array<{ text: string }>> }) =>
+  (await ui.findAll({ type: 'Text' })).map(x => x.text).find(t => /[·✦⋆]/.test(t) && !/⧗/.test(t)) ?? ''
+
+test('céu: fundo escuro nas duas superfícies; desktop desenha o SVG atrás dos botões, terminal as estrelas', async ($, on) => {
+  await iniciar($, on)
+  for (const surface of SUPERFICIES) {
+    const ui = await montar($, surface)
+    const raiz = (await ui.findAll({ type: 'Box' }))[0]
+    expect(raiz?.props.backgroundColor).toBe('#030014')
+    const ceu = await ui.find({ key: 'ceu' })
+    expect(ceu?.props.position).toBe('absolute')
+    const svg = await ui.find({ type: 'Svg' })
+    if (surface === 'desktop') expect(String(svg?.props.source)).toMatch(/prefers-reduced-motion/)
+    else expect(svg).toBeUndefined()
+    if (surface === 'terminal') expect(await estrelas(ui)).toMatch(/[·✦⋆]/)
+    expect(await ui.find({ type: 'Button', text: /Sessões/ })).toBeDefined()
+    await ui.unmount()
+  }
+})
+
+test('céu: no terminal as estrelas cintilam a cada segundo; com BARRA_SEM_ANIMACAO ficam paradas', async ($, on) => {
+  const m = await iniciar($, on)
+  const ui = await montar($, 'terminal')
+  const vistos = new Set<string>()
+  for (let i = 0; i < 4; i++) {
+    vistos.add(await estrelas(ui))
+    await m.relogio.advance(1000)
+  }
+  expect(vistos.size).toBeGreaterThan(1)
+  await ui.unmount()
+})
+
+test('céu: menos movimento pedido deixa as estrelas paradas e o SVG sem animação', async ($, on) => {
+  const m = await iniciar($, on, { env: { BARRA_SEM_ANIMACAO: '1' } })
+  const ui = await montar($, 'terminal')
+  const antes = await estrelas(ui)
+  await m.relogio.advance(3000)
+  expect(await estrelas(ui)).toBe(antes)
+  await ui.unmount()
+  const d = await montar($, 'desktop')
+  expect(String((await d.find({ type: 'Svg' }))?.props.source)).not.toMatch(/animation/)
+  await d.unmount()
+})
+
+test('céu: o "Reduzir movimento" do macOS também para', async ($, on) => {
+  const m = await iniciar($, on, { contador: argv => (argv[0] === 'defaults' ? { exitCode: 0, stdout: '1\n' } : { exitCode: 0, stdout: '3\n' }) })
+  const ui = await montar($, 'terminal')
+  const antes = await estrelas(ui)
+  await m.relogio.advance(2000)
+  expect(await estrelas(ui)).toBe(antes)
+  await ui.unmount()
+})

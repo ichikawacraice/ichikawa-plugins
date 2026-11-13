@@ -10,6 +10,15 @@ A barra acima do prompt do Claude Code (app desktop e terminal). Mostra:
 
 Só lê arquivos e roda os contadores declarados. `list_sessions` só com o painel de sessões aberto, uma vez por minuto; fechado, nada.
 
+## Tema (céu noturno)
+
+A barra segue o tema do painel: fundo `#030014`, estrelas e um brilho de planeta violeta/rosa.
+
+- **Desktop**: o céu é um SVG atrás dos botões; a cintilação é CSS em degraus (nada repinta mais de uma vez por segundo) e para sozinha com o "Reduzir movimento" do sistema.
+- **Terminal**: estrelas em caracteres (`· ✦ ⋆`) atrás dos botões, cintilando pelo relógio de 1 s que a barra já tinha.
+- **Menos movimento**: `BARRA_SEM_ANIMACAO=1` no ambiente, ou o "Reduzir movimento" do macOS (lido ao abrir a sessão), deixam o céu parado.
+- Os botões do desktop são nativos do app e se pintam sozinhos; o mod não muda a cor deles.
+
 ## Contrato `barra.json` (resumo)
 
 1. Fica na raiz do plugin, ao lado de `.claude-plugin/`: `{ "botoes": [ … ] }`.
