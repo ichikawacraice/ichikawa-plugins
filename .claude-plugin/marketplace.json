@@ -12,7 +12,7 @@
     {
       "name": "stack",
       "source": "./plugins/stack",
-      "description": "Padrões e revisores da stack da empresa (FastStore, Wake, React/TS, Next, Node, Supabase/Postgres, GCP): skills de consulta, agentes revisores e Context7 para docs atuais."
+      "description": "Padrões e revisores da stack da empresa (React/TS, Next, Node, Supabase/Postgres, GCP): skills de consulta, agentes revisores e Context7 para docs atuais."
     },
     {
       "name": "barra",
