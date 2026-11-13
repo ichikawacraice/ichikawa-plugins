@@ -1,5 +1,5 @@
 import { atom, read, update } from 'claude-code'
-import type { EngineInterface, Register } from 'claude-code'
+import type { ElementConstructor, EngineInterface, Register, SvgProps } from 'claude-code'
 
 import type { Ausente, Botao, Cache, LinhaDeSessao, Painel } from '../types'
 import {
@@ -23,6 +23,18 @@ import {
   segundosRestantes,
   textoDoAusente,
 } from './logica'
+import {
+  CICLO_CINTILA,
+  COR_BOTAO_TERMINAL,
+  COR_BRILHO_TERMINAL,
+  COR_ESTRELA_TERMINAL,
+  COR_FUNDO,
+  COR_TEXTO,
+  PX_POR_COLUNA,
+  linhaDeEstrelas,
+  pedeMenosMovimento,
+  svgDoCeu,
+} from './ceu'
 import { atenderPedidos } from './pedidos'
 import {
   COR,
@@ -51,6 +63,8 @@ export const botoes = atom({ plugin: 'barra', key: 'botoes' } as const, [] as Bo
 export const selos = atom({ plugin: 'barra', key: 'selos' } as const, {} as Record<string, number | null>)
 const PAINEL_VAZIO: Painel = { linhas: [], lidoEm: null, erro: null, lendo: false }
 export const painel = atom({ plugin: 'barra', key: 'painel' } as const, PAINEL_VAZIO)
+/** O quadro da cintilação do terminal; `null` = parado (menos movimento pedido). */
+export const fase = atom({ plugin: 'barra', key: 'fase' } as const, null as number | null)
 
 const mensagem = (err: unknown): string => (err instanceof Error ? err.message : String(err))
 const logar = ($: EngineInterface, texto: string): void => {
@@ -65,6 +79,21 @@ let lendoPainel = false
 let atendendo = false
 let geracaoAusente = 0
 let errosVistos = ''
+let semMovimento = false
+const PRAZO_DEFAULTS_MS = 3000
+
+/** Lido uma vez por session.start: a variável `BARRA_SEM_ANIMACAO` e o "Reduzir movimento" do macOS. */
+async function lerMovimento($: EngineInterface): Promise<boolean> {
+  let saida: string | null = null
+  try {
+    const r = await $.process.run(['defaults', 'read', 'com.apple.Accessibility', 'ReduceMotionEnabled'], { timeoutMs: PRAZO_DEFAULTS_MS })
+    if (r.exitCode === 0) saida = r.stdout
+  } catch {
+    saida = null
+  }
+
+  return pedeMenosMovimento(await $.env.get('BARRA_SEM_ANIMACAO'), saida)
+}
 
 async function pastaIchikawa($: EngineInterface): Promise<string> {
   const propria = await $.env.get('ICHIKAWA_HOME')
@@ -290,6 +319,7 @@ async function vezDoPainel($: EngineInterface): Promise<void> {
 // ---- relógios ----
 
 async function tique($: EngineInterface): Promise<void> {
+  if (!semMovimento) await update($, fase, f => ((f ?? 0) + 1) % CICLO_CINTILA)
   const c = await read($, cache)
   if (c.expiraEm === null) return
   const segundos = segundosRestantes(c.expiraEm, await $.clock.now())
@@ -327,6 +357,8 @@ export const register: Register = on => {
   on('session.start', async ($, e, next) => {
     const r = await next(e)
     projeto = e.cwd ?? null
+    semMovimento = await lerMovimento($)
+    await update($, fase, f => (semMovimento ? null : (f ?? 0)))
     iniciarRelogios($)
     await ler($)
     void vezDosPedidos($)
@@ -345,28 +377,54 @@ export const register: Register = on => {
 
   on('ui.render', { component: 'AbovePrompt' }, async ($, e, next) => {
     if (e.props.hasSurvey) return next(e)
-    const { Box, Text, Button } = $.ui.resolve(e)
+    const tabela = $.ui.resolve(e)
+    const { Box, Text, Button } = tabela
+    // O desktop (e o mobile/vscode) tem `Svg`: o céu vai desenhado e a cintilação é CSS do próprio app.
+    // O terminal não tem: estrelas em caracteres, cintilando pelo relógio de 1 s. Decide pela superfície: a tabela do
+    // terminal responde `'Svg' in` com um marcador vazio.
+    const Svg = e.surface === 'terminal' ? null : ((tabela as { Svg?: ElementConstructor<SvgProps> }).Svg ?? null)
     const c = await read($, cache)
     const a = await read($, ausente)
     const mudando = await read($, trocando)
     const lista = await read($, botoes)
     const s = await read($, selos)
+    const quadro = Svg ? null : await read($, fase)
     const nivel = nivelDoCache(c.segundos, e.props.isWorking)
     const texto = `⧗ ${e.props.isWorking ? 'ativo' : relogio(c.segundos)}`
     const moldura = nivel ? { borderStyle: 'round' as const, borderColor: nivel === 'aviso' ? ('warning' as const) : ('error' as const) } : {}
+    // No terminal o rótulo leva a cor clara (o fundo agora é escuro); no desktop o botão é nativo e se pinta sozinho.
+    const rotulo = (chave: string, t: string) => (Svg ? t : <Text key={chave} color={COR_BOTAO_TERMINAL}>{t}</Text>)
+    const ceu = Svg ? (
+      <Box key="ceu" position="absolute" top={0} left={0}>
+        <Svg source={svgDoCeu((e.props.bodyColumns + 6) * PX_POR_COLUNA, semMovimento)} alt="" />
+      </Box>
+    ) : (
+      <Box key="ceu" position="absolute" top={0} left={0}>
+        <Text color={COR_ESTRELA_TERMINAL} wrap="truncate-end">
+          {linhaDeEstrelas(e.props.bodyColumns, quadro)}
+        </Text>
+      </Box>
+    )
 
     return (
-      <Box flexDirection="row" flexWrap="wrap" columnGap={1} alignItems="center" paddingX={1} {...moldura}>
-        {nivel === 'alerta' || nivel === 'venceu' ? <Text inverse bold>{` ${texto} `}</Text> : <Text bold={nivel === 'aviso'}>{texto}</Text>}
+      <Box flexDirection="row" flexWrap="wrap" columnGap={1} alignItems="center" paddingX={1} backgroundColor={COR_FUNDO} {...moldura}>
+        {ceu}
+        {nivel === 'alerta' || nivel === 'venceu' ? (
+          <Text inverse bold>{` ${texto} `}</Text>
+        ) : (
+          <Text bold={nivel === 'aviso'} color={nivel === 'aviso' ? COR_BRILHO_TERMINAL : COR_TEXTO}>
+            {texto}
+          </Text>
+        )}
         <Button key="ausente" variant="secondary" dimColor={!a?.ligado} onPress={() => void alternarAusente($)}>
-          {ROTULO_AUSENTE(a, mudando)}
+          {rotulo('r-ausente', ROTULO_AUSENTE(a, mudando))}
         </Button>
         <Button key="sessoes" variant="secondary" onPress={() => void alternarPainel($)}>
-          ▦ Sessões
+          {rotulo('r-sessoes', '▦ Sessões')}
         </Button>
         {lista.map(b => (
           <Button key={b.chave} variant="secondary" onPress={() => void clicar($, b)}>
-            {rotuloComSelo(b.rotulo, s[b.chave])}
+            {rotulo(`r-${b.chave}`, rotuloComSelo(b.rotulo, s[b.chave]))}
           </Button>
         ))}
       </Box>

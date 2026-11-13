@@ -58,6 +58,8 @@ declare module 'claude-code' {
       selos: Record<string, number | null>
       /** O painel de sessões: só se lê com o pane aberto. */
       painel: Painel
+      /** O quadro da cintilação das estrelas no terminal; `null` = parado (menos movimento pedido). */
+      fase: number | null
     }
   }
 }
