@@ -55,6 +55,21 @@ Decisões *assumidas, a confirmar*:
    soma de `input + cache_creation + cache_read`, com a barra de `origin/develop` e com a nova. Risco: não.
 5. Ver no app: abrir o pane pelo botão, conferir linhas e clique. Risco: não.
 
-## Medição
+## Medição (13/11, 12:10 SP)
 
-Preenchida na entrega (seção abaixo).
+`claude -p "responda só: ok" --strict-mcp-config --mcp-config '{"mcpServers":{}}' --plugin-dir <barra> --output-format json`,
+soma de `input + cache_creation + cache_read`, três rodadas alternadas:
+
+| Rodada | Barra de `origin/develop` | Barra com o painel |
+|---|---|---|
+| 1 | 45.805 | 45.805 |
+| 2 | 45.660 | 45.665 |
+| 3 | 45.656 | 45.662 |
+
+Igual: a sobra de ≤6 tokens varia entre rodadas da mesma barra (hora e estado do git no prompt). Com os MCP ligados a
+medição oscila ~2,4 mil entre rodadas (servidor que conecta ou não a tempo), nas duas barras; por isso a medida oficial é
+sem MCP.
+
+No app (mod carregado nesta sessão por `dev-mods`): a leitura pelo mod trouxe as três sessões do projeto com ícone,
+status, etapa, PR e tempo certos. Com a sessão fora da tela o app não põe o pane (`no-surface`); o pane fica guardado e
+não lê nada até ser posto.
