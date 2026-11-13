@@ -3,8 +3,9 @@
     {
       "id": "contas",
       "rotulo": "Contas",
-      "dica": "Abre o painel de contas: cota de cada conta e a troca sem Sign out",
-      "comando": ["node", "${CLAUDE_PLUGIN_ROOT}/src/painel/abrir.mjs"],
+      "dica": "Abre no navegador do app o painel de contas: cota de cada conta e a troca sem Sign out",
+      "comando": ["node", "${CLAUDE_PLUGIN_ROOT}/src/painel/abrir.mjs", "--sem-abrir", "--porta", "4791"],
+      "url": "http://127.0.0.1:4791",
       "ordem": 30
     }
   ]
