@@ -2,7 +2,7 @@
    Base e tokens em estilo.css (cópia idêntica da página de perguntas, docs/contratos.md). Aqui só entram tokens da base:
    tons translúcidos saem de `color-mix`, para o tema trocar só os tokens. */
 
-/* ---- topo: o nome e uma linha de apoio (quantas contas e qual está no app), como a Central mostra o nome e os selos ---- */
+/* ---- topo: o nome e uma linha de apoio (quantas contas e qual está no app), como o Painel mostra o nome e os selos ---- */
 .subtitulo { margin: 12px 0 0; color: var(--texto-2); font-size: var(--t-apoio); line-height: 18px; font-variant-numeric: tabular-nums; }
 @media (min-width: 900px) { .subtitulo { font-size: var(--t-corpo); line-height: 20px; margin-top: 16px; } }
 

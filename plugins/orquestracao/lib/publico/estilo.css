@@ -1,4 +1,4 @@
-/* Base da Central (perguntas, sessões e entregas): tokens, tipografia, topo, seções, botões e pé. Os cartões ficam em perguntas.css.
+/* Base do Painel (perguntas, sessões e entregas): tokens, tipografia, topo, seções, botões e pé. Os cartões ficam em perguntas.css.
    Inspirada no reflect.app (sem copiar nada dele): fundo quase preto puxado ao violeta, títulos em Geist 500,
    corpo em system-ui, muito respiro e fios finos. Feita para uma coluna estreita (300–420 px); em tela larga
    as colunas ficam lado a lado. */

@@ -18,7 +18,7 @@ const INTERVALO_DE_CONFERENCIA_MS = 150;
 const DIA_MS = 24 * 60 * 60 * 1000;
 const ENTREGAS_A_MOSTRAR = 10;
 // O nome da página (topo e aba). Já não é só perguntas: perguntas, sessões e entregas.
-export const NOME_DA_PAGINA = 'Central';
+export const NOME_DA_PAGINA = 'Painel';
 const RESPOSTA_PADRAO = 'Sim, siga a recomendação.';
 const SESSAO_DO_APP = /^local_[0-9a-f-]{36}$/;
 const NOME_DO_KIT = 'orquestracao';
