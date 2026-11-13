@@ -7,7 +7,7 @@ import { join, resolve } from 'node:path';
 import { mkdirSync, rmSync, writeFileSync } from 'node:fs';
 import * as estado from './estado.mjs';
 import { gravarPassagem } from '../hooks/comum.mjs';
-import { abrirPagina, servir, PORTA_PADRAO } from './pagina.mjs';
+import { abrirPagina, arquivarTudo, servir, PORTA_PADRAO } from './pagina.mjs';
 
 const ETAPAS = new Set(['planejamento', 'execucao', 'revisao', 'pr', 'feito', 'parado', 'descartado']);
 const DESFECHOS = { entregue: 'feito', parcial: 'feito', parado: 'parado' };
@@ -29,6 +29,7 @@ const AJUDA = `perguntas — perguntas ao operador e itens do projeto
   perguntas papel <orquestradora|nenhum> --sessao-id ID   marca o papel desta sessão (o ID vem do início da sessão)
   perguntas passar-papel --sessao-id ID     logo antes do /clear: a próxima sessão nesta pasta herda o papel
   perguntas sigla [SIG] [--todas]           a sigla do projeto (IZA em IZA-F3); com SIG, troca; --todas lista todas
+  perguntas arquivar                        move para arquivo/ os itens entregues há mais de 30 dias (não apaga)
   perguntas pagina [--abrir | --subir] [--porta ${PORTA_PADRAO}]
 
 Ids: F7 ou ICH-F7, Q12 ou ICH-Q12. Com a sigla e sem --projeto, a sigla escolhe o projeto.
@@ -206,6 +207,11 @@ export async function main(argv, out = (s) => process.stdout.write(`${s}\n`)) {
     return 0;
   }
   if (cmd === 'sigla') return cmdSigla(args, v, projeto, out);
+  if (cmd === 'arquivar') {
+    const movidos = arquivarTudo();
+    out(movidos.length ? `arquivados: ${movidos.join(', ')}` : 'nada para arquivar');
+    return 0;
+  }
   if (cmd === 'item') return cmdItem(args, v, projeto, out) ?? (out(AJUDA), 1);
   if (cmd === 'pagina') {
     const porta = Number(v.porta || PORTA_PADRAO);
