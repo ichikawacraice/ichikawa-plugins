@@ -30,6 +30,9 @@ const ID_DE_SESSAO = /^[\w-]{8,80}$/;
 /** O marcador do papel: `papeis/<session_id>` com o texto `orquestradora` (gravado por `perguntas papel`). */
 export const marcadorDe = (sessionId) => (ID_DE_SESSAO.test(String(sessionId ?? '')) ? join(raiz(), 'papeis', String(sessionId)) : null);
 
+/** A limpeza pendente da orquestradora: gravada pelo Stop, apagada pelo `passar-papel`. */
+export const limpezaPendenteDe = (sessionId) => { const m = marcadorDe(sessionId); return m ? `${m}.limpeza-pendente` : null; };
+
 export function papelDe(sessionId) {
   const m = marcadorDe(sessionId);
   if (!m || !existsSync(m)) return null;
@@ -47,6 +50,7 @@ export function gravarPassagem(de, cwd, agora = Date.now()) {
   if (!papel) throw new Error(`sessão ${de} sem papel: rode antes \`perguntas papel orquestradora --sessao-id ${de}\``);
   mkdirSync(join(raiz(), 'papeis'), { recursive: true });
   writeFileSync(passagem(), JSON.stringify({ papel, de, cwd: pastaReal(cwd), em: agora }));
+  rmSync(limpezaPendenteDe(de), { force: true });
   return papel;
 }
 
