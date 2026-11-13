@@ -5,7 +5,7 @@ import { tmpdir, homedir } from 'node:os';
 import { join } from 'node:path';
 import * as estado from '../lib/estado.mjs';
 import { main } from '../lib/cli.mjs';
-import { dados, html, servir } from '../lib/pagina.mjs';
+import { dados, html, servir, criarServidor } from '../lib/pagina.mjs';
 import { decidir as orquestradoraNaoEdita } from '../hooks/orquestradora-nao-edita.mjs';
 import { decidir as configProtegida } from '../hooks/config-protegida.mjs';
 import { decidir as segredoSai } from '../hooks/segredo-sai.mjs';
@@ -377,9 +377,98 @@ test('a página separa Em andamento por projeto e põe o projeto na primeira lin
   assert.deepEqual([pergunta[1], pergunta[2]], ['WiControl', 'WIC-Q1']);
   assert.match(h, /WIC-F1/);
   const entregues = h.slice(h.indexOf('id="h-entregas"'));
-  assert.match(entregues, /<li><p class="cartao-projeto">Izanagi<\/p><div class="cartao-cab"><span class="id">IZA-F3<\/span>/);
+  assert.match(entregues, /<summary><p class="cartao-projeto">Izanagi<\/p><div class="cartao-cab"><span class="id">IZA-F3<\/span>/);
 });
 
 test('o início diz a sigla do projeto', () => {
   assert.match(contexto({ session_id: 'sessao-teste-3', cwd: join(tmpdir(), 'Izanagi') }), /Sigla do projeto: \*\*IZA\*\*/);
+});
+
+const entregar = (projeto, titulo, em, extra = {}) => estado.criar('itens', projeto, {
+  titulo, etapa: 'feito', entrega: { desfecho: 'entregue', resultado: `r-${titulo}`, medido: 'm', naoMedido: 'n', proximos: ['p'], em: em.toISOString() }, ...extra,
+}, em);
+
+test('cada entrega abre e fecha: o resumo traz projeto, id, título e desfecho; o resto fica dentro', () => {
+  entregar('Izanagi', 'busca', new Date());
+  const h = html();
+  const entregues = h.slice(h.indexOf('id="h-entregas"'));
+  const cartao = /<details class="entrega" id="([^"]+)">(<summary>[\s\S]*?<\/summary>)([\s\S]*?)<\/details>/.exec(entregues);
+  assert.ok(cartao, 'a entrega é um <details> fechado');
+  const [, id, resumo, corpo] = cartao;
+  assert.equal(id, 'entrega-Izanagi-F1');
+  for (const t of ['Izanagi', 'IZA-F1', 'busca', 'selo-entregue']) assert.match(resumo, new RegExp(t));
+  assert.doesNotMatch(resumo, /r-busca/, 'o resultado fica dentro');
+  for (const t of ['O que mudou', 'r-busca', 'Medido', 'Sem medir', 'Próximos']) assert.match(corpo, new RegExp(t));
+  assert.match(h, /sessionStorage/, 'o recarregamento guarda os cartões abertos');
+});
+
+test('Entregues mostra as 10 mais recentes e guarda o resto em "Ver mais"', () => {
+  const t = (dia) => new Date(Date.UTC(2026, 10, dia, 12));
+  // F1 é a mais recente; F2…F12 vão ficando mais velhas.
+  entregar('p', 'nova', t(13));
+  for (let n = 2; n <= 12; n += 1) entregar('p', `e${n}`, t(13 - n));
+  const agora = t(14).getTime();
+  const d = dados(agora);
+  assert.equal(d.entregas.length, 10);
+  assert.deepEqual(d.entregas.map(({ i }) => i.id), ['F1', 'F2', 'F3', 'F4', 'F5', 'F6', 'F7', 'F8', 'F9', 'F10']);
+  assert.deepEqual(d.maisEntregas.map(({ i }) => i.id), ['F11', 'F12']);
+  const h = html(agora);
+  const entregues = h.slice(h.indexOf('id="h-entregas"'));
+  assert.match(entregues, /<details class="ver-mais"><summary>Ver mais \(2\)<\/summary>/);
+  const antes = entregues.slice(0, entregues.indexOf('ver-mais'));
+  assert.doesNotMatch(antes, /entrega-p-F11|entrega-p-F12/);
+});
+
+test('sem mais de 10 entregas não há "Ver mais"', () => {
+  entregar('p', 'uma', new Date());
+  assert.doesNotMatch(html(), /class="ver-mais"/);
+});
+
+test('arquivar move a entrega que saiu da página para arquivo/, sem apagar e sem reusar o número', () => {
+  const agora = Date.UTC(2026, 10, 13, 12);
+  const dias = (n) => new Date(agora - n * 24 * 60 * 60 * 1000);
+  entregar('p', 'velha', dias(31));
+  entregar('p', 'recente', dias(2));
+  estado.criar('itens', 'p', { titulo: 'viva antiga', etapa: 'execucao' }, dias(90));
+  estado.criar('itens', 'p', { titulo: 'sem etapa final', etapa: 'pr', entrega: { desfecho: 'parcial', resultado: 'x', em: dias(40).toISOString() } }, dias(40));
+  const movidos = estado.arquivar('p', agora);
+  assert.deepEqual(movidos, ['F1']);
+  assert.deepEqual(readdirSync(estado.pastaDe('itens', 'p')).sort(), ['F2.json', 'F3.json', 'F4.json', 'arquivo']);
+  assert.equal(JSON.parse(readFileSync(join(estado.pastaDe('itens', 'p'), 'arquivo', 'F1.json'), 'utf8')).titulo, 'velha');
+  assert.deepEqual(estado.listar('itens', 'p').map((i) => i.id), ['F4', 'F3', 'F2']);
+  assert.deepEqual(estado.arquivar('p', agora), [], 'rodar de novo não faz nada');
+});
+
+test('o número novo pula o maior arquivado', () => {
+  const pasta = join(estado.pastaDe('itens', 'p'), 'arquivo');
+  mkdirSync(pasta, { recursive: true });
+  writeFileSync(join(pasta, 'F9.json'), '{"id":"F9"}');
+  assert.equal(estado.criar('itens', 'p', { titulo: 'x' }).id, 'F10');
+});
+
+test('perguntas arquivar move de todos os projetos e diz o que moveu', async () => {
+  const velha = new Date(Date.now() - 45 * 24 * 60 * 60 * 1000);
+  entregar('Izanagi', 'a', velha);
+  entregar('WiControl', 'b', velha);
+  await rodar('arquivar');
+  assert.deepEqual(saida, ['arquivados: IZA-F1, WIC-F1']);
+  await rodar('arquivar');
+  assert.deepEqual(saida, ['nada para arquivar']);
+});
+
+test('abrir a página arquiva no máximo uma vez por dia', async () => {
+  const velha = new Date(Date.now() - 45 * 24 * 60 * 60 * 1000);
+  entregar('p', 'a', velha);
+  const porta = 4800 + Math.floor(Math.random() * 500);
+  const servidor = criarServidor(porta);
+  await new Promise((ok) => servidor.listen(porta, '127.0.0.1', ok));
+  try {
+    await fetch(`http://127.0.0.1:${porta}/`);
+    assert.ok(readdirSync(join(estado.pastaDe('itens', 'p'), 'arquivo')).includes('F1.json'));
+    entregar('p', 'b', velha);
+    await fetch(`http://127.0.0.1:${porta}/`);
+    assert.ok(readdirSync(estado.pastaDe('itens', 'p')).includes('F2.json'), 'no mesmo dia não roda de novo');
+  } finally {
+    servidor.close();
+  }
 });

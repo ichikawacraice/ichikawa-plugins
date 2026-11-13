@@ -65,6 +65,8 @@ Ausente o arquivo, ou `ligado` diferente de `true`: o operador está presente. `
 
 `etapa`: `planejamento` · `execucao` · `revisao` · `pr` · `feito` · `parado` · `descartado`.
 
+**Arquivo.** Item em etapa final (`feito`, `parado`, `descartado`) com entrega há mais de 30 dias sai da página e é movido para `itens/<projeto>/arquivo/F<n>.json` (pela página, uma vez por dia ao abrir, ou por `perguntas arquivar`). Nada é apagado; voltar é mover o arquivo de volta. O próximo número conta também os arquivados.
+
 **A entrega** é o que a dona grava ao terminar, tenha concluído ou não, logo antes de se arquivar (`perguntas item entregar`). A página só lê:
 
 ```json

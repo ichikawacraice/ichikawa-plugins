@@ -1,5 +1,5 @@
 // A página local: perguntas abertas, itens em andamento e o que já foi entregue.
-// Só lê os arquivos de estado; grava a resposta dada aqui e os pedidos que o mod da barra executa
+// Só lê os arquivos de estado (e, uma vez por dia, move para arquivo/ a entrega que já saiu dela); grava a resposta dada aqui e os pedidos que o mod da barra executa
 // (abrir a sessão, entregar a resposta). Nenhuma batida, nenhum laço em segundo plano.
 import { createServer } from 'node:http';
 import { spawn } from 'node:child_process';
@@ -14,8 +14,8 @@ const HOST = '127.0.0.1';
 const LIMITE_DO_CORPO = 64 * 1024;
 const PRAZO_PARA_SUBIR_MS = 3_000;
 const INTERVALO_DE_CONFERENCIA_MS = 150;
-const DIAS_DE_ENTREGAS = 30;
 const DIA_MS = 24 * 60 * 60 * 1000;
+const ENTREGAS_A_MOSTRAR = 10;
 const RESPOSTA_PADRAO = 'Sim, siga a recomendação.';
 const SESSAO_DO_APP = /^local_[0-9a-f-]{36}$/;
 const PUBLICO = fileURLToPath(new URL('./publico/', import.meta.url));
@@ -57,13 +57,14 @@ ${campos([['O caso', esc(p.caso)], ['Se ninguém decidir', esc(p.seNaoDecidir)],
 <p class="quando">${esc(horaSP(p.criadoEm))}${p.item ? ` · no app, a sessão é a <b>${idLido(projeto, p.item)} · …</b> na barra lateral` : ''}</p></li>`;
 }
 
+/** A entrega abre e fecha: o resumo é a primeira linha; o resto aparece ao abrir. */
 function cartaoDeEntrega(projeto, i) {
   const e = i.entrega;
   const proximos = Array.isArray(e.proximos) && e.proximos.length
     ? `<ul class="proximos">${e.proximos.map((x) => `<li>${esc(x)}</li>`).join('')}</ul>` : '';
-  return `<li>${cabecaDoProjeto(projeto)}<div class="cartao-cab"><span class="id">${idLido(projeto, i.id)}</span><span class="cartao-titulo">${esc(i.titulo)}</span><span class="selo selo-${esc(e.desfecho)}">${esc(e.desfecho)}</span></div>
+  return `<li><details class="entrega" id="entrega-${esc(projeto)}-${esc(i.id)}"><summary>${cabecaDoProjeto(projeto)}<div class="cartao-cab"><span class="id">${idLido(projeto, i.id)}</span><span class="cartao-titulo">${esc(i.titulo)}</span><span class="selo selo-${esc(e.desfecho)}">${esc(e.desfecho)}</span></div></summary>
 ${campos([['O que mudou', esc(e.resultado)], ['Medido', esc(e.medido)], ['Sem medir', esc(e.naoMedido)], ['Próximos', proximos], ['PR', i.pr ? `#${esc(i.pr)}` : '']])}
-<p class="quando">${esc(horaSP(e.em ?? i.atualizadoEm))}</p></li>`;
+<p class="quando">${esc(horaSP(e.em ?? i.atualizadoEm))}</p></details></li>`;
 }
 
 // Em andamento já vem separado por projeto: o cartão não repete o nome.
@@ -77,16 +78,21 @@ function grupos(andamento) {
 <ul class="cartoes">${porProjeto.get(projeto).map((i) => cartaoDeItem(projeto, i)).join('\n')}</ul></li>`);
 }
 
-/** O que a página mostra, já ordenado: perguntas abertas, itens vivos e entregas recentes de todos os projetos. */
+const quandoEntregou = (i) => Date.parse(i.entrega.em ?? i.atualizadoEm);
+
+/**
+ * O que a página mostra, já ordenado: perguntas abertas, itens vivos e entregas recentes de todos os projetos.
+ * `entregas` são as `ENTREGAS_A_MOSTRAR` mais recentes; `maisEntregas`, as outras do período (atrás de "Ver mais").
+ */
 export function dados(agora = Date.now()) {
   const perguntas = [];
   const andamento = [];
-  const entregas = [];
+  const recentes = [];
   for (const projeto of estado.projetos()) {
     for (const p of estado.listar('perguntas', projeto)) if (p.estado === 'aberta') perguntas.push({ projeto, p });
     for (const i of estado.listar('itens', projeto)) {
-      if (i.entrega && agora - Date.parse(i.entrega.em ?? i.atualizadoEm) <= DIAS_DE_ENTREGAS * DIA_MS) entregas.push({ projeto, i });
-      else if (!['feito', 'parado', 'descartado'].includes(i.etapa)) andamento.push({ projeto, i });
+      if (i.entrega && agora - quandoEntregou(i) <= estado.DIAS_DE_ENTREGAS * DIA_MS) recentes.push({ projeto, i });
+      else if (!estado.etapaFinal(i.etapa)) andamento.push({ projeto, i });
     }
   }
   // Perguntas: da mais antiga para a mais nova. Itens: em ordem de F (F1, F2, …), empate pelo projeto.
@@ -94,20 +100,27 @@ export function dados(agora = Date.now()) {
   const emOrdemDeF = (a, b) => numero(a.i.id) - numero(b.i.id) || a.projeto.localeCompare(b.projeto);
   perguntas.sort(antiga);
   andamento.sort(emOrdemDeF);
-  entregas.sort(emOrdemDeF);
-  return { perguntas, andamento, entregas };
+  // Entregas: escolhe as mais recentes pela data; dentro de cada bloco, a ordem de F.
+  recentes.sort((a, b) => quandoEntregou(b.i) - quandoEntregou(a.i));
+  const entregas = recentes.slice(0, ENTREGAS_A_MOSTRAR).sort(emOrdemDeF);
+  const maisEntregas = recentes.slice(ENTREGAS_A_MOSTRAR).sort(emOrdemDeF);
+  return { perguntas, andamento, entregas, maisEntregas };
 }
 
-function secao(id, titulo, contagem, itens, vazio) {
+function secao(id, titulo, contagem, itens, vazio, depois = '') {
   return `<section class="secao" aria-labelledby="${id}"><div class="secao-cab"><h2 id="${id}">${titulo}</h2><span class="lido">${contagem}</span></div>
-<ul class="cartoes">${itens.join('\n') || `<li class="vazio">${vazio}</li>`}</ul></section>`;
+<ul class="cartoes">${itens.join('\n') || `<li class="vazio">${vazio}</li>`}</ul>${depois}</section>`;
 }
+
+const verMais = (resto) => (resto.length
+  ? `<details class="ver-mais"><summary>Ver mais (${resto.length})</summary><ul class="cartoes">${resto.map(({ projeto, i }) => cartaoDeEntrega(projeto, i)).join('\n')}</ul></details>`
+  : '');
 
 export function html(agora = Date.now()) {
-  const { perguntas, andamento, entregas } = dados(agora);
+  const { perguntas, andamento, entregas, maisEntregas } = dados(agora);
   const esquerda = secao('h-perguntas', 'Perguntas', perguntas.length || '', perguntas.map(({ projeto, p }) => cartaoDePergunta(projeto, p)), 'Nada esperando por você.')
     + (andamento.length ? secao('h-andamento', 'Em andamento', andamento.length, grupos(andamento), '') : '');
-  const direita = secao('h-entregas', 'Entregues', `últimos ${DIAS_DE_ENTREGAS} dias`, entregas.map(({ projeto, i }) => cartaoDeEntrega(projeto, i)), 'Nenhuma entrega ainda.');
+  const direita = secao('h-entregas', 'Entregues', `últimos ${estado.DIAS_DE_ENTREGAS} dias`, entregas.map(({ projeto, i }) => cartaoDeEntrega(projeto, i)), 'Nenhuma entrega ainda.', verMais(maisEntregas));
   return `<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Perguntas do kit</title><link rel="stylesheet" href="/estilo.css"><link rel="stylesheet" href="/perguntas.css"></head>
 <body><canvas id="ceu" class="ceu" aria-hidden="true"></canvas><header class="topo"><h1>Perguntas do kit</h1></header>
@@ -115,9 +128,18 @@ export function html(agora = Date.now()) {
 <footer class="pe"><p>Lido às ${esc(horaSP(new Date(agora).toISOString()))}. A página se atualiza sozinha enquanto você não está escrevendo.</p></footer>
 <script type="module">
 import { iniciarCeu } from '/ceu.js';
-iniciarCeu(document.getElementById('ceu'));
 const escrevendo = () => [...document.querySelectorAll('textarea')].some((t) => t.value.trim() || t === document.activeElement);
+// O recarregamento fecharia os cartões abertos: guarda quais estavam abertos e reabre.
+const ABERTOS = 'entregas-abertas';
+const lerAbertos = () => { try { return JSON.parse(sessionStorage.getItem(ABERTOS) ?? '[]'); } catch { return []; } };
+for (const id of lerAbertos()) { const d = document.getElementById(id); if (d) { d.open = true; d.closest('.ver-mais')?.setAttribute('open', ''); } }
+document.addEventListener('toggle', () => {
+  const abertos = [...document.querySelectorAll('details.entrega[open]')].map((d) => d.id);
+  try { sessionStorage.setItem(ABERTOS, JSON.stringify(abertos)); } catch { /* sem armazenamento: só não lembra */ }
+}, true);
 setInterval(() => { if (!document.hidden && !escrevendo()) location.reload(); }, 30000);
+// O céu é enfeite: se ele falhar (canvas de tamanho 0), o resto da página segue.
+try { iniciarCeu(document.getElementById('ceu')); } catch { /* sem céu */ }
 </script></body></html>`;
 }
 
@@ -178,7 +200,19 @@ async function abrir(req, res, porta) {
   res.writeHead(303, { Location: '/' }).end();
 }
 
+/** Arquiva em todos os projetos o que já saiu da página; devolve os ids lidos (`IZA-F3`). */
+export function arquivarTudo(agora = Date.now()) {
+  return estado.projetos().flatMap((projeto) => estado.arquivar(projeto, agora).map((id) => estado.rotulo(projeto, id)));
+}
+
 export function criarServidor(porta = PORTA_PADRAO) {
+  let ultimaLimpeza = -Infinity;
+  // A limpeza roda ao abrir a página, no máximo uma vez por dia por processo: sem laço em segundo plano.
+  const limparSeDeuODia = () => {
+    if (Date.now() - ultimaLimpeza < DIA_MS) return;
+    ultimaLimpeza = Date.now();
+    try { arquivarTudo(); } catch (err) { process.stderr.write(`pagina: limpeza falhou: ${err.message}\n`); }
+  };
   return createServer(async (req, res) => {
     try {
       const caminho = (req.url ?? '/').split('?')[0];
@@ -188,6 +222,7 @@ export function criarServidor(porta = PORTA_PADRAO) {
         return;
       }
       if (req.method === 'GET' && caminho === '/') {
+        limparSeDeuODia();
         res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8', 'Cache-Control': 'no-store' }).end(html());
         return;
       }

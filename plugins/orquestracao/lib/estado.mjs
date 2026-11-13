@@ -38,6 +38,18 @@ function gravarJson(caminho, valor) {
   renameSync(temp, caminho);
 }
 
+const PASTA_DO_ARQUIVO = 'arquivo';
+const DIA_MS = 24 * 60 * 60 * 1000;
+/** Dias que a entrega fica na página; depois disso o item vai para `arquivo/`. */
+export const DIAS_DE_ENTREGAS = 30;
+const ETAPAS_FINAIS = ['feito', 'parado', 'descartado'];
+export const etapaFinal = (etapa) => ETAPAS_FINAIS.includes(etapa);
+
+const arquivoDe = (colecao, projeto) => join(pastaDe(colecao, projeto), PASTA_DO_ARQUIVO);
+function nomesArquivados(colecao, projeto) {
+  try { return readdirSync(arquivoDe(colecao, projeto)); } catch { return []; }
+}
+
 const numeroDe = (nome, prefixo) => {
   const m = new RegExp(`^${prefixo}(\\d+)\\.json$`).exec(nome);
   return m ? Number(m[1]) : null;
@@ -64,7 +76,7 @@ export function criar(colecao, projeto, dados, agora = new Date()) {
   const prefixo = PREFIXO[colecao];
   const pasta = pastaDe(colecao, projeto);
   mkdirSync(pasta, { recursive: true });
-  const maior = readdirSync(pasta).reduce((m, n) => Math.max(m, numeroDe(n, prefixo) ?? 0), 0);
+  const maior = [...readdirSync(pasta), ...nomesArquivados(colecao, projeto)].reduce((m, n) => Math.max(m, numeroDe(n, prefixo) ?? 0), 0);
   for (let i = 1; i <= TENTATIVAS_DE_NUMERO; i += 1) {
     const id = `${prefixo}${maior + i}`;
     const registro = { id, ...dados, criadoEm: agora.toISOString(), atualizadoEm: agora.toISOString() };
@@ -76,6 +88,22 @@ export function criar(colecao, projeto, dados, agora = new Date()) {
     }
   }
   throw new Error(`não consegui um número livre em ${pasta}`);
+}
+
+/** A entrega saiu da página (mais de `DIAS_DE_ENTREGAS` dias) e o item está numa etapa final. */
+export const entregaVencida = (item, agora = Date.now()) => Boolean(item?.entrega) && etapaFinal(item.etapa)
+  && agora - Date.parse(item.entrega.em ?? item.atualizadoEm) > DIAS_DE_ENTREGAS * DIA_MS;
+
+/**
+ * Move para `itens/<projeto>/arquivo/` os itens cuja entrega já saiu da página. Não apaga nada:
+ * voltar é mover o arquivo de volta. Devolve os ids movidos, do menor ao maior.
+ */
+export function arquivar(projeto, agora = Date.now()) {
+  const vencidos = listar('itens', projeto).filter((i) => entregaVencida(i, agora)).map((i) => i.id).reverse();
+  if (!vencidos.length) return [];
+  mkdirSync(arquivoDe('itens', projeto), { recursive: true });
+  for (const id of vencidos) renameSync(join(pastaDe('itens', projeto), `${id}.json`), join(arquivoDe('itens', projeto), `${id}.json`));
+  return vencidos;
 }
 
 export function ler(colecao, projeto, id) {

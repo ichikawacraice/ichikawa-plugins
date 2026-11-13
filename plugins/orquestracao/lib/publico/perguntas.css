@@ -24,3 +24,13 @@
 .cartao-projeto { margin: 0 0 4px; font-size: 12px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: var(--violeta); overflow-wrap: anywhere; }
 .cartoes > li.grupo-de-projeto { padding: 0; background: none; border: 0; -webkit-backdrop-filter: none; backdrop-filter: none; }
 .grupo { margin: 4px 2px 6px; font-size: 12px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: var(--violeta); }
+.entrega > summary { list-style: none; cursor: pointer; }
+.entrega > summary::-webkit-details-marker { display: none; }
+.entrega > summary .cartao-cab::after { content: '›'; color: var(--texto-2); font-size: 18px; line-height: 1; margin-left: auto; transition: transform 0.15s; }
+.entrega[open] > summary .cartao-cab::after { transform: rotate(90deg); }
+.entrega > summary:focus-visible { outline: 2px solid #c8b8ff; outline-offset: 4px; border-radius: 6px; }
+.ver-mais { margin-top: 8px; }
+.ver-mais > summary { cursor: pointer; color: var(--violeta); font-size: 13px; font-weight: 600; padding: 6px 2px; }
+.ver-mais > summary:focus-visible { outline: 2px solid #c8b8ff; outline-offset: 2px; border-radius: 6px; }
+.ver-mais > .cartoes { margin-top: 6px; }
+@media (prefers-reduced-motion: reduce) { .entrega > summary .cartao-cab::after { transition: none; } }
