@@ -13,8 +13,9 @@
 .cartao-projeto { margin: 0 0 6px; color: var(--texto-3); font-size: var(--t-meta); line-height: 16px; font-weight: 500; overflow-wrap: anywhere; }
 .cartao-cab { display: flex; gap: 4px 8px; align-items: baseline; flex-wrap: wrap; }
 .id { font: 500 var(--t-meta)/16px var(--mono); color: var(--lilas); flex: none; }
-/* O título encolhe e quebra por dentro: id, título e selo ficam na mesma linha mesmo na coluna estreita. */
-.cartao-titulo { font: 500 var(--t-cartao)/20px var(--titulo); letter-spacing: -0.005em; flex: 1 1 0; min-width: 0; overflow-wrap: anywhere; }
+/* Código, marcador e selo numa linha em cima; o título desce e ganha a largura inteira (mais espaço no celular). */
+.cartao-titulo { font: 500 var(--t-cartao)/20px var(--titulo); letter-spacing: -0.005em; order: 1; flex: 1 0 100%; min-width: 0; overflow-wrap: anywhere; }
+.cartao-cab > .selo, .cartao-cab > .projeto { margin-left: auto; }
 .projeto { color: var(--texto-3); font: 500 var(--t-meta)/16px var(--mono); }
 
 /* Campos: rótulo pequeno e secundário, texto do corpo logo abaixo, um bloco por ideia. */
@@ -63,7 +64,7 @@
 .entrega > summary { list-style: none; cursor: pointer; }
 .entrega > summary::-webkit-details-marker { display: none; }
 .entrega > summary .cartao-cab::after {
-  content: ''; flex: none; width: 7px; height: 7px; margin: 0 2px 0 auto; align-self: center;
+  content: ''; flex: none; width: 7px; height: 7px; margin: 0 2px 0 8px; align-self: center;
   border-right: 1.5px solid var(--texto-3); border-bottom: 1.5px solid var(--texto-3);
   transform: rotate(-45deg); transition: transform 0.15s;
 }
@@ -84,7 +85,7 @@
   flex: none; width: 10px; height: 10px; align-self: center; border-radius: 50%;
   border: 2px solid currentColor; box-sizing: border-box; color: var(--texto-3);
 }
-.cartao-cab > .marcador { align-self: flex-start; margin-top: 5px; }
+.cartao-cab > .marcador { align-self: center; }
 .marcador-esperando { color: var(--alto); background: currentColor; }
 .marcador-parada { color: var(--critico); }
 .marcador-no-pr, .marcador-revisando { color: var(--lilas); }
