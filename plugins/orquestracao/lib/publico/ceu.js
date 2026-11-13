@@ -1,6 +1,9 @@
-// O céu do fundo: uma via láctea em diagonal (pintada uma vez numa camada fixa) e poucas constelações que cintilam.
+// O céu do fundo: uma via láctea em diagonal (pintada uma vez numa camada fixa), poucas constelações que cintilam
+// e um planeta nascendo no rodapé (planeta.js).
 // Leve de propósito: o painel fica aberto o dia todo. Até 12 quadros por segundo, para quando a aba some e,
 // com `prefers-reduced-motion`, desenha um quadro só.
+
+import { prepararPlaneta, quadroPlaneta } from './planeta.js';
 
 const QUADRO_MS = 1000 / 12;
 const DPR_MAX = 2;
@@ -113,10 +116,13 @@ export function iniciarCeu(canvas) {
   let h = 0;
   let constelacoes = [];
   let cintilantes = [];
+  let planeta = null;
   let pedido = 0;
   let ultimo = 0;
 
   const quadro = (t) => {
+    // Aba aberta com tamanho 0 (painel recolhido): não há o que pintar, e drawImage de canvas vazio lança erro.
+    if (!camada.width || !camada.height) return;
     ctx.drawImage(camada, 0, 0, w, h);
     const s = t / 1000;
     ctx.lineWidth = 0.6;
@@ -128,6 +134,7 @@ export function iniciarCeu(canvas) {
       for (const p of pontos) estrela(ctx, p.x, p.y, 1.3, 0.65 + 0.35 * Math.sin(s * 0.8 + p.fase));
     }
     for (const c of cintilantes) estrela(ctx, c.x, c.y, c.tam, 0.25 + 0.5 * (0.5 + 0.5 * Math.sin(s * c.ritmo + c.fase)));
+    if (planeta) quadroPlaneta(ctx, planeta, s);
   };
 
   const medir = () => {
@@ -141,6 +148,7 @@ export function iniciarCeu(canvas) {
     pintarFixo(cctx, w, h);
     constelacoes = montarConstelacoes(w, h);
     cintilantes = montarCintilantes(w, h);
+    planeta = prepararPlaneta(w, h, dpr, sorteio);
     quadro(performance.now());
   };
 
