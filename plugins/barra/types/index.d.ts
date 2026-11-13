@@ -8,6 +8,8 @@ export type Botao = {
   plugin: string
   raiz: string
   rotulo: string
+  /** Um glifo antes do rótulo (`◫`); sem ele, a barra põe o padrão. */
+  icone?: string
   dica?: string
   comando: string[]
   contador?: string[]

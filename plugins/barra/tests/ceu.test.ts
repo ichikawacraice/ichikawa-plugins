@@ -1,6 +1,6 @@
 import { expect, test } from 'claude-code/testing'
 
-import { CICLO_CINTILA, estrelasDaLinha, linhaDeEstrelas, pedeMenosMovimento, svgDoCeu } from '../hooks/ceu'
+import { CICLO_CINTILA, TEMAS, estrelasDaLinha, linhaDeEstrelas, linhaDeNuvens, linhaDoCeu, modoDoAusente, pedeMenosMovimento, svgDaCena } from '../hooks/ceu'
 
 test('estrelas do terminal: a linha tem a largura pedida, o mesmo céu a cada desenho e só estrela onde há', () => {
   const linha = linhaDeEstrelas(80, 0)
@@ -20,18 +20,45 @@ test('estrelas do terminal: cintilam pelo quadro e, paradas, ficam acesas e igua
   expect(parada).not.toMatch(/⋆/)
 })
 
-test('svg do desktop: fundo do painel, planeta, cintilação em degraus de 1 s e parada por reduzir movimento', () => {
-  const svg = svgDoCeu(960, false)
+test('cena da noite: começa no fundo do painel, planeta com limbo, cintilação em degraus de 1 s e parada', () => {
+  const svg = svgDaCena('noite', 960, false)
   expect(svg.startsWith('<svg')).toBe(true)
-  expect(svg).toMatch(/#030014/)
-  expect(svg).toMatch(/radialGradient id="planeta"/)
+  expect(svg).toMatch(new RegExp(`stop-color="${TEMAS.noite.fundo}"`))
+  expect(svg).toMatch(/radialGradient id="atmosfera"/)
   expect(svg).toMatch(new RegExp(`animation:cintila ${CICLO_CINTILA}s steps\\(${CICLO_CINTILA}`))
   expect(svg).toMatch(/prefers-reduced-motion:reduce/)
   expect(svg).not.toMatch(/<script|on[a-z]+=/i)
-  expect(svgDoCeu(960, false)).toBe(svg)
-  const parado = svgDoCeu(960, true)
+  expect(svgDaCena('noite', 960, false)).toBe(svg)
+  const parado = svgDaCena('noite', 960, true)
   expect(parado).not.toMatch(/animation/)
   expect(parado).toMatch(/<circle/)
+})
+
+test('cena do dia: começa no azul do fundo, sol com raios, nuvens que derivam e param', () => {
+  const svg = svgDaCena('dia', 960, false)
+  expect(svg).toMatch(new RegExp(`stop-color="${TEMAS.dia.fundo}"`))
+  expect(svg).toMatch(/radialGradient id="sol"/)
+  expect(svg).toMatch(/class="nuvens"/)
+  expect(svg).toMatch(/animation:deriva/)
+  expect(svg).not.toMatch(/<script|on[a-z]+=/i)
+  expect(svgDaCena('dia', 960, true)).not.toMatch(/animation/)
+  expect(svgDaCena('dia', 50, false)).toMatch(/width="200"/)
+})
+
+test('modo: ausente ligado é noite; desligado ou não lido, dia', () => {
+  expect(modoDoAusente(true)).toBe('noite')
+  expect(modoDoAusente(false)).toBe('dia')
+  expect(modoDoAusente(undefined)).toBe('dia')
+})
+
+test('terminal de dia: nuvens e o sol perto da ponta, largura certa e sem cintilar', () => {
+  const linha = linhaDeNuvens(80)
+  expect([...linha]).toHaveLength(80)
+  expect(linha.replace(/[ ☁☀]/g, '')).toBe('')
+  expect([...linha][77]).toBe('☀')
+  expect(linhaDoCeu('dia', 80, 0)).toBe(linhaDoCeu('dia', 80, 1))
+  expect(linhaDoCeu('noite', 80, 0)).toBe(linhaDeEstrelas(80, 0))
+  expect(linhaDeNuvens(0)).toBe('')
 })
 
 test('menos movimento: a variável liga (0/false desligam), e o macOS com 1', () => {

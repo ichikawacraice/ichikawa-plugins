@@ -25,15 +25,14 @@ import {
 } from './logica'
 import {
   CICLO_CINTILA,
-  COR_BOTAO_TERMINAL,
-  COR_BRILHO_TERMINAL,
-  COR_ESTRELA_TERMINAL,
-  COR_FUNDO,
-  COR_TEXTO,
+  ICONES,
   PX_POR_COLUNA,
-  linhaDeEstrelas,
+  SVG_ALTURA,
+  TEMAS,
+  linhaDoCeu,
+  modoDoAusente,
   pedeMenosMovimento,
-  svgDoCeu,
+  svgDaCena,
 } from './ceu'
 import { atenderPedidos } from './pedidos'
 import {
@@ -310,7 +309,11 @@ function iniciarRelogios($: EngineInterface): void {
 // ---- o desenho ----
 
 const ROTULO_AUSENTE = (a: Ausente | null, mudando: boolean): string =>
-  mudando ? '☾ Gravando…' : a?.ligado ? '☾ Estou de volta' : '☾ Ficar ausente'
+  mudando ? `${ICONES.gravando} Gravando…` : a?.ligado ? `${ICONES.ausenteNoite} Estou de volta` : `${ICONES.ausenteDia} Ficar ausente`
+
+/** O rótulo de um botão de plugin: o ícone do `barra.json` (ou o padrão), o rótulo e o selo. */
+const rotuloDoBotao = (b: Botao, selo: number | null | undefined): string =>
+  `${b.icone ?? ICONES.padrao} ${rotuloComSelo(b.rotulo, selo)}`
 
 export const register: Register = on => {
   on('session.start', async ($, e, next) => {
@@ -349,41 +352,55 @@ export const register: Register = on => {
     const lista = await read($, botoes)
     const s = await read($, selos)
     const quadro = Svg ? null : await read($, fase)
+    const modo = modoDoAusente(a?.ligado)
+    const tema = TEMAS[modo]
     const nivel = nivelDoCache(c.segundos, e.props.isWorking)
     const texto = `⧗ ${e.props.isWorking ? 'ativo' : relogio(c.segundos)}`
-    const moldura = nivel ? { borderStyle: 'round' as const, borderColor: nivel === 'aviso' ? ('warning' as const) : ('error' as const) } : {}
-    // No terminal o rótulo leva a cor clara (o fundo agora é escuro); no desktop o botão é nativo e se pinta sozinho.
-    const rotulo = (chave: string, t: string) => (Svg ? t : <Text key={chave} color={COR_BOTAO_TERMINAL}>{t}</Text>)
+    // No terminal o rótulo leva a cor do tema; no desktop o botão é nativo e se pinta sozinho (cor de texto ignorada).
+    const rotulo = (chave: string, t: string) => (Svg ? t : <Text key={chave} color={tema.texto}>{t}</Text>)
+    const largura = (e.props.bodyColumns + 6) * PX_POR_COLUNA
+    // Desktop: a cena em fluxo, no que sobra da linha à direita, cortada pela esquerda (o app não pinta Svg em
+    // camada). Terminal: a linha de estrelas ou nuvens em camada atrás dos botões, como antes.
     const ceu = Svg ? (
-      <Box key="ceu" position="absolute" top={0} left={0}>
-        <Svg source={svgDoCeu((e.props.bodyColumns + 6) * PX_POR_COLUNA, semMovimento)} alt="" />
+      <Box key="ceu" flexGrow={1} flexShrink={1} minWidth={0} overflow="hidden" flexDirection="row" justifyContent="flex-end">
+        <Svg source={svgDaCena(modo, largura, semMovimento)} alt="" width={Math.max(200, Math.round(largura))} height={SVG_ALTURA} />
       </Box>
     ) : (
       <Box key="ceu" position="absolute" top={0} left={0}>
-        <Text color={COR_ESTRELA_TERMINAL} wrap="truncate-end">
-          {linhaDeEstrelas(e.props.bodyColumns, quadro)}
+        <Text color={tema.detalheTerminal} wrap="truncate-end">
+          {linhaDoCeu(modo, e.props.bodyColumns, quadro)}
         </Text>
       </Box>
     )
 
     return (
-      <Box flexDirection="row" flexWrap="wrap" columnGap={1} alignItems="center" paddingX={1} backgroundColor={COR_FUNDO} {...moldura}>
-        {ceu}
+      <Box
+        key={`barra-${modo}`}
+        flexDirection="row"
+        flexWrap={Svg ? 'nowrap' : 'wrap'}
+        columnGap={1}
+        alignItems="center"
+        paddingX={1}
+        backgroundColor={tema.fundo}
+        overflow="hidden"
+      >
+        {Svg ? null : ceu}
         {nivel === 'alerta' || nivel === 'venceu' ? (
-          <Text inverse bold>{` ${texto} `}</Text>
+          <Text inverse bold color="error">{` ${texto} `}</Text>
         ) : (
-          <Text bold={nivel === 'aviso'} color={nivel === 'aviso' ? COR_BRILHO_TERMINAL : COR_TEXTO}>
+          <Text bold color={nivel === 'aviso' ? tema.aviso : tema.texto}>
             {texto}
           </Text>
         )}
-        <Button key="ausente" variant="secondary" dimColor={!a?.ligado} onPress={() => void alternarAusente($)}>
+        <Button key="ausente" variant="secondary" onPress={() => void alternarAusente($)}>
           {rotulo('r-ausente', ROTULO_AUSENTE(a, mudando))}
         </Button>
         {lista.map(b => (
           <Button key={b.chave} variant="secondary" onPress={() => void clicar($, b)}>
-            {rotulo(`r-${b.chave}`, rotuloComSelo(b.rotulo, s[b.chave]))}
+            {rotulo(`r-${b.chave}`, rotuloDoBotao(b, s[b.chave]))}
           </Button>
         ))}
+        {Svg ? ceu : null}
       </Box>
     )
   })
