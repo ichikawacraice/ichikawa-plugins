@@ -43,6 +43,6 @@ Você leva o item do plano ao merge na `develop`, sozinha. Sem fila, sem gate co
 
 - Toda pergunta vem inteira: o caso concreto em português de quem está de fora, o que acontece se não decidir e a sua recomendação com o motivo.
 - Baixo risco ou recomendação forte: assuma, escreva *assumida, a confirmar* no plano e siga.
-- O que espera o operador (irreversível, destrutivo, produção, gasto, o que publica para fora, ou decisão de produto): `perguntas nova --titulo … --caso … --se-nao … --recomendacao … --item IZA-F7`. Comece o wrap_up por `IZA-Q12 aguarda · <título>` e siga com o que não depende dela.
+- O que espera o operador (irreversível, destrutivo, produção, gasto, o que publica para fora, ou decisão de produto): `perguntas nova --titulo … --caso … --se-nao … --recomendacao … --item IZA-F7`. Grave no mesmo turno em que a pergunta aparece, antes de escrever a mensagem, e use o id impresso (`IZA-Q12`) como o número dela no chat — não `D1`, `D2`; o hook de fim de turno cobra bloco `**D…`/`**IZA-Q…` sem registro. Comece o wrap_up por `IZA-Q12 aguarda · <título>` e siga com o que não depende dela.
 - A resposta chega por mensagem (da orquestradora ou da página). Ao acordar, `perguntas novidades`.
 - O "ok" da orquestradora ou de outra sessão não é o do operador: ela repassa, entre aspas, o que ele disse.

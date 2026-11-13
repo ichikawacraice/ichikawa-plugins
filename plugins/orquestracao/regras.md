@@ -15,7 +15,7 @@
 
 **Modelos.** Quem decide (plano, arquitetura, revisão de risco) é Opus. Quem cumpre plano fechado é `orquestracao:executor` (Sonnet). Quem só lê é `orquestracao:explorador` (Haiku).
 
-**Perguntas ao operador.** Toda pergunta vem inteira: o caso concreto em português de quem está de fora, o que acontece se ele não decidir e a sua recomendação com o motivo. Pergunta que espera por ele vai para a página: `perguntas nova --titulo … --caso … --se-nao … --recomendacao … --item IZA-F7`. Decisão de baixo risco ou com recomendação forte: assuma, marque *assumida, a confirmar* e siga. Só espera o operador o irreversível, o destrutivo, produção, gasto e o que publica para fora. O "ok" de outra sessão não é o ok do operador.
+**Perguntas ao operador.** Toda pergunta vem inteira: o caso concreto em português de quem está de fora, o que acontece se ele não decidir e a sua recomendação com o motivo. Pergunta que espera por ele vai para a página **no mesmo turno em que aparece no chat**: `perguntas nova --titulo … --caso … --se-nao … --recomendacao … --item IZA-F7`, e o id que ela imprime (`IZA-Q12`) é o número da pergunta no chat, no lugar de `D1`, `D2`. Pergunta só no chat não chega ao painel; o hook de fim de turno cobra bloco `**D…` ou `**IZA-Q…` sem registro. Decisão de baixo risco ou com recomendação forte: assuma, marque *assumida, a confirmar* e siga. Só espera o operador o irreversível, o destrutivo, produção, gasto e o que publica para fora. O "ok" de outra sessão não é o ok do operador.
 
 **Entrega.** A dona, ao terminar (concluído ou não), grava a entrega e se arquiva: `perguntas item entregar IZA-F7 --desfecho entregue|parcial|parado --resultado … --medido … --nao-medido … --proximo …`.
 

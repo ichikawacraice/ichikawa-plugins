@@ -93,6 +93,11 @@
             "type": "command",
             "command": "node \"${CLAUDE_PLUGIN_ROOT}/hooks/orquestradora-limpa.mjs\"",
             "timeout": 10
+          },
+          {
+            "type": "command",
+            "command": "node \"${CLAUDE_PLUGIN_ROOT}/hooks/pergunta-no-painel.mjs\"",
+            "timeout": 10
           }
         ]
       }

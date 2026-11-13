@@ -14,6 +14,7 @@ import { contexto } from '../hooks/inicio.mjs';
 import { pedirLimpeza } from '../hooks/orquestradora-limpa.mjs';
 import { lembrarLimpeza } from '../hooks/orquestradora-limpa-na-mensagem.mjs';
 import { tokensDoContexto } from '../hooks/comum.mjs';
+import { blocosDeDecisao, cobrarRegistro } from '../hooks/pergunta-no-painel.mjs';
 import { decidir as semNoVerify } from '../hooks/sem-no-verify.mjs';
 import { decidir as segredoEmArquivo } from '../hooks/segredo-em-arquivo.mjs';
 import { decidir as avisoConsoleLog } from '../hooks/aviso-console-log.mjs';
@@ -722,4 +723,66 @@ test('outro programa na porta nunca é encerrado', async () => {
   assert.deepEqual(r.encerrados, []);
   assert.equal(r.subiu, false);
   assert.match(r.avisos[0], /deixei como está/);
+});
+
+// O transcript do turno: o pedido, a resposta com o texto e, se houver, o comando de shell que a sessão rodou.
+function transcriptDoTurno(texto, comandos = []) {
+  const pasta = mkdtempSync(join(tmpdir(), 'turno-'));
+  const caminho = join(pasta, 't.jsonl');
+  const linhas = [
+    { type: 'assistant', message: { content: [{ type: 'text', text: '**D9 · turno velho, já respondido?** Recomendo sim.' }] } },
+    { type: 'user', message: { content: 'próximo pedido' } },
+    ...comandos.map((command) => ({ type: 'assistant', message: { content: [{ type: 'tool_use', name: 'Bash', input: { command } }] } })),
+    ...comandos.map(() => ({ type: 'user', message: { content: [{ type: 'tool_result', content: 'IZA-Q1' }] } })),
+    { type: 'assistant', message: { content: [{ type: 'text', text: texto }] } },
+  ];
+  writeFileSync(caminho, `${linhas.map((l) => JSON.stringify(l)).join('\n')}\n`);
+  return caminho;
+}
+const projetoIzanagi = () => { const raizDoProjeto = join(mkdtempSync(join(tmpdir(), 'proj-')), 'izanagi'); mkdirSync(raizDoProjeto); return raizDoProjeto; };
+
+test('bloco Dn só conta quando pede decisão; recapitulação e decisão assumida não contam', () => {
+  const texto = [
+    '### ❓ Decisões',
+    '**D34 · Há job rodando em produção agora?**',
+    'Caso: …',
+    '- **D35 · Subir a migration.** Se não decidir, fica parada. Recomendo subir.',
+    'Falei da **D40** no meio da frase? Recomendo.',
+    '- **D19, aceito pelo operador:** arquivar as sessões. Recomendo nada.',
+    '**D6 — o diário congelado** (*assumida, a confirmar*). Recomendo manter.',
+    '- **D29:** o painel não oferece o papel validador.',
+    '- **IZA-Q9 = D36:** abrir um item.',
+  ].join('\n');
+  assert.deepEqual(blocosDeDecisao(texto), [{ d: 'D34' }, { d: 'D35' }, { sigla: 'IZA', id: 'Q9' }]);
+});
+
+test('fim de turno com Dn sem perguntas nova devolve o turno uma vez, pedindo gravar com o id IZA-Qn', () => {
+  const cwd = projetoIzanagi();
+  const entrada = { cwd, transcript_path: transcriptDoTurno('**D34 · Há job rodando em produção?**\nRecomendo esperar.') };
+  const saida = cobrarRegistro(entrada);
+  assert.equal(saida.decision, 'block');
+  assert.match(saida.reason, /D34/);
+  assert.doesNotMatch(saida.reason, /D9/, 'o turno anterior não entra');
+  assert.match(saida.reason, /perguntas nova --titulo … --caso … --se-nao … --recomendacao … --item IZA-Fn/);
+  assert.match(saida.reason, /IZA-Qn/);
+  assert.equal(cobrarRegistro({ ...entrada, stop_hook_active: true }), null, 'cobra uma vez só');
+});
+
+test('fim de turno não cobra o que foi gravado: perguntas nova no turno ou IZA-Qn que existe', async () => {
+  const cwd = projetoIzanagi();
+  const gravou = transcriptDoTurno('**D34 · Há job rodando?** Recomendo esperar.', ['perguntas nova --titulo "Job" --caso c --se-nao s --recomendacao r']);
+  assert.equal(cobrarRegistro({ cwd, transcript_path: gravou }), null);
+  const comId = transcriptDoTurno('**IZA-Q1 · IZA-F7 · Há job rodando?** Recomendo esperar.');
+  assert.match(cobrarRegistro({ cwd, transcript_path: comId }).reason, /IZA-Q1/, 'id citado mas não gravado');
+  await rodar('nova', '--projeto', 'izanagi', '--titulo', 'Job', '--caso', 'c', '--se-nao', 's', '--recomendacao', 'r');
+  assert.equal(cobrarRegistro({ cwd, transcript_path: comId }), null);
+  const outraSigla = transcriptDoTurno('**ABC-Q3 · de um projeto que o kit não conhece?** Recomendo.');
+  assert.equal(cobrarRegistro({ cwd, transcript_path: outraSigla }), null);
+  assert.equal(cobrarRegistro({ cwd, transcript_path: join(tmpdir(), 'nao-existe.jsonl') }), null);
+});
+
+test('o fim de turno usa a last_assistant_message quando o transcript ainda não a tem', () => {
+  const cwd = projetoIzanagi();
+  const saida = cobrarRegistro({ cwd, transcript_path: transcriptDoTurno('nada aqui'), last_assistant_message: '**D2 · Mergear a #380?** Recomendo.' });
+  assert.match(saida.reason, /D2/);
 });
