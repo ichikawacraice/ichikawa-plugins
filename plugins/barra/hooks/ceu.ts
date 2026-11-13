@@ -20,7 +20,8 @@ export type Tema = {
 
 export const TEMAS: Record<Modo, Tema> = {
   noite: { fundo: '#030014', texto: '#d9d0ff', aviso: '#f5b84a', detalheTerminal: '#5b3fd6' },
-  dia: { fundo: '#2f7fe0', texto: '#ffffff', aviso: '#ffe08a', detalheTerminal: '#e3f1fd' },
+  // Dia: a paleta da ICH-F21 (céu #74b6ef → #9ccdf4 → #d6ebfb, texto #0b1f3a, aviso no âmbar escuro #744700, AA no céu).
+  dia: { fundo: '#74b6ef', texto: '#0b1f3a', aviso: '#744700', detalheTerminal: '#e3f1fd' },
 }
 
 /** O ausente ligado é a noite; desligado, ou ainda não lido, o dia. */
@@ -176,7 +177,7 @@ function cenaDaNoite(l: number, parado: boolean): string {
 function nuvem(x: number, y: number, escala: number, opacidade: number): string {
   return (
     `<g transform="translate(${d1(x)} ${d1(y)}) scale(${escala})" opacity="${opacidade}">` +
-    `<ellipse cx="0" cy="6" rx="34" ry="5" fill="#9ccaf5" opacity=".55"/><g fill="url(#nuvem)">` +
+    `<ellipse cx="0" cy="6" rx="34" ry="5" fill="#b4cdeb" opacity=".22"/><g fill="url(#nuvem)">` +
     `<circle cx="-18" cy="0" r="9"/><circle cx="-4" cy="-6" r="13"/><circle cx="13" cy="-2" r="10"/>` +
     `<circle cx="25" cy="2" r="7"/><rect x="-27" y="0" width="58" height="8" rx="4"/></g></g>`
   )
@@ -205,12 +206,12 @@ function cenaDoDia(l: number, parado: boolean): string {
     `<svg xmlns="http://www.w3.org/2000/svg" width="${l}" height="${a}" viewBox="0 0 ${l} ${a}">` +
     (parado ? '' : `<style>${ESTILO_DIA}</style>`) +
     `<defs><linearGradient id="fundo" x1="0" x2="1"><stop offset="0" stop-color="${TEMAS.dia.fundo}"/>` +
-    `<stop offset=".55" stop-color="#5fa8f2"/><stop offset="1" stop-color="#a9d6fb"/></linearGradient>` +
+    `<stop offset=".55" stop-color="#9ccdf4"/><stop offset="1" stop-color="#d6ebfb"/></linearGradient>` +
     `<radialGradient id="brilho" cx="${sx}" cy="${sy}" r="110" gradientUnits="userSpaceOnUse">` +
     `<stop offset="0" stop-color="#fff6d6" stop-opacity=".95"/><stop offset=".18" stop-color="#ffe7a0" stop-opacity=".6"/>` +
     `<stop offset=".5" stop-color="#ffe7a0" stop-opacity=".12"/><stop offset="1" stop-color="#ffe7a0" stop-opacity="0"/></radialGradient>` +
-    `<radialGradient id="sol" cx="35%" cy="35%" r="70%"><stop offset="0" stop-color="#fff3b8"/>` +
-    `<stop offset=".6" stop-color="#ffd24a"/><stop offset="1" stop-color="#ffb020"/></radialGradient>` +
+    `<radialGradient id="sol" cx="35%" cy="35%" r="70%"><stop offset="0" stop-color="#fff3c8"/>` +
+    `<stop offset=".6" stop-color="#ffe08a"/><stop offset="1" stop-color="#ffb83f"/></radialGradient>` +
     `<linearGradient id="nuvem" x1="0" y1="-20" x2="0" y2="10" gradientUnits="userSpaceOnUse">` +
     `<stop offset="0" stop-color="#ffffff"/><stop offset="1" stop-color="#e3f1fd"/></linearGradient></defs>` +
     `<rect width="${l}" height="${a}" fill="url(#fundo)"/><circle cx="${sx}" cy="${sy}" r="110" fill="url(#brilho)"/>` +

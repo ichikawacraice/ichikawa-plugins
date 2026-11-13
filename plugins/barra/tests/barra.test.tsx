@@ -451,7 +451,7 @@ test('céu: ausente desligado é dia — fundo azul, cena do sol entre o relógi
   for (const surface of SUPERFICIES) {
     const ui = await montar($, surface)
     const raiz = (await ui.findAll({ type: 'Box' }))[0]
-    expect(raiz?.props.backgroundColor).toBe('#2f7fe0')
+    expect(raiz?.props.backgroundColor).toBe('#74b6ef')
     const svg = await ui.find({ type: 'Svg' })
     if (surface === 'desktop') {
       expect(String(svg?.props.source)).toMatch(/radialGradient id="sol"/)
