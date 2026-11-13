@@ -8,9 +8,6 @@ Conhecimento da stack da empresa em um plugin só: VTEX FastStore, Wake, React/T
 
 | Skill | Para quê |
 |---|---|
-| `stack:faststore` | VTEX FastStore v4: config, override de seção, extensão da API, tema, CMS, WebOps |
-| `stack:wake` | Wake Commerce: Storefront API GraphQL, checkout headless, API REST e limite, webhooks, tema Scriban |
-| `stack:google-cloud` | Google Cloud: service account, ADC/WIF, Secret Manager, gatilhos, logs, Cloud SQL, custo |
 | `stack:react` | Hooks, componentes, Server/Client Components, render |
 | `stack:typescript` | Tipos, async, erros, validação na borda |
 | `stack:nextjs` | App Router, dados, cache, metadata, rotas |
