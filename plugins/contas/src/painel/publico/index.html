@@ -61,6 +61,17 @@
     </div>
   </main>
 
+  <dialog id="confirmar" class="confirmar" aria-labelledby="confirmar-titulo">
+    <form method="dialog">
+      <p class="confirmar-titulo" id="confirmar-titulo"></p>
+      <p class="confirmar-corpo" id="confirmar-corpo"></p>
+      <div class="confirmar-acoes">
+        <button type="submit" value="nao">Cancelar</button>
+        <button type="submit" value="sim" class="primario" id="confirmar-sim">Continuar</button>
+      </div>
+    </form>
+  </dialog>
+
   <footer class="pe">
     <p>Nunca use Sign out no app para trocar de conta: ele invalida o login guardado daquela conta.</p>
     <p class="assinatura">made by Ichikawa</p>

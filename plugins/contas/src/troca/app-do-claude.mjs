@@ -71,10 +71,14 @@ export function gravarObjeto(caminho, obj) {
   escreverAtomico(caminho, serializarObjeto(obj));
 }
 
-/** O controle do app em produção. Nos testes entra um objeto falso com a mesma forma: { rodando, fechar, abrir }. */
-export function controleReal({ esperaFechar = 20_000, esperaMatar = 10_000 } = {}) {
-  const rodando = () => spawnSync('pgrep', ['-x', 'Claude'], { stdio: 'ignore' }).status === 0;
-  const dormir = (ms) => new Promise((r) => setTimeout(r, ms));
+/**
+ * O controle do app em produção. Nos testes entra um objeto falso com a mesma forma: { rodando, fechar, abrir }.
+ * `-a` no pgrep e no pkill: sem ele os dois pulam o próprio processo e todos os ancestrais. A troca lançada de dentro do
+ * app (terminal do app, painel aberto por ele) descende do Claude, então o pgrep dizia "não está rodando", a troca não
+ * fechava o app e gravava o login com ele aberto (13/11/2026). `executar` e `dormir` existem para o teste.
+ */
+export function controleReal({ esperaFechar = 20_000, esperaMatar = 10_000, executar = spawnSync, dormir = (ms) => new Promise((r) => setTimeout(r, ms)) } = {}) {
+  const rodando = () => executar('pgrep', ['-a', '-x', 'Claude'], { stdio: 'ignore' }).status === 0;
   const esperarSair = async (limite) => {
     for (const fim = Date.now() + limite; Date.now() < fim; await dormir(300)) {
       if (!rodando()) { await dormir(700); return true; }
@@ -85,14 +89,14 @@ export function controleReal({ esperaFechar = 20_000, esperaMatar = 10_000 } = {
     rodando: async () => rodando(),
     async fechar() {
       if (!rodando()) return;
-      spawnSync('osascript', ['-e', 'tell application "Claude" to quit'], { stdio: 'ignore' });
+      executar('osascript', ['-e', 'tell application "Claude" to quit'], { stdio: 'ignore' });
       if (await esperarSair(esperaFechar)) return;
-      spawnSync('pkill', ['-9', '-x', 'Claude'], { stdio: 'ignore' });
+      executar('pkill', ['-9', '-a', '-x', 'Claude'], { stdio: 'ignore' }); // o sinal vem antes das opções, senão o pkill recusa
       if (await esperarSair(esperaMatar)) return;
       throw new Error('o Claude não fechou');
     },
     async abrir() {
-      const r = spawnSync('open', ['-a', 'Claude'], { stdio: 'ignore' });
+      const r = executar('open', ['-a', 'Claude'], { stdio: 'ignore' });
       if (r.status !== 0) throw new Error('não consegui abrir o Claude');
     },
   };

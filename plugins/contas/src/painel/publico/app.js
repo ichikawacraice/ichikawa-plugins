@@ -200,8 +200,25 @@ function desenhar() {
 
 // ---- ações ----
 
+/**
+ * Confirmação na própria página (`<dialog id="confirmar">`). Nunca `window.confirm`: o navegador do app do Claude
+ * descarta o diálogo nativo e devolve `false` na hora, e o botão parecia não fazer nada (13/11/2026).
+ */
+function confirmar(texto) {
+  const d = $('confirmar');
+  const [titulo, ...resto] = texto.split('\n\n');
+  $('confirmar-titulo').textContent = titulo;
+  $('confirmar-corpo').textContent = resto.join('\n\n');
+  return new Promise((resolver) => {
+    d.addEventListener('close', () => resolver(d.returnValue === 'sim'), { once: true });
+    d.returnValue = '';
+    d.showModal();
+    $('confirmar-sim').focus();
+  });
+}
+
 async function lancar(rota, corpo, frasePedindo, confirmacao) {
-  if (confirmacao && !window.confirm(confirmacao)) return;
+  if (confirmacao && !(await confirmar(confirmacao))) return;
   estado.pedindo = frasePedindo; // o efeito entra na hora
   estado.falhaLocal = null;
   try {
