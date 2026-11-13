@@ -1,6 +1,6 @@
 // O que os hooks dividem: ler a entrada, responder ao PreToolUse e o papel da sessão.
 // Hook com erro deixa passar: a trava não pode derrubar a sessão.
-import { existsSync, readFileSync } from 'node:fs';
+import { closeSync, existsSync, fstatSync, mkdirSync, openSync, readFileSync, readSync, realpathSync, rmSync, writeFileSync } from 'node:fs';
 import { homedir, tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 import { raiz } from '../lib/estado.mjs';
@@ -34,6 +34,59 @@ export function papelDe(sessionId) {
   const m = marcadorDe(sessionId);
   if (!m || !existsSync(m)) return null;
   try { return readFileSync(m, 'utf8').trim() || null; } catch { return null; }
+}
+
+// O /clear troca o session_id: o papel passa ao id novo pela `passagem.json`, gravada logo antes de limpar.
+const PASSAGEM_VALE_MS = 15 * 60_000;
+const passagem = () => join(raiz(), 'papeis', 'passagem.json');
+const pastaReal = (p) => { try { return realpathSync(p); } catch { return resolve(p); } };
+
+/** Grava a passagem do papel da sessão `de` para a próxima sessão que começar na mesma pasta. */
+export function gravarPassagem(de, cwd, agora = Date.now()) {
+  const papel = papelDe(de);
+  if (!papel) throw new Error(`sessão ${de} sem papel: rode antes \`perguntas papel orquestradora --sessao-id ${de}\``);
+  mkdirSync(join(raiz(), 'papeis'), { recursive: true });
+  writeFileSync(passagem(), JSON.stringify({ papel, de, cwd: pastaReal(cwd), em: agora }));
+  return papel;
+}
+
+/** No início de uma sessão sem papel: herda o da passagem fresca da mesma pasta (nunca num resume). */
+export function herdarPapel(entrada, agora = Date.now()) {
+  const novo = marcadorDe(entrada.session_id);
+  if (!novo || existsSync(novo) || entrada.source === 'resume') return null;
+  let p;
+  try { p = JSON.parse(readFileSync(passagem(), 'utf8')); } catch { return null; }
+  if (!p?.papel || pastaReal(entrada.cwd || process.cwd()) !== p.cwd || agora - p.em > PASSAGEM_VALE_MS) return null;
+  writeFileSync(novo, `${p.papel}\n`);
+  rmSync(passagem(), { force: true });
+  const velho = marcadorDe(p.de);
+  if (velho && velho !== novo) rmSync(velho, { force: true });
+  return p.papel;
+}
+
+const CAUDA_DO_TRANSCRIPT = 512 * 1024;
+
+/** O tamanho do contexto na última resposta, pelo `usage` do transcript (o mesmo número do get_usage). */
+export function tokensDoContexto(transcriptPath) {
+  let fd;
+  try {
+    fd = openSync(transcriptPath, 'r');
+    const tamanho = fstatSync(fd).size;
+    const n = Math.min(tamanho, CAUDA_DO_TRANSCRIPT);
+    const buf = Buffer.alloc(n);
+    readSync(fd, buf, 0, n, tamanho - n);
+    const linhas = buf.toString('utf8').split('\n');
+    for (let i = linhas.length - 1; i >= 0; i -= 1) {
+      let u;
+      try { u = JSON.parse(linhas[i])?.message?.usage; } catch { continue; }
+      if (u) return (u.input_tokens ?? 0) + (u.cache_creation_input_tokens ?? 0) + (u.cache_read_input_tokens ?? 0);
+    }
+    return null;
+  } catch {
+    return null;
+  } finally {
+    if (fd !== undefined) closeSync(fd);
+  }
 }
 
 /** O caminho absoluto que a ferramenta vai gravar, ou '' quando não grava arquivo. */

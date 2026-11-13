@@ -6,6 +6,7 @@ import { fileURLToPath } from 'node:url';
 import { join, resolve } from 'node:path';
 import { mkdirSync, rmSync, writeFileSync } from 'node:fs';
 import * as estado from './estado.mjs';
+import { gravarPassagem } from '../hooks/comum.mjs';
 import { abrirPagina, servir, PORTA_PADRAO } from './pagina.mjs';
 
 const ETAPAS = new Set(['planejamento', 'execucao', 'revisao', 'pr', 'feito', 'parado', 'descartado']);
@@ -26,6 +27,7 @@ const AJUDA = `perguntas — perguntas ao operador e itens do projeto
                                             a dona grava ao terminar, logo antes de se arquivar
   perguntas item listar [--json]
   perguntas papel <orquestradora|nenhum> --sessao-id ID   marca o papel desta sessão (o ID vem do início da sessão)
+  perguntas passar-papel --sessao-id ID     logo antes do /clear: a próxima sessão nesta pasta herda o papel
   perguntas pagina [--abrir | --subir] [--porta ${PORTA_PADRAO}]
 
 Opção comum: --projeto <nome> (padrão: a pasta do repositório principal).`;
@@ -154,6 +156,11 @@ export async function main(argv, out = (s) => process.stdout.write(`${s}\n`)) {
   if (!cmd || cmd === 'ajuda' || cmd === 'help') { out(AJUDA); return 0; }
   const projeto = v.projeto || estado.nomeDoProjeto();
   if (cmd === 'papel') { out(marcarPapel(args[0], v['sessao-id'])); return 0; }
+  if (cmd === 'passar-papel') {
+    if (!/^[\w-]{8,80}$/.test(v['sessao-id'] ?? '')) throw new Error('uso: perguntas passar-papel --sessao-id ID');
+    out(`passagem gravada: a próxima sessão nesta pasta (15 min) assume ${gravarPassagem(v['sessao-id'], process.cwd())}`);
+    return 0;
+  }
   if (cmd === 'item') return cmdItem(args, v, projeto, out) ?? (out(AJUDA), 1);
   if (cmd === 'pagina') {
     const porta = Number(v.porta || PORTA_PADRAO);

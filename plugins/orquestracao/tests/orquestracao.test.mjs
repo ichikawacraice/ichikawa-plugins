@@ -10,6 +10,8 @@ import { decidir as orquestradoraNaoEdita } from '../hooks/orquestradora-nao-edi
 import { decidir as configProtegida } from '../hooks/config-protegida.mjs';
 import { decidir as segredoSai } from '../hooks/segredo-sai.mjs';
 import { contexto } from '../hooks/inicio.mjs';
+import { pedirLimpeza } from '../hooks/orquestradora-limpa.mjs';
+import { tokensDoContexto } from '../hooks/comum.mjs';
 import { decidir as semNoVerify } from '../hooks/sem-no-verify.mjs';
 import { decidir as segredoEmArquivo } from '../hooks/segredo-em-arquivo.mjs';
 import { decidir as avisoConsoleLog } from '../hooks/aviso-console-log.mjs';
@@ -269,4 +271,38 @@ test('formatar roda o binário local só no arquivo editado, e só com configura
 
   unlinkSync(bin);
   assert.equal(planoDeFormato(entrada, {}), null, 'sem binário local não baixa nada');
+});
+
+test('passar-papel leva a orquestradora para o novo id depois do /clear, só na mesma pasta', async () => {
+  const pasta = mkdtempSync(join(tmpdir(), 'raiz-'));
+  await rodar('papel', 'orquestradora', '--sessao-id', 'sessao-velha-1');
+  const antes = process.cwd();
+  process.chdir(pasta);
+  try { await rodar('passar-papel', '--sessao-id', 'sessao-velha-1'); } finally { process.chdir(antes); }
+  assert.match(saida[0], /passagem/);
+  assert.doesNotMatch(contexto({ session_id: 'sessao-outra-1', cwd: tmpdir(), source: 'clear' }), /Papel desta sessão/);
+  assert.doesNotMatch(contexto({ session_id: 'sessao-nova-1', cwd: pasta, source: 'resume' }), /Papel desta sessão/);
+  const ctx = contexto({ session_id: 'sessao-nova-1', cwd: pasta, source: 'clear' });
+  assert.match(ctx, /Papel desta sessão: \*\*orquestradora\*\*/);
+  assert.match(ctx, /perguntas item listar/);
+  assert.equal(orquestradoraNaoEdita({ session_id: 'sessao-velha-1', tool_input: { file_path: '/repo/a.ts' } }), null);
+  assert.match(orquestradoraNaoEdita({ session_id: 'sessao-nova-1', tool_input: { file_path: '/repo/a.ts' } }), /Orquestradora/);
+  assert.doesNotMatch(contexto({ session_id: 'sessao-nova-2', cwd: pasta, source: 'clear' }), /Papel desta sessão/);
+  await assert.rejects(rodar('passar-papel', '--sessao-id', 'sessao-sem-papel'), /sem papel/);
+});
+
+test('a limpeza lê o contexto do transcript e só pede à orquestradora, uma vez por degrau', async () => {
+  const transcript = join(mkdtempSync(join(tmpdir(), 'tr-')), 't.jsonl');
+  const uso = (n) => JSON.stringify({ type: 'assistant', message: { usage: { input_tokens: 2, cache_creation_input_tokens: 0, cache_read_input_tokens: n } } });
+  writeFileSync(transcript, `${uso(50_000)}\n{"type":"user"}\n${uso(130_000)}\nlinha quebrada\n`);
+  assert.equal(tokensDoContexto(transcript), 130_002);
+  const entrada = { session_id: 'sessao-limpa-1', transcript_path: transcript };
+  assert.equal(pedirLimpeza(entrada), null);
+  await rodar('papel', 'orquestradora', '--sessao-id', 'sessao-limpa-1');
+  assert.equal(pedirLimpeza({ ...entrada, stop_hook_active: true }), null);
+  assert.match(pedirLimpeza(entrada), /130 mil/);
+  assert.equal(pedirLimpeza(entrada), null);
+  writeFileSync(transcript, `${uso(170_000)}\n`);
+  assert.match(pedirLimpeza(entrada), /170 mil/);
+  assert.equal(tokensDoContexto(join(tmpdir(), 'nao-existe.jsonl')), null);
 });
