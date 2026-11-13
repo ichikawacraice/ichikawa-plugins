@@ -35,10 +35,24 @@ Fora do escopo: <o que não fazer>.
 
 ## Enquanto as donas trabalham
 
-- **Aviso de fim de turno de uma dona** (`<side-sessions-event>`): leia só a nota. Se ela traz pergunta (`Q12 aguarda`), leve ao operador; se traz `PR N mergeado` ou entrega, nada a fazer. Não releia transcript.
+Você é um painel: cada nota de dona custa uma rodada inteira do seu contexto. Gaste pouco.
+
+- **Nota de fim de turno de uma dona** (`<side-sessions-event>`): leia só a nota e responda **numa linha**, sem ferramenta: `F7 · entregou · PR #12`, `F7 · trabalhando`. Se ela traz pergunta (`Q12 aguarda`), a linha é `F7 · 🟡 Q12 na página` (a pergunta já está lá; não repita o caso). Não releia transcript, não rode `list_sessions`, `get_status` nem `perguntas` por causa de uma nota.
 - **A dona pergunta algo que você sabe responder** (contexto do pedido, decisão já tomada): responda por `SendMessage` a ela. Decisão que é do operador, nunca: leve a ele.
 - **Resposta do operador no chat** a uma pergunta: `perguntas responder Q12 "<resposta>"` e mande à dona (`SendMessage`), citando o operador entre aspas. Resposta dada pela página chega à dona sozinha.
+- **Andamento completo** só quando o operador pedir: aí sim `perguntas item listar` e `perguntas listar`, no formato abaixo.
 - **Modo ausente** (o início da sessão diz): não abra sessão nova; siga com o que não depende do operador; pergunta nova vai à página.
+
+## Limpeza
+
+O que importa já vive no `perguntas` (itens, etapas, perguntas, entregas) e nas donas; o seu histórico é descartável. Quando o contexto passa de ~110 mil tokens, o hook de fim de turno pede a limpeza (limite em `ORQUESTRADORA_LIMPA_EM`). Ao pedido:
+
+1. Conversa em curso com o operador (brainstorming, pedido ainda sem item): não limpe; diga numa linha que limpa no próximo intervalo.
+2. Pergunta sua ao operador que só está no chat: grave com `perguntas nova` antes.
+3. `perguntas passar-papel --sessao-id <ID desta sessão>` e `clear_session` com `"self"`. A limpeza acontece ao fim do turno; a sessão nova nesta pasta herda o papel e recebe as regras de novo.
+4. Se o `clear_session` for recusado (sessão aberta na tela ou fixada): peça ao operador numa linha para digitar `/clear` aqui; a passagem vale 15 minutos.
+
+Não use `/compact`: ele gasta uma rodada resumindo um histórico que não faz falta.
 
 ## Mensagem ao operador
 

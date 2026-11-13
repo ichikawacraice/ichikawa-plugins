@@ -1,18 +1,20 @@
 #!/usr/bin/env node
-// SessionStart: injeta as regras do kit, o papel da sessão, o modo ausente e as respostas da página
+// SessionStart: injeta as regras do kit, o papel da sessão (herdado da passagem depois de um /clear), o modo ausente e as respostas da página
 // ainda não lidas. Só lê; nada aqui trava.
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import * as estado from '../lib/estado.mjs';
-import { lerEntrada, papelDe, rodar } from './comum.mjs';
+import { herdarPapel, lerEntrada, papelDe, rodar } from './comum.mjs';
 
 const REGRAS = fileURLToPath(new URL('../regras.md', import.meta.url));
 
 export function contexto(entrada) {
   const partes = [readFileSync(REGRAS, 'utf8').trim()];
   if (entrada.session_id) partes.push(`ID desta sessão para \`perguntas papel\`: ${entrada.session_id}`);
-  const papel = papelDe(entrada.session_id);
+  const herdado = herdarPapel(entrada);
+  const papel = herdado ?? papelDe(entrada.session_id);
   if (papel) partes.push(`Papel desta sessão: **${papel}** (siga a skill \`orquestracao:${papel}\`).`);
+  if (herdado) partes.push('Você acabou de ser limpa: o andamento está em `perguntas item listar` e `perguntas listar`. Não releia transcripts; responda ao que chegar.');
   const ausente = estado.lerAusente();
   if (ausente) partes.push(`O operador está AUSENTE desde ${ausente.desde ?? '?'}: pergunte pela página (\`perguntas nova\`), não pare esperando no chat; siga com o que não depende dele.`);
   const projeto = estado.nomeDoProjeto(entrada.cwd || process.cwd());
