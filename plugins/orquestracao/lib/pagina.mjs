@@ -1,4 +1,4 @@
-// A página local: perguntas abertas, itens em andamento e o que já foi entregue.
+// A página local: perguntas abertas, sessões ativas e o que já foi entregue.
 // Só lê os arquivos de estado (e, uma vez por dia, move para arquivo/ a entrega que já saiu dela); grava a resposta dada aqui e os pedidos que o mod da barra executa
 // (abrir a sessão, entregar a resposta). Nenhuma batida, nenhum laço em segundo plano.
 import { createServer } from 'node:http';
@@ -8,6 +8,7 @@ import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import * as estado from './estado.mjs';
+import { ROTULO_DO_ESTADO, lerSessoesDoApp, sessoesDaPagina } from './sessoes.mjs';
 
 export const PORTA_PADRAO = 4747;
 const HOST = '127.0.0.1';
@@ -57,10 +58,12 @@ function campos(pares) {
 const cabecaDoProjeto = (projeto) => `<p class="cartao-projeto">${esc(projeto)}</p>`;
 const idLido = (projeto, id) => esc(estado.rotulo(projeto, id));
 
+const ancora = (projeto, id) => `pergunta-${String(projeto).replace(/[^\w-]/g, '-')}-${id}`;
+
 function cartaoDePergunta(projeto, p) {
   const oculto = `<input type="hidden" name="projeto" value="${esc(projeto)}"><input type="hidden" name="id" value="${esc(p.id)}">`;
   const abrir = ehSessaoDoApp(p.sessao) ? `<button type="submit" formaction="/abrir">Abrir sessão</button>` : '';
-  return `<li>${cabecaDoProjeto(projeto)}<div class="cartao-cab"><span class="id">${idLido(projeto, p.id)}</span><span class="cartao-titulo">${esc(p.titulo)}</span>${p.item ? `<span class="projeto">${idLido(projeto, p.item)}</span>` : ''}</div>
+  return `<li id="${esc(ancora(projeto, p.id))}">${cabecaDoProjeto(projeto)}<div class="cartao-cab"><span class="id">${idLido(projeto, p.id)}</span><span class="cartao-titulo">${esc(p.titulo)}</span>${p.item ? `<span class="projeto">${idLido(projeto, p.item)}</span>` : ''}</div>
 ${campos([['O caso', esc(p.caso)], ['Se ninguém decidir', esc(p.seNaoDecidir)], ['Recomendação', esc(p.recomendacao)]])}
 <form class="responder" method="post" action="/responder">${oculto}
 <textarea name="resposta" rows="2" required aria-label="Resposta para ${esc(p.id)}" placeholder="Escreva a resposta, ou aceite a recomendação"></textarea>
@@ -79,15 +82,52 @@ ${campos([['O que mudou', esc(e.resultado)], ['Medido', esc(e.medido)], ['Sem me
 <p class="quando">${esc(horaSP(e.em ?? i.atualizadoEm))}</p></details></li>`;
 }
 
-// Em andamento já vem separado por projeto: o cartão não repete o nome.
-const cartaoDeItem = (projeto, i) => `<li><div class="cartao-cab"><span class="id">${idLido(projeto, i.id)}</span><span class="cartao-titulo">${esc(i.titulo)}</span><span class="selo selo-etapa">${esc(i.etapa)}</span></div><p class="quando">${i.pr ? `PR #${esc(i.pr)} · ` : ''}${esc(horaSP(i.atualizadoEm))}</p></li>`;
+/** `agora`, `há 40 s`, `há 3 min`, `há 2 h`, `há 3 d`; sem data, vazio. */
+export function haQuanto(ms, agora) {
+  if (!Number.isFinite(ms)) return '';
+  const seg = Math.max(0, Math.floor((agora - ms) / 1000));
+  if (seg < 10) return 'agora';
+  if (seg < 60) return `há ${seg} s`;
+  if (seg < 3600) return `há ${Math.floor(seg / 60)} min`;
+  if (seg < 86_400) return `há ${Math.floor(seg / 3600)} h`;
+  return `há ${Math.floor(seg / 86_400)} d`;
+}
 
-/** Em andamento, um grupo por projeto (em ordem alfabética), cada um com os itens em ordem de F. */
-function grupos(andamento) {
-  const porProjeto = new Map();
-  for (const { projeto, i } of andamento) porProjeto.set(projeto, [...(porProjeto.get(projeto) ?? []), i]);
-  return [...porProjeto.keys()].sort((a, b) => a.localeCompare(b)).map((projeto) => `<li class="grupo-de-projeto"><h3 class="grupo">${esc(projeto)}</h3>
-<ul class="cartoes">${porProjeto.get(projeto).map((i) => cartaoDeItem(projeto, i)).join('\n')}</ul></li>`);
+const ROTULO_DO_PR = { OPEN: 'aberto', MERGED: 'mergeado', CLOSED: 'fechado' };
+const textoDoPr = (s) => (s.pr ? `PR #${s.pr}${ROTULO_DO_PR[s.prEstado] ? ` ${ROTULO_DO_PR[s.prEstado]}` : ''}` : '');
+const abrirNoApp = (link) => (link ? `<a class="abrir-app" href="${esc(link)}">Abrir no app</a>` : '');
+const marcador = (estadoDaSessao, rodando) => `<span class="marcador marcador-${esc(estadoDaSessao)}${rodando ? ' girando' : ''}" aria-hidden="true"></span>`;
+const atividade = (s, agora) => {
+  if (s.rodando) return 'rodando agora';
+  const ha = haQuanto(Date.parse(s.ultimaAtividade ?? ''), agora);
+  return ha ? `última atividade ${ha}` : '';
+};
+
+/** A esteira: feito, agora e falta pela forma (✓, ponto cheio, ponto vazio), nunca só pela cor. */
+const esteiraHtml = (passos) => `<ol class="esteira" aria-label="Etapas do item">${passos.map((e) => `<li class="passo passo-${esc(e.estado)}"${e.estado === 'agora' ? ' aria-current="step"' : ''}><span class="so-leitor">${esc(e.estado)}: </span>${esc(e.nome)}</li>`).join('')}</ol>`;
+
+function cartaoDeSessao(projeto, s, agora) {
+  const esperas = s.perguntas.map((q) => `<p class="espera">Esperando você na pergunta <a href="#${esc(ancora(projeto, q.id))}">${idLido(projeto, q.id)}</a>${q.titulo ? ` · ${esc(q.titulo)}` : ''}</p>`).join('');
+  const meta = [textoDoPr(s), atividade(s, agora)].filter(Boolean).map(esc);
+  if (s.link) meta.push(abrirNoApp(s.link));
+  return `<li class="sessao sessao-${esc(s.estado)}"><div class="cartao-cab">${marcador(s.estado, s.rodando)}<span class="id">${idLido(projeto, s.item)}</span><span class="cartao-titulo">${esc(s.titulo)}</span><span class="selo selo-sessao-${esc(s.estado)}">${esc(ROTULO_DO_ESTADO[s.estado])}</span></div>
+${esteiraHtml(s.esteira)}${esperas}${s.motivo ? `<p class="motivo">${esc(s.motivo)}</p>` : ''}${meta.length ? `<p class="quando">${meta.join(' · ')}</p>` : ''}</li>`;
+}
+
+/** Sessões abertas que não são dona de item vivo (a orquestradora, uma dona que entregou e não se arquivou): uma linha cada. */
+const linhasSemItem = (outras, agora) => (outras.length
+  ? `<li class="sem-item"><p class="rotulo-sem-item">Outras sessões abertas</p><ul>${outras.map((o) => `<li>${marcador(o.rodando ? 'trabalhando' : 'quieta', o.rodando)}<span class="titulo-sem-item">${esc(o.titulo)}</span><span class="quando">${[atividade(o, agora), abrirNoApp(o.link)].filter(Boolean).join(' · ')}</span></li>`).join('')}</ul></li>`
+  : '');
+
+/** Sessões, um grupo por projeto, o mais urgente em cima. */
+const grupos = (sessoes, agora) => sessoes.grupos.map((g) => `<li class="grupo-de-projeto"><h3 class="grupo">${esc(g.projeto)}</h3>
+<ul class="cartoes">${g.sessoes.map((s) => cartaoDeSessao(g.projeto, s, agora)).join('\n')}${linhasSemItem(g.outras, agora)}</ul></li>`);
+
+/** Ao lado do título: a idade da leitura do app; velha ou ausente, diz o que falta. */
+function frescor(sessoes, agora) {
+  if (sessoes.lidoEm === null) return 'sem o status do app: abra uma sessão do Claude com a barra';
+  const ha = haQuanto(sessoes.lidoEm, agora);
+  return sessoes.fresca ? `status do app ${ha}` : `status do app parado (lido ${ha}): abra uma sessão do Claude com a barra`;
 }
 
 const quandoEntregou = (i) => Date.parse(i.entrega.em ?? i.atualizadoEm);
@@ -116,7 +156,8 @@ export function dados(agora = Date.now()) {
   recentes.sort((a, b) => quandoEntregou(b.i) - quandoEntregou(a.i));
   const entregas = recentes.slice(0, ENTREGAS_A_MOSTRAR);
   const maisEntregas = recentes.slice(ENTREGAS_A_MOSTRAR);
-  return { perguntas, andamento, entregas, maisEntregas };
+  const sessoes = sessoesDaPagina({ itens: andamento, perguntas, app: lerSessoesDoApp(estado.raiz()), projetos: estado.projetos(), agora });
+  return { perguntas, andamento, sessoes, entregas, maisEntregas };
 }
 
 function secao(id, titulo, contagem, itens, vazio, depois = '') {
@@ -130,23 +171,23 @@ const verMais = (resto) => (resto.length
 
 const quantos = (n, um, varios) => `${n} ${n === 1 ? um : varios}`;
 
-/** A linha de apoio do topo: quantas perguntas esperam por você e quantos itens estão em andamento. */
-function resumo(perguntas, andamento) {
+/** A linha de apoio do topo: quantas perguntas esperam por você e quantas sessões estão ativas. */
+function resumo(perguntas, sessoes) {
   const partes = [];
   if (perguntas.length) partes.push(quantos(perguntas.length, 'pergunta esperando', 'perguntas esperando'));
-  if (andamento.length) partes.push(`${andamento.length} em andamento`);
+  if (sessoes.total) partes.push(quantos(sessoes.total, 'sessão ativa', 'sessões ativas'));
   return partes.join(' · ') || 'Tudo em dia.';
 }
 
 export function html(agora = Date.now()) {
-  const { perguntas, andamento, entregas, maisEntregas } = dados(agora);
+  const { perguntas, sessoes, entregas, maisEntregas } = dados(agora);
   const esquerda = secao('h-perguntas', 'Perguntas', perguntas.length || '', perguntas.map(({ projeto, p }) => cartaoDePergunta(projeto, p)), 'Nada esperando por você.')
-    + (andamento.length ? secao('h-andamento', 'Em andamento', andamento.length, grupos(andamento), '') : '');
+    + (sessoes.total ? secao('h-sessoes', 'Sessões', esc(frescor(sessoes, agora)), grupos(sessoes, agora), '') : '');
   const direita = secao('h-entregas', 'Entregues', `últimos ${estado.DIAS_DE_ENTREGAS} dias`, entregas.map(({ projeto, i }) => cartaoDeEntrega(projeto, i)), 'Nenhuma entrega ainda.', verMais(maisEntregas));
   return `<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Perguntas do kit</title><link rel="preload" href="/fontes/geist-medium.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="stylesheet" href="/estilo.css"><link rel="stylesheet" href="/perguntas.css"></head>
-<body><canvas id="ceu" class="ceu" aria-hidden="true"></canvas><header class="topo"><p class="selo-topo">Kit de orquestração</p><h1>Perguntas do kit</h1><p class="subtitulo">${esc(resumo(perguntas, andamento))}</p></header>
+<body><canvas id="ceu" class="ceu" aria-hidden="true"></canvas><header class="topo"><p class="selo-topo">Kit de orquestração</p><h1>Perguntas do kit</h1><p class="subtitulo">${esc(resumo(perguntas, sessoes))}</p></header>
 <main><div>${esquerda}</div><div>${direita}</div></main>
 <footer class="pe"><p>Lido às ${esc(horaSP(new Date(agora).toISOString()))}. A página se atualiza sozinha enquanto você não está escrevendo.</p></footer>
 <script type="module">
