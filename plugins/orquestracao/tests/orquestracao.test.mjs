@@ -177,8 +177,8 @@ const topoDe = (h) => /<header class="topo">([\s\S]*?)<\/header>/.exec(h)[1];
 test('o topo mostra o nome da página, sem o selo e o resumo antigos, e a aba tem o mesmo nome', () => {
   const h = html();
   const topo = topoDe(h);
-  assert.match(topo, /<h1>Central<\/h1>/);
-  assert.match(h, /<title>Central<\/title>/);
+  assert.match(topo, /<h1>Painel<\/h1>/);
+  assert.match(h, /<title>Painel<\/title>/);
   for (const velho of [/selo-topo/, /Perguntas do kit/, /Kit de orquestração/, /class="subtitulo"/, /Tudo em dia/]) assert.doesNotMatch(h, velho);
   assert.match(h, /<link rel="preload" href="\/fontes\/geist-medium\.woff2" as="font" type="font\/woff2" crossorigin>/);
 });
