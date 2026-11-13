@@ -17,6 +17,8 @@ const PRAZO_PARA_SUBIR_MS = 3_000;
 const INTERVALO_DE_CONFERENCIA_MS = 150;
 const DIA_MS = 24 * 60 * 60 * 1000;
 const ENTREGAS_A_MOSTRAR = 10;
+// O nome da página (topo e aba). Já não é só perguntas: perguntas, sessões e entregas.
+export const NOME_DA_PAGINA = 'Central';
 const RESPOSTA_PADRAO = 'Sim, siga a recomendação.';
 const SESSAO_DO_APP = /^local_[0-9a-f-]{36}$/;
 const NOME_DO_KIT = 'orquestracao';
@@ -171,23 +173,34 @@ const verMais = (resto) => (resto.length
 
 const quantos = (n, um, varios) => `${n} ${n === 1 ? um : varios}`;
 
-/** A linha de apoio do topo: quantas perguntas esperam por você e quantas sessões estão ativas. */
-function resumo(perguntas, sessoes) {
-  const partes = [];
-  if (perguntas.length) partes.push(quantos(perguntas.length, 'pergunta esperando', 'perguntas esperando'));
-  if (sessoes.total) partes.push(quantos(sessoes.total, 'sessão ativa', 'sessões ativas'));
-  return partes.join(' · ') || 'Tudo em dia.';
+/** Um selo do topo: só o número, na cor do status (as do kit: aguarda, trabalhando, entregou); o texto fica para o leitor de tela e a dica. */
+const contagem = (status, n, texto) => `<li class="contagem contagem-${status}${n ? '' : ' zero'}" title="${esc(texto)}"><span aria-hidden="true">${n}</span><span class="so-leitor">${esc(texto)}</span></li>`;
+
+function selosDoTopo(perguntas, andamento, entregues) {
+  return `<ul class="contagens" aria-label="Resumo">${[
+    contagem('aguarda', perguntas, quantos(perguntas, 'pergunta esperando você', 'perguntas esperando você')),
+    contagem('trabalhando', andamento, quantos(andamento, 'item em andamento', 'itens em andamento')),
+    contagem('entregou', entregues, `${quantos(entregues, 'entregue', 'entregues')} nos últimos ${estado.DIAS_DE_ENTREGAS} dias`),
+  ].join('')}</ul>`;
+}
+
+/** O modo ausente, lido do arquivo da barra a cada carga da página (e o recarregamento de 30 s o mantém em dia). */
+function avisoDeAusente(ausente) {
+  const desde = ausente?.desde ? horaSP(ausente.desde) : '';
+  return ausente
+    ? `<p class="aviso-ausente ligado" role="status"><span class="aviso-ponto" aria-hidden="true"></span><b>Ausente ligado</b><span class="aviso-apoio">as sessões seguem sem esperar você${desde ? ` · desde ${esc(desde)}` : ''}</span></p>`
+    : '<p class="aviso-ausente desligado" role="status"><span class="aviso-ponto" aria-hidden="true"></span><b>Ausente desligado</b><span class="aviso-apoio">o que é seu espera pela sua resposta</span></p>';
 }
 
 export function html(agora = Date.now()) {
-  const { perguntas, sessoes, entregas, maisEntregas } = dados(agora);
+  const { perguntas, andamento, sessoes, entregas, maisEntregas } = dados(agora);
   const esquerda = secao('h-perguntas', 'Perguntas', perguntas.length || '', perguntas.map(({ projeto, p }) => cartaoDePergunta(projeto, p)), 'Nada esperando por você.')
     + (sessoes.total ? secao('h-sessoes', 'Sessões', esc(frescor(sessoes, agora)), grupos(sessoes, agora), '') : '');
   const direita = secao('h-entregas', 'Entregues', `últimos ${estado.DIAS_DE_ENTREGAS} dias`, entregas.map(({ projeto, i }) => cartaoDeEntrega(projeto, i)), 'Nenhuma entrega ainda.', verMais(maisEntregas));
   return `<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Perguntas do kit</title><link rel="preload" href="/fontes/geist-medium.woff2" as="font" type="font/woff2" crossorigin>
+<title>${esc(NOME_DA_PAGINA)}</title><link rel="preload" href="/fontes/geist-medium.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="stylesheet" href="/estilo.css"><link rel="stylesheet" href="/perguntas.css"></head>
-<body><canvas id="ceu" class="ceu" aria-hidden="true"></canvas><header class="topo"><p class="selo-topo">Kit de orquestração</p><h1>Perguntas do kit</h1><p class="subtitulo">${esc(resumo(perguntas, sessoes))}</p></header>
+<body><canvas id="ceu" class="ceu" aria-hidden="true"></canvas><header class="topo"><h1>${esc(NOME_DA_PAGINA)}</h1>${selosDoTopo(perguntas.length, andamento.length, entregas.length + maisEntregas.length)}${avisoDeAusente(estado.lerAusente())}</header>
 <main><div>${esquerda}</div><div>${direita}</div></main>
 <footer class="pe"><p>Lido às ${esc(horaSP(new Date(agora).toISOString()))}. A página se atualiza sozinha enquanto você não está escrevendo.</p></footer>
 <script type="module">

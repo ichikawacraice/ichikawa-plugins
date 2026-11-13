@@ -172,19 +172,43 @@ test('a página serve a fonte dos títulos embutida, como woff2 e sem charset', 
   }
 });
 
-test('o topo da página resume o que espera por você', () => {
-  estado.criar('perguntas', 'p', { titulo: 'A', estado: 'aberta' });
-  estado.criar('itens', 'p', { titulo: 'vivo', etapa: 'execucao' });
-  const topo = /<header class="topo">([\s\S]*?)<\/header>/.exec(html())[1];
-  assert.match(topo, /<h1>Perguntas do kit<\/h1>/);
-  assert.match(topo, /1 pergunta esperando · 1 sessão ativa/);
-  assert.match(html(), /<link rel="preload" href="\/fontes\/geist-medium\.woff2" as="font" type="font\/woff2" crossorigin>/);
-  estado.criar('perguntas', 'p', { titulo: 'B', estado: 'aberta' });
-  assert.match(html(), /<p class="subtitulo">2 perguntas esperando · 1 sessão ativa<\/p>/);
+const topoDe = (h) => /<header class="topo">([\s\S]*?)<\/header>/.exec(h)[1];
+
+test('o topo mostra o nome da página, sem o selo e o resumo antigos, e a aba tem o mesmo nome', () => {
+  const h = html();
+  const topo = topoDe(h);
+  assert.match(topo, /<h1>Central<\/h1>/);
+  assert.match(h, /<title>Central<\/title>/);
+  for (const velho of [/selo-topo/, /Perguntas do kit/, /Kit de orquestração/, /class="subtitulo"/, /Tudo em dia/]) assert.doesNotMatch(h, velho);
+  assert.match(h, /<link rel="preload" href="\/fontes\/geist-medium\.woff2" as="font" type="font\/woff2" crossorigin>/);
 });
 
-test('com nada esperando, o topo diz que está tudo em dia', () => {
-  assert.match(html(), /<p class="subtitulo">Tudo em dia\.<\/p>/);
+test('os selos do topo trazem só o número, na cor do status, e dizem o que contam ao leitor de tela', () => {
+  estado.criar('perguntas', 'p', { titulo: 'A', estado: 'aberta' });
+  estado.criar('perguntas', 'p', { titulo: 'B', estado: 'aberta' });
+  estado.criar('itens', 'p', { titulo: 'vivo', etapa: 'execucao' });
+  estado.criar('itens', 'p', { titulo: 'feito', etapa: 'feito', entrega: { desfecho: 'entregue', resultado: 'ok', em: new Date().toISOString() } });
+  const topo = topoDe(html());
+  const selo = (classe) => new RegExp(`<li class="contagem contagem-${classe}"[^>]*><span aria-hidden="true">(\\d+)</span><span class="so-leitor">([^<]+)</span></li>`).exec(topo);
+  const [, nA, rotuloA] = selo('aguarda');
+  const [, nT, rotuloT] = selo('trabalhando');
+  const [, nE, rotuloE] = selo('entregou');
+  assert.deepEqual([nA, nT, nE], ['2', '1', '1']);
+  assert.equal(rotuloA, '2 perguntas esperando você');
+  assert.equal(rotuloT, '1 item em andamento');
+  assert.match(rotuloE, /^1 entregue nos últimos \d+ dias$/);
+});
+
+test('selo zerado continua no topo, apagado', () => {
+  assert.match(topoDe(html()), /contagem-aguarda zero/);
+});
+
+test('o topo avisa se o modo ausente está ligado ou desligado', () => {
+  assert.match(topoDe(html()), /class="aviso-ausente desligado"[^>]*>[\s\S]*Ausente desligado/);
+  writeFileSync(join(process.env.ICHIKAWA_HOME, 'ausente.json'), '{"ligado":true,"desde":"2026-11-13T21:15:00-03:00"}');
+  const topo = topoDe(html());
+  assert.match(topo, /class="aviso-ausente ligado"[^>]*>[\s\S]*Ausente ligado/);
+  assert.match(topo, /desde 13\/11\/2026, 21:15/);
 });
 
 test('a página só aceita POST da própria origem e grava o pedido de resposta', async () => {
