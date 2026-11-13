@@ -79,7 +79,7 @@ export function turnoAtual(transcriptPath) {
 }
 
 /** A pergunta existe (em qualquer estado) num projeto que responde pela sigla. Sigla que o kit não conhece: não é nossa. */
-function gravada(sigla, id, projetoAtual) {
+export function gravada(sigla, id, projetoAtual) {
   const projetos = estado.projetosDaSigla(sigla, [projetoAtual]);
   if (!projetos.length) return true;
   return projetos.some((p) => estado.ler('perguntas', p, id));

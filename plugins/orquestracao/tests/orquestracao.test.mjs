@@ -15,6 +15,7 @@ import { pedirLimpeza } from '../hooks/orquestradora-limpa.mjs';
 import { lembrarLimpeza } from '../hooks/orquestradora-limpa-na-mensagem.mjs';
 import { tokensDoContexto } from '../hooks/comum.mjs';
 import { blocosDeDecisao, cobrarRegistro } from '../hooks/pergunta-no-painel.mjs';
+import { decidir as perguntaNaCaixa } from '../hooks/pergunta-na-caixa.mjs';
 import { decidir as semNoVerify } from '../hooks/sem-no-verify.mjs';
 import { decidir as segredoEmArquivo } from '../hooks/segredo-em-arquivo.mjs';
 import { decidir as avisoConsoleLog } from '../hooks/aviso-console-log.mjs';
@@ -785,4 +786,21 @@ test('o fim de turno usa a last_assistant_message quando o transcript ainda não
   const cwd = projetoIzanagi();
   const saida = cobrarRegistro({ cwd, transcript_path: transcriptDoTurno('nada aqui'), last_assistant_message: '**D2 · Mergear a #380?** Recomendo.' });
   assert.match(saida.reason, /D2/);
+});
+
+test('a caixa do app (wrap_up com ask) que espera o operador só passa com a pergunta na página', async () => {
+  const cwd = projetoIzanagi();
+  const caixa = (ask, extra = {}, comandos = []) => ({
+    cwd, session_id: SESSAO_DO_APP, transcript_path: transcriptDoTurno('texto do turno', comandos),
+    tool_name: 'mcp__ccd_turn__wrap_up', tool_input: { recap: 'r', ask, ...extra },
+  });
+  assert.match(perguntaNaCaixa(caixa('D1: tiro o superpowers?', { blocked: true })), /perguntas nova .*--item IZA-Fn/);
+  assert.equal(perguntaNaCaixa(caixa('D1: tiro o superpowers?', { blocked: true }, ['perguntas nova --titulo t --caso c --se-nao s --recomendacao r'])), null, 'gravou no turno');
+  assert.match(perguntaNaCaixa(caixa('IZA-Q1: tiro o superpowers?', { blocked: true })), /IZA-Q1/, 'id citado mas não gravado');
+  await rodar('nova', '--projeto', 'izanagi', '--titulo', 'Job', '--caso', 'c', '--se-nao', 's', '--recomendacao', 'r');
+  assert.equal(perguntaNaCaixa(caixa('IZA-Q1: tiro o superpowers?', { blocked: true })), null, 'id gravado');
+  assert.equal(perguntaNaCaixa(caixa('Abro o PR?')), null, 'caixa que não bloqueia, fora da orquestradora, passa');
+  assert.equal(perguntaNaCaixa(caixa(undefined, { blocked: true })), null, 'sem ask não há pergunta');
+  await rodar('papel', 'orquestradora', '--sessao-id', SESSAO_DO_APP);
+  assert.match(perguntaNaCaixa(caixa('Abro o PR?')), /perguntas nova/, 'na orquestradora, toda caixa com pergunta vai à página');
 });
