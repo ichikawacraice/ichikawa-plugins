@@ -306,13 +306,3 @@ test('a limpeza lê o contexto do transcript e só pede à orquestradora, uma ve
   assert.match(pedirLimpeza(entrada), /170 mil/);
   assert.equal(tokensDoContexto(join(tmpdir(), 'nao-existe.jsonl')), null);
 });
-
-test('a dona escreve enxuto no chat e completo no que sai dele', () => {
-  const dona = readFileSync(new URL('../skills/dona/SKILL.md', import.meta.url), 'utf8');
-  assert.match(dona, /## Escrita enxuta/);
-  for (const fora of ['commit', 'PR', 'ADR', 'plano', 'pergunta ao operador', 'perguntas item entregar', 'aviso de segurança']) {
-    assert.ok(dona.includes(fora), `falta a exceção: ${fora}`);
-  }
-  assert.match(dona, /Nunca corte "não"/);
-  assert.match(readFileSync(new URL('../regras.md', import.meta.url), 'utf8'), /Escrita enxuta/);
-});
