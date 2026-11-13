@@ -70,7 +70,8 @@ E sempre:
 Falha às vezes é defeito, não azar.
 1. **Meça:** `npx playwright test --repeat-each=10 <arquivo>` (ou o arquivo de componente rodado várias vezes). Uma falha em dez já é instável.
 2. **Ache a causa** (`orquestracao:depurar`), quase sempre: espera fixa; clique antes do elemento pronto ou durante animação; estado compartilhado entre testes; dado que outro teste apagou; relógio real em máquina carregada.
-3. **Conserte a causa.** Quarentena (`test.fixme`, `test.skip`) só com o motivo e quem conserta escritos ao lado, por prazo curto. Nova tentativa automática esconde o defeito; vale só no CI e não conta como conserto.
+3. **Em quarentena enquanto não conserta** (do `e2e-runner`, ECC, MIT): marque o teste, não o apague. `test.fixme(true, 'instável: <causa>; <quem conserta>; até <data>')` no Playwright; nos outros, `it.skip` com o mesmo comentário. Rode `--repeat-each=10` antes de tirar da quarentena. Quarentena sem dono e sem data é teste apagado.
+4. **Conserte a causa.** Quarentena (`test.fixme`, `test.skip`) só com o motivo e quem conserta escritos ao lado, por prazo curto. Nova tentativa automática esconde o defeito; vale só no CI e não conta como conserto.
 
 ## Os comandos
 

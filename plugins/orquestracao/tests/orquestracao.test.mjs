@@ -1,6 +1,6 @@
 import { test, beforeEach } from 'node:test';
 import assert from 'node:assert/strict';
-import { mkdtempSync, readdirSync, readFileSync, writeFileSync, mkdirSync } from 'node:fs';
+import { mkdtempSync, readdirSync, readFileSync, writeFileSync, mkdirSync, chmodSync, unlinkSync } from 'node:fs';
 import { tmpdir, homedir } from 'node:os';
 import { join } from 'node:path';
 import * as estado from '../lib/estado.mjs';
@@ -10,6 +10,10 @@ import { decidir as orquestradoraNaoEdita } from '../hooks/orquestradora-nao-edi
 import { decidir as configProtegida } from '../hooks/config-protegida.mjs';
 import { decidir as segredoSai } from '../hooks/segredo-sai.mjs';
 import { contexto } from '../hooks/inicio.mjs';
+import { decidir as semNoVerify } from '../hooks/sem-no-verify.mjs';
+import { decidir as segredoEmArquivo } from '../hooks/segredo-em-arquivo.mjs';
+import { decidir as avisoConsoleLog } from '../hooks/aviso-console-log.mjs';
+import { formatar, plano as planoDeFormato } from '../hooks/formatar-editado.mjs';
 
 const SESSAO_DO_APP = 'local_12345678-1234-1234-1234-123456789abc';
 let saida;
@@ -141,4 +145,84 @@ test('a página só aceita POST da própria origem e grava o pedido de resposta'
   } finally {
     servidor.close();
   }
+});
+
+const bash = (command) => ({ tool_name: 'Bash', tool_input: { command } });
+
+test('pular os hooks do git pergunta; commit e push normais passam', () => {
+  for (const c of [
+    'git commit -m "x" --no-verify',
+    'git push --no-verify origin develop',
+    'git commit -nm "x"',
+    'git commit -n -m x',
+    'git -c core.hooksPath=/dev/null commit -m x',
+    'npm test && git commit --no-verify -m x',
+    'bash -c "git commit --no-verify -m x"',
+  ]) assert.match(semNoVerify(bash(c)), /pula os hooks|desliga os hooks/, c);
+  for (const c of [
+    'git commit -m "corrige --no-verify no texto"',
+    'git commit -m "n"',
+    'git commit -mn',
+    'git push -n origin develop',
+    'git log -n 5',
+    'git status',
+    'echo --no-verify',
+  ]) assert.equal(semNoVerify(bash(c)), null, c);
+  assert.equal(semNoVerify({ tool_name: 'Edit', tool_input: { command: 'git commit --no-verify' } }), null);
+});
+
+test('segredo em arquivo pergunta pelo nome do padrão, sem o valor, e deixa o .env.example passar', () => {
+  const token = `ghp_${'b2'.repeat(18)}`;
+  const grava = (file_path, content) => ({ tool_name: 'Write', tool_input: { file_path, content } });
+  const motivo = segredoEmArquivo(grava('/repo/src/api.ts', `const t = '${token}'`));
+  assert.match(motivo, /github-token/);
+  assert.ok(!motivo.includes(token));
+  assert.match(segredoEmArquivo({ tool_name: 'Edit', tool_input: { file_path: '/repo/a.ts', new_string: '-----BEGIN RSA PRIVATE KEY-----' } }), /chave-privada/);
+  assert.match(segredoEmArquivo({ tool_name: 'MultiEdit', tool_input: { file_path: '/repo/a.ts', edits: [{ new_string: 'ok' }, { new_string: 'AKIAABCDEFGHIJKLMNOP' }] } }), /aws-key/);
+  assert.equal(segredoEmArquivo(grava('/repo/.env.example', `T=${token}`)), null);
+  assert.equal(segredoEmArquivo(grava('/repo/a.ts', 'const senha = "abc12345xyz"')), null);
+  assert.equal(segredoEmArquivo(grava('/repo/a.ts', 'const t = process.env.GITHUB_TOKEN')), null);
+});
+
+test('git add de .env pergunta; .env.example e outros arquivos passam', () => {
+  assert.match(segredoEmArquivo(bash('git add .env')), /\.env/);
+  assert.match(segredoEmArquivo(bash('git add src/a.ts apps/web/.env.local')), /\.env\.local/);
+  assert.match(segredoEmArquivo(bash('git -C app add -f .env && git status')), /\.env/);
+  assert.equal(segredoEmArquivo(bash('git add .env.example')), null);
+  assert.equal(segredoEmArquivo(bash('git add src/ensure.ts')), null);
+  assert.equal(segredoEmArquivo(bash('cat .env')), null);
+});
+
+test('console.log novo em código de produto avisa; teste, script, config, bin e cli não', () => {
+  const edita = (file_path, new_string) => ({ tool_name: 'Edit', tool_input: { file_path, new_string } });
+  assert.match(avisoConsoleLog(edita('/repo/src/app.tsx', 'console.log("x")')), /1 console\.log/);
+  assert.match(avisoConsoleLog({ tool_input: { file_path: '/repo/src/a.ts', edits: [{ new_string: 'console.log(1)' }, { new_string: 'console.log(2)' }] } }), /2 console\.log/);
+  for (const p of ['/repo/src/app.test.ts', '/repo/a.spec.js', '/repo/scripts/x.mjs', '/repo/vite.config.ts', '/repo/bin/run.js', '/repo/src/cli/main.ts', '/repo/src/cli.ts', '/repo/README.md']) {
+    assert.equal(avisoConsoleLog(edita(p, 'console.log(1)')), null, p);
+  }
+  assert.equal(avisoConsoleLog(edita('/repo/src/a.ts', '// console.log(1)\nconsole.error(2)')), null);
+});
+
+test('formatar roda o binário local só no arquivo editado, e só com configuração e sem o desligador', () => {
+  const projeto = mkdtempSync(join(tmpdir(), 'fmt-'));
+  mkdirSync(join(projeto, 'node_modules', '.bin'), { recursive: true });
+  mkdirSync(join(projeto, 'src'));
+  const registro = join(projeto, 'chamadas.txt');
+  const bin = join(projeto, 'node_modules', '.bin', 'prettier');
+  writeFileSync(bin, `#!/bin/sh\necho "$@" >> "${registro}"\n`);
+  chmodSync(bin, 0o755);
+  writeFileSync(join(projeto, 'src', 'a.ts'), 'x');
+  const entrada = { tool_input: { file_path: join(projeto, 'src', 'a.ts') } };
+
+  assert.equal(planoDeFormato(entrada, {}), null, 'sem configuração, não faz nada');
+  writeFileSync(join(projeto, '.prettierrc'), '{}');
+  assert.equal(planoDeFormato(entrada, { ICHIKAWA_FORMATAR: '0' }), null);
+  assert.equal(formatar(entrada, {}), true);
+  assert.equal(readFileSync(registro, 'utf8').trim(), '--write src/a.ts');
+  assert.equal(planoDeFormato({ tool_input: { file_path: join(projeto, 'src', 'novo.ts') } }, {}), null, 'arquivo inexistente');
+  writeFileSync(join(projeto, 'src', 'a.png'), 'x');
+  assert.equal(planoDeFormato({ tool_input: { file_path: join(projeto, 'src', 'a.png') } }, {}), null, 'extensão que o formatador não cobre');
+
+  unlinkSync(bin);
+  assert.equal(planoDeFormato(entrada, {}), null, 'sem binário local não baixa nada');
 });

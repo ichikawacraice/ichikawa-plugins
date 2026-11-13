@@ -48,6 +48,13 @@ O corpo do PR, em PT-BR, segue o modelo do repositório se houver; senão:
 
 O título vira a mensagem do squash: conventional commit, assunto em português.
 
+**Mensagem de commit** (do `commit-reviewer`, ECC, MIT) — vale também para os commits da branch:
+- `tipo(escopo): assunto`, com tipo entre `feat`, `fix`, `refactor`, `perf`, `docs`, `test`, `build`, `ci`, `chore`; escopo só se o histórico (`git log --no-merges --format=%s -30`) já usa, e no mesmo tamanho médio de linha;
+- assunto no imperativo e pelo efeito, não pelo mecanismo: `fix(carrinho): somar frete com carrinho vazio`, não `adiciona if`;
+- corpo só quando o porquê não está no código; mudança que quebra contrato ou exige migração leva `!` depois do tipo e um rodapé `BREAKING CHANGE:` com o que fazer;
+- o diff mistura duas coisas sem relação (renomear config e consertar bug)? Divida em dois commits em vez de escolher um tipo que esconde o outro;
+- sem linha de coautoria nem de atribuição.
+
 Push recusado: o remoto andou. Busque e integre; force-push só com `--force-with-lease` na sua própria branch, e nunca no tronco.
 
 ## 4. Integrar por squash

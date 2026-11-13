@@ -31,6 +31,19 @@ Fora destes eixos não há achado. Gosto pessoal, outra marca, outra fonte e dec
 - O detector local do Impeccable ajuda no eixo 3 (só o detector: comando que consulta rede não roda sem ok do projeto, CONV-22): rode-o **de dentro da pasta do front** (da raiz ele ignora as exceções do projeto e infla o número) com `node "$(node "${CLAUDE_PLUGIN_ROOT}/skills/critica-de-ui/scripts/achar-detector.mjs")" --json .`; o `achar-detector.mjs` acha o `detect.mjs` instalado. O achado dele entra só se cair num dos eixos. Saída `DEGRADED` (dependências de parser ausentes) entra como observação, não como "não instalado". Se o `achar-detector.mjs` sair 1, siga sem o detector e diga na crítica o motivo que ele imprimiu: o detector é ajuda, não requisito.
 - Conte quando a frase depender de número: quantos controles na barra, quantas mensagens à vista no estado pior, quantas larguras somam à largura de referência.
 
+## Lista de acabamento (para o eixo 3 e o 4)
+
+Detalhe pequeno que separa tela pronta de tela quase pronta (de `make-interfaces-feel-better`, ECC, MIT). Só entra como achado o que cair num eixo e estiver no código ou na tela; item conferido e certo não aparece.
+- **Raio concêntrico:** superfície arredondada dentro de outra segue raio externo = raio interno + espaçamento.
+- **Alinhamento óptico:** ícone assimétrico (seta, play) pede ajuste de um ou dois pixels para parecer centrado.
+- **Números que mudam** (contador, preço, tabela, cronômetro) usam `font-variant-numeric: tabular-nums`, para a coluna não dançar.
+- **Quebra de linha:** `text-wrap: balance` em título e texto curto, `pretty` em corpo curto; nunca em texto longo nem código.
+- **Imagem** com contorno interno neutro de 1px (preto/branco com alfa), sem tingir com a marca.
+- **Transição:** nunca `transition: all` nem `will-change: all`; liste as propriedades. Interação usa transição (que se interrompe), não keyframe; saída mais curta (~150 ms) e mais discreta que a entrada.
+- **Área de toque** de pelo menos 40x40 px (ideal 44), ampliada com pseudo-elemento quando o ícone é menor, sem sobrepor a vizinha.
+- **Estados:** hover, ativo, foco, carregando e vazio existem; o botão tem resposta tátil sem exagero.
+- **Sombra e borda:** borda para separar e para o anel de foco; sombra em camadas só onde há profundidade real (e lembre SUP-05: controle não leva sombra).
+
 ## A entrega (formato fixo, no máximo 5)
 
 ```markdown

@@ -23,6 +23,13 @@ Se o projeto tem script próprio de release (ex.: `scripts/o-release.mjs` no Iza
 5. **Pergunte ao operador**, inteiro: o que entra em produção (a lista do passo 2); o que acontece se não soltar agora (nada muda no ar, as entregas esperam); a sua recomendação e o motivo.
 6. **Com o sim:** `git push origin "$SHA:refs/heads/main"`. O servidor recusa o que não for avanço rápido; nunca `--force`.
 7. **Acompanhe o deploy:** `gh run list --branch main --limit 3`, e `gh run watch <id>` em segundo plano. Falhou: diga ao operador o passo e o erro, e se o que está no ar mudou.
+   **Conferência pós-deploy** (do `canary-watch`, ECC, MIT; uma passada só, sem laço de monitoramento): com o deploy verde, abra a URL de produção e confira, com a saída à vista:
+   - a página principal responde 200, e o `h1`, a navegação e o botão da ação principal estão lá;
+   - o console do navegador não traz erro novo (compare com a página de antes, se tiver como);
+   - as chamadas de API que a página faz voltam 2xx (nenhuma 5xx), e a rota de saúde, se houver, responde;
+   - JS, CSS, imagens e fontes voltam 2xx/3xx com o tipo de conteúdo certo;
+   - LCP aproximado (Lighthouse ou DevTools) sem piora clara frente ao valor de antes.
+   Qualquer item vermelho: diga ao operador o que quebrou e proponha reverter ou corrigir à frente; não fique repetindo a checagem.
 8. **Notas:** se o projeto tem `docs/releases/`, o texto do passo 2 vira `docs/releases/AAAA-MM-DD.md` por PR normal na `develop`.
 
 Hotfix (produção quebrada): branch de `origin/main`, PR para a `main` com o ok do operador, e depois `git switch develop && git merge origin/main` para a `develop` não perder o conserto.

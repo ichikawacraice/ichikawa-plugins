@@ -10,6 +10,11 @@
       "description": "A orquestradora abre uma sessão dona por item, as perguntas e as entregas ficam numa página local, e o processo (planejar, TDD, depurar, revisar, release develop→main) vem junto — sem fila de merge."
     },
     {
+      "name": "stack",
+      "source": "./plugins/stack",
+      "description": "Padrões e revisores da stack da empresa (FastStore, Wake, React/TS, Next, Node, Supabase/Postgres, GCP): skills de consulta, agentes revisores e Context7 para docs atuais."
+    },
+    {
       "name": "barra",
       "source": "./plugins/barra",
       "description": "A barra acima do prompt: o tempo do cache, o modo ausente e os botões dos outros plugins ligados (barra.json)."

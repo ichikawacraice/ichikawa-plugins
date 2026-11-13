@@ -18,6 +18,8 @@ Quem planeja decide: o plano se escreve em Opus. Quem executa é o `orquestracao
 - **Comandos do projeto:** leia no `CLAUDE.md` do projeto o comando de **testes afetados** e o de **typecheck**. São eles que o plano usa em cada tarefa. Gate completo não roda durante o trabalho; só no release.
 - **Tronco:** a branch nasce de `origin/develop` (sem `develop`, de `origin/main`). Diga o nome da branch no cabeçalho.
 
+**Ordem de construção** (do `code-architect`, ECC, MIT): ordene as tarefas pelo que depende do quê, de baixo para cima — tipos e interfaces; lógica central; camada de integração (rota, query, cliente); interface; docs. Cada tarefa deixa a árvore verde sozinha. Desenhe encaixando no padrão que o código já usa (leia primeiro como ele organiza arquivos, nomes e testes), e não invente abstração que o repositório ainda não tem.
+
 ## Tamanho da tarefa
 
 A tarefa é a menor unidade com ciclo de teste próprio e entrega que se testa sozinha. Junte preparo, configuração e doc na tarefa cujo resultado precisa deles; divida só onde faria sentido rejeitar uma e aprovar a vizinha. Cada passo é uma ação com resultado conferível: escrever o teste que falha · rodá-lo e ver falhar · implementar o mínimo · rodar e ver passar · commit.

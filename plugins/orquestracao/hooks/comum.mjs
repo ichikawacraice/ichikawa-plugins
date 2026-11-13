@@ -13,6 +13,18 @@ export const responder = (decisao, motivo) => process.stdout.write(JSON.stringif
   hookSpecificOutput: { hookEventName: 'PreToolUse', permissionDecision: decisao, permissionDecisionReason: motivo },
 }));
 
+/** PostToolUse: só devolve contexto ao modelo (não bloqueia nem pergunta). */
+export const avisar = (contexto) => process.stdout.write(JSON.stringify({
+  hookSpecificOutput: { hookEventName: 'PostToolUse', additionalContext: contexto },
+}));
+
+/** Os textos que uma edição grava: `content` (Write), `new_string` (Edit) e cada `edits[].new_string` (MultiEdit). */
+export function textoGravado(entrada) {
+  const i = entrada.tool_input ?? {};
+  const partes = [i.content, i.new_string, ...(Array.isArray(i.edits) ? i.edits.map((e) => e?.new_string) : [])];
+  return partes.filter((t) => typeof t === 'string');
+}
+
 const ID_DE_SESSAO = /^[\w-]{8,80}$/;
 
 /** O marcador do papel: `papeis/<session_id>` com o texto `orquestradora` (gravado por `perguntas papel`). */

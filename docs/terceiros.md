@@ -65,3 +65,17 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 ```
+
+## Absorvido do ECC e de outros na remoção do ECC (13/11/2026)
+
+| Onde | Vem de | Licença |
+|---|---|---|
+| `plugins/orquestracao/hooks/{sem-no-verify,segredo-em-arquivo,aviso-console-log,formatar-editado}.mjs` | ideias dos hooks do ECC (`block-no-verify`, `governance-capture`, `check-console-log`, `stop-format-typecheck`), reescritas | MIT, affaan-m/ECC |
+| trechos em `revisor`, `conserta-build`, `spec`, `release`, `testes-de-tela`, `planejar`, `entregar-branch`, `regras.md` e `design-wicomm/critica-de-ui` | ECC: `silent-failure-hunter`, `react-build-resolver`, `spec-miner`, `contract-first`, `canary-watch`, `e2e-runner`, `code-architect`, `commit-reviewer`, `rules/`, `make-interfaces-feel-better` | MIT, affaan-m/ECC |
+| `plugins/orquestracao/skills/{conhecer-projeto,revisar-chamado}` | ECC: `codebase-onboarding`, `issue-review` | MIT, affaan-m/ECC |
+| `plugins/orquestracao/skills/entrevistar` | [mattpocock/skills](https://github.com/mattpocock/skills) — `grilling` | MIT © 2026 Matt Pocock (`plugins/orquestracao/licencas/`) |
+| `plugins/stack/agents/*` | ECC: `react-reviewer`, `typescript-reviewer`, `database-reviewer`, `security-reviewer`, `performance-optimizer`, `seo-specialist`, `docs-lookup` | MIT, affaan-m/ECC |
+| `plugins/stack/skills/*` | ECC: skills de React, TS, Next, Vite, motion, API, backend, Postgres, deploy, docker, segurança, benchmark, SEO, refactor-clean, documentation-lookup | MIT, affaan-m/ECC |
+| `plugins/stack/skills/react` (composição) | [vercel-labs/agent-skills](https://github.com/vercel-labs/agent-skills) — `composition-patterns` | MIT (declarada no frontmatter da skill de origem) © Vercel |
+| `plugins/stack/skills/tailwind` | [wshobson/agents](https://github.com/wshobson/agents) — `tailwind-design-system` | MIT © 2024 Seth Hobson (`plugins/stack/licencas/`) |
+| `plugins/stack/skills/seguranca` | [agamm/claude-code-owasp](https://github.com/agamm/claude-code-owasp) | MIT (`plugins/stack/licencas/LICENSE-agamm`) |
