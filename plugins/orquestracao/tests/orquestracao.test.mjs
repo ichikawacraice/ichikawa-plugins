@@ -1,6 +1,6 @@
 import { test, beforeEach } from 'node:test';
 import assert from 'node:assert/strict';
-import { mkdtempSync, readdirSync, readFileSync, writeFileSync, mkdirSync, chmodSync, unlinkSync } from 'node:fs';
+import { existsSync, mkdtempSync, readdirSync, readFileSync, writeFileSync, mkdirSync, chmodSync, unlinkSync } from 'node:fs';
 import { tmpdir, homedir } from 'node:os';
 import { join } from 'node:path';
 import * as estado from '../lib/estado.mjs';
@@ -11,6 +11,7 @@ import { decidir as configProtegida } from '../hooks/config-protegida.mjs';
 import { decidir as segredoSai } from '../hooks/segredo-sai.mjs';
 import { contexto } from '../hooks/inicio.mjs';
 import { pedirLimpeza } from '../hooks/orquestradora-limpa.mjs';
+import { lembrarLimpeza } from '../hooks/orquestradora-limpa-na-mensagem.mjs';
 import { tokensDoContexto } from '../hooks/comum.mjs';
 import { decidir as semNoVerify } from '../hooks/sem-no-verify.mjs';
 import { decidir as segredoEmArquivo } from '../hooks/segredo-em-arquivo.mjs';
@@ -349,7 +350,7 @@ test('passar-papel leva a orquestradora para o novo id depois do /clear, só na 
   await assert.rejects(rodar('passar-papel', '--sessao-id', 'sessao-sem-papel'), /sem papel/);
 });
 
-test('a limpeza lê o contexto do transcript e só pede à orquestradora, uma vez por degrau', async () => {
+test('a limpeza avisa sem bloquear, só à orquestradora, uma vez por degrau, e deixa a limpeza pendente', async () => {
   const transcript = join(mkdtempSync(join(tmpdir(), 'tr-')), 't.jsonl');
   const uso = (n) => JSON.stringify({ type: 'assistant', message: { usage: { input_tokens: 2, cache_creation_input_tokens: 0, cache_read_input_tokens: n } } });
   writeFileSync(transcript, `${uso(50_000)}\n{"type":"user"}\n${uso(160_000)}\nlinha quebrada\n`);
@@ -357,18 +358,37 @@ test('a limpeza lê o contexto do transcript e só pede à orquestradora, uma ve
   const entrada = { session_id: 'sessao-limpa-1', transcript_path: transcript };
   assert.equal(pedirLimpeza(entrada), null);
   await rodar('papel', 'orquestradora', '--sessao-id', 'sessao-limpa-1');
-  assert.equal(pedirLimpeza({ ...entrada, stop_hook_active: true }), null);
-  const pedido = pedirLimpeza(entrada);
-  assert.match(pedido, /"Contexto em 160 mil\. Posso limpar\? O chat desta sessão some\."/);
-  assert.match(pedido, /Não rode `clear_session`/);
-  assert.match(pedido, /sim explícito do operador/);
-  assert.match(pedido, /ok de outra sessão não vale/);
-  assert.match(pedido, /perguntas nova/);
-  assert.doesNotMatch(pedido, /Limpe-se agora/);
+  const pendente = join(process.env.ICHIKAWA_HOME, 'papeis', 'sessao-limpa-1.limpeza-pendente');
+  assert.equal(existsSync(pendente), false);
+  const saidaDoHook = pedirLimpeza(entrada);
+  assert.deepEqual(Object.keys(saidaDoHook), ['systemMessage']);
+  assert.equal(saidaDoHook.systemMessage, '🧹 Contexto em 160 mil tokens — limpo ao fim da sua próxima mensagem');
+  assert.equal(existsSync(pendente), true);
   assert.equal(pedirLimpeza(entrada), null);
   writeFileSync(transcript, `${uso(200_000)}\n`);
-  assert.match(pedirLimpeza(entrada), /200 mil/);
+  assert.match(pedirLimpeza(entrada).systemMessage, /200 mil/);
   assert.equal(tokensDoContexto(join(tmpdir(), 'nao-existe.jsonl')), null);
+});
+
+test('com a limpeza pendente, a próxima mensagem do operador manda responder e limpar ao fim do turno; passar-papel apaga a pendência', async () => {
+  const entrada = { session_id: 'sessao-limpa-3', prompt: 'oi' };
+  assert.equal(lembrarLimpeza(entrada), null);
+  await rodar('papel', 'orquestradora', '--sessao-id', 'sessao-limpa-3');
+  assert.equal(lembrarLimpeza(entrada), null);
+  const pendente = join(process.env.ICHIKAWA_HOME, 'papeis', 'sessao-limpa-3.limpeza-pendente');
+  writeFileSync(pendente, '160002');
+  const ctx = lembrarLimpeza(entrada);
+  assert.match(ctx, /Responda à mensagem/);
+  assert.match(ctx, /perguntas nova/);
+  assert.match(ctx, /perguntas passar-papel --sessao-id sessao-limpa-3/);
+  assert.match(ctx, /clear_session/);
+  assert.match(ctx, /"self"/);
+  assert.match(ctx, /brainstorming/);
+  assert.doesNotMatch(ctx, /Posso limpar/);
+  assert.match(lembrarLimpeza(entrada), /Responda à mensagem/, 'adiada, a pendência continua até o intervalo');
+  await rodar('passar-papel', '--sessao-id', 'sessao-limpa-3');
+  assert.equal(existsSync(pendente), false);
+  assert.equal(lembrarLimpeza(entrada), null);
 });
 
 test('o limite padrão da limpeza é 150 mil: 140 mil não pede, 150 mil pede', async () => {
@@ -380,7 +400,7 @@ test('o limite padrão da limpeza é 150 mil: 140 mil não pede, 150 mil pede', 
   writeFileSync(transcript, `${uso(140_000)}\n`);
   assert.equal(pedirLimpeza(entrada), null);
   writeFileSync(transcript, `${uso(150_000)}\n`);
-  assert.match(pedirLimpeza(entrada), /150 mil/);
+  assert.match(pedirLimpeza(entrada).systemMessage, /150 mil/);
 });
 
 test('a sigla sai das 3 primeiras letras do nome e pode ser configurada, sem repetir a de outro projeto', async () => {
