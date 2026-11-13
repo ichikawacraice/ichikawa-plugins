@@ -36,8 +36,8 @@ Você leva o item do plano ao merge na `develop`, sozinha. Sem fila, sem gate co
    perguntas item entregar IZA-F7 --desfecho entregue|parcial|parado --resultado "o que mudou para quem usa" \
      --medido "o que mediu e como" --nao-medido "o que ficou sem medir" --proximo "…" --pr <N>
    ```
-   `parado` (não deu): o motivo vai no `--resultado`.
-4. **Arquive-se** (`archive_session` com `"self"`). O wrap_up e a mensagem final começam por `IZA-F7 entregue · PR #N mergeado` (ou `IZA-F7 parado · <motivo>`): a orquestradora lê só o começo.
+   `parado` (não deu): o motivo vai no `--resultado`. Com PR aberto, o `--pr <N>` é obrigatório: é por ele que a orquestradora confere o merge.
+4. **Arquive-se** (`archive_session` com `"self"`). O arquivamento encerra a conversa no meio do turno: a nota de fim de turno **não chega** à orquestradora, que recebe só o aviso de "arquivada" e confere a entrega gravada (`perguntas item ver`) e o PR. Por isso a entrega gravada é o seu recado, não o wrap_up. Chame o `wrap_up` antes do `archive_session`, começando por `IZA-F7 entregue · PR #N mergeado` (ou `IZA-F7 parado · <motivo>`): é o que o operador lê se abrir a sessão.
 
 ## 6. Perguntas
 
