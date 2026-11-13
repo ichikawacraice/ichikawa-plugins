@@ -4,45 +4,62 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Contas do Claude</title>
+  <link rel="preload" href="/fontes/geist-medium.woff2" as="font" type="font/woff2" crossorigin>
   <link rel="stylesheet" href="/estilo.css">
+  <link rel="stylesheet" href="/cotas.css">
   <script type="module" src="/app.js"></script>
 </head>
 <body>
   <canvas id="ceu" class="ceu" aria-hidden="true"></canvas>
   <header class="topo">
+    <p class="selo-topo">Painel de contas</p>
     <h1>Contas do Claude</h1>
+    <p class="subtitulo" id="subtitulo"></p>
   </header>
 
   <main>
-    <div id="andamento" class="faixa faixa-andamento" role="status" hidden></div>
-    <div id="desfecho" class="faixa" role="status" hidden></div>
-    <div id="erro-geral" class="faixa faixa-erro" role="alert" hidden></div>
-
-    <section aria-labelledby="h-contas" class="secao">
-      <div class="secao-cab">
-        <h2 id="h-contas">Contas</h2>
-        <span class="lido" id="lido-uso"></span>
-        <div class="acoes-cab">
-          <button type="button" id="b-uso">Ler cota</button>
-          <button type="button" id="b-adicionar">Adicionar conta</button>
+    <div class="faixas">
+      <div id="aviso-cota" class="aviso-cota" role="alert" hidden>
+        <div class="aviso-cota-texto">
+          <p class="aviso-cota-titulo" id="aviso-cota-titulo"></p>
+          <p class="aviso-cota-corpo" id="aviso-cota-corpo"></p>
         </div>
+        <button type="button" class="primario" id="b-uso-aviso">Ler cota</button>
       </div>
-      <p class="aviso" id="aviso-chave" hidden></p>
-      <p class="aviso" id="aviso-importar" hidden>O kit de orquestração já tem logins guardados neste Mac. Para trazê-los sem entrar de novo em cada conta, rode no terminal: <code>trocar-conta importar-do-kit</code></p>
-      <ul id="lista-contas" class="lista-contas" aria-busy="true"><li class="esqueleto"></li><li class="esqueleto"></li></ul>
-    </section>
+      <div id="andamento" class="faixa faixa-andamento" role="status" hidden></div>
+      <div id="desfecho" class="faixa" role="status" hidden></div>
+      <div id="erro-geral" class="faixa faixa-erro" role="alert" hidden></div>
+    </div>
 
-    <section aria-labelledby="h-sessoes" class="secao">
-      <div class="secao-cab">
-        <h2 id="h-sessoes">Sessões do Code</h2>
-        <span class="lido" id="resumo-sessoes"></span>
-        <div class="acoes-cab">
-          <button type="button" id="b-sincronizar">Sincronizar lista</button>
+    <div>
+      <section aria-labelledby="h-contas" class="secao">
+        <div class="secao-cab">
+          <h2 id="h-contas">Contas</h2>
+          <span class="lido" id="lido-uso"></span>
+          <div class="acoes-cab">
+            <button type="button" id="b-uso">Ler cota</button>
+            <button type="button" id="b-adicionar">Adicionar conta</button>
+          </div>
         </div>
-      </div>
-      <p class="apoio">Na troca de conta, as sessões que estavam respondendo são retomadas sozinhas na conta nova, e a lista de conversas vem junto.</p>
-      <ul id="lista-sessoes" class="lista-sessoes"></ul>
-    </section>
+        <p class="aviso" id="aviso-chave" hidden></p>
+        <p class="aviso" id="aviso-importar" hidden>O kit de orquestração já tem logins guardados neste Mac. Para trazê-los sem entrar de novo em cada conta, rode no terminal: <code>trocar-conta importar-do-kit</code></p>
+        <ul id="lista-contas" class="cartoes lista-contas" aria-busy="true"><li class="esqueleto"></li><li class="esqueleto"></li></ul>
+      </section>
+    </div>
+
+    <div>
+      <section aria-labelledby="h-sessoes" class="secao">
+        <div class="secao-cab">
+          <h2 id="h-sessoes">Sessões do Code</h2>
+          <span class="lido" id="resumo-sessoes"></span>
+          <div class="acoes-cab">
+            <button type="button" id="b-sincronizar">Sincronizar lista</button>
+          </div>
+        </div>
+        <p class="apoio">Na troca de conta, as sessões que estavam respondendo são retomadas sozinhas na conta nova, e a lista de conversas vem junto.</p>
+        <ul id="lista-sessoes" class="lista-sessoes"></ul>
+      </section>
+    </div>
   </main>
 
   <footer class="pe">

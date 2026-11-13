@@ -58,3 +58,31 @@ test('andamento e desfecho', () => {
   assert.equal(desfecho({ comando: 'trocar', ok: true, mensagem: 'Conta trocada.', fim: new Date(AGORA).toISOString() }, AGORA).tom, 'ok');
   assert.equal(desfecho(null, AGORA), null);
 });
+
+test('avisoDaCota: velha, falhou, esperar a Anthropic e nada a dizer', async () => {
+  const { avisoDaCota, COTA_VELHA_MS } = await import('../publico/regras.js');
+  const contas = [{ uuid: 'a', ativa: true, salva: true }, { uuid: 'b', ativa: false, salva: true }, { uuid: 'c', ativa: false, salva: false }];
+  const lido = (ms) => ({ sessao: 10, semana: 20, lidoEm: new Date(AGORA - ms).toISOString(), erro: null });
+  assert.equal(COTA_VELHA_MS, 30 * 60_000);
+  // Tudo lido há pouco: sem aviso. A conta sem login não conta.
+  assert.equal(avisoDaCota({ contas, uso: { a: lido(60_000), b: lido(29 * 60_000) } }, AGORA), null);
+  // Lendo agora: sem aviso, mesmo velha.
+  assert.equal(avisoDaCota({ contas, uso: { a: lido(3_600_000) }, lendoUso: true }, AGORA), null);
+  // Sem contas: sem aviso.
+  assert.equal(avisoDaCota({ contas: [], uso: {} }, AGORA), null);
+  // Velha: diz há quanto, pela mais antiga.
+  const velha = avisoDaCota({ contas, uso: { a: lido(60_000), b: lido(2 * 3_600_000) } }, AGORA);
+  assert.equal(velha.tom, 'velha');
+  assert.match(velha.texto, /há 2 h/);
+  // Nunca lida também é velha.
+  assert.equal(avisoDaCota({ contas, uso: { a: lido(60_000) } }, AGORA).tom, 'velha');
+  assert.match(avisoDaCota({ contas, uso: {} }, AGORA).texto, /ainda não foi lida/);
+  // Falhou: erro vence velha; `limite` diz até quando esperar, em SP.
+  const espera = avisoDaCota({ contas, uso: { a: lido(60_000), b: { ...lido(2 * 3_600_000), erro: 'limite', tentarDepois: '2026-11-12T15:20:00.000Z' } } }, AGORA);
+  assert.equal(espera.tom, 'erro');
+  assert.match(espera.texto, /pediu para esperar/);
+  assert.match(espera.texto, /12:20/);
+  const rede = avisoDaCota({ contas, uso: { a: { ...lido(60_000), erro: 'rede' }, b: lido(60_000) } }, AGORA);
+  assert.equal(rede.tom, 'erro');
+  assert.match(rede.texto, /sem rede/);
+});

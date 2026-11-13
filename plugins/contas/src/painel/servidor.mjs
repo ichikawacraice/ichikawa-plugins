@@ -16,7 +16,10 @@ const ESTATICOS = {
   '/app.js': ['app.js', 'text/javascript; charset=utf-8'],
   '/regras.js': ['regras.js', 'text/javascript; charset=utf-8'],
   '/ceu.js': ['ceu.js', 'text/javascript; charset=utf-8'],
+  '/planeta.js': ['planeta.js', 'text/javascript; charset=utf-8'],
   '/estilo.css': ['estilo.css', 'text/css; charset=utf-8'],
+  '/cotas.css': ['cotas.css', 'text/css; charset=utf-8'],
+  '/fontes/geist-medium.woff2': ['fontes/geist-medium.woff2', 'font/woff2'],
 };
 const SEGURANCA = {
   'X-Content-Type-Options': 'nosniff',

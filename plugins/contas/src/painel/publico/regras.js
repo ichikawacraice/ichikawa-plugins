@@ -151,3 +151,35 @@ const CHAVE = {
   pronta: '',
 };
 export const fraseDaChave = (chave) => CHAVE[chave] ?? '';
+
+/** A partir de quanto tempo sem ler a cota a página pede, em destaque, para ler de novo. */
+export const COTA_VELHA_MS = 30 * 60_000;
+
+/**
+ * O aviso do topo quando a cota precisa ser lida de novo: `{ tom: 'erro' | 'velha', titulo, texto }` ou `null`.
+ * Só contam as contas que o painel consegue ler (a aberta no app ou com login salvo). Falha vence velhice; lendo agora, nada.
+ */
+export function avisoDaCota({ contas = [], uso = {}, lendoUso = false } = {}, agoraMs) {
+  if (lendoUso) return null;
+  const legiveis = contas.filter((c) => c.ativa || c.salva);
+  if (!legiveis.length) return null;
+  const usos = legiveis.map((c) => uso?.[c.uuid] ?? null);
+
+  const comErro = usos.filter((u) => u && ERRO_DO_USO[u.erro]);
+  if (comErro.length) {
+    const limite = comErro.find((u) => u.erro === 'limite');
+    const ate = limite ? paraMs(limite.tentarDepois) : null;
+    const espera = ate !== null && ate > agoraMs ? ` Tente de novo a partir de ${quando(ate, agoraMs)}.` : '';
+    const motivo = (limite ? ERRO_DO_USO.limite : ERRO_DO_USO[comErro[0].erro]);
+    const quantas = comErro.length === 1 ? 'uma conta' : `${comErro.length} contas`;
+    return { tom: 'erro', titulo: 'A última leitura da cota falhou', texto: `Em ${quantas}: ${motivo}.${espera} Os números abaixo podem estar velhos.` };
+  }
+
+  const lidos = usos.map((u) => paraMs(u?.lidoEm));
+  if (lidos.every((ms) => ms === null)) return { tom: 'velha', titulo: 'Leia a cota', texto: 'A cota destas contas ainda não foi lida.' };
+  const nuncaLida = lidos.some((ms) => ms === null);
+  const maisVelha = Math.min(...lidos.filter((ms) => ms !== null));
+  if (!nuncaLida && agoraMs - maisVelha < COTA_VELHA_MS) return null;
+  const texto = nuncaLida ? 'Alguma conta ainda não teve a cota lida.' : `A cota foi lida ${haQuanto(maisVelha, agoraMs)}; os números abaixo podem estar velhos.`;
+  return { tom: 'velha', titulo: 'Leia a cota de novo', texto };
+}

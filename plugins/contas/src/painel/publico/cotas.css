@@ -1,0 +1,146 @@
+/* As classes próprias do painel de contas: aviso de reler a cota, faixas, cartões de conta, barras de cota e sessões.
+   Base e tokens em estilo.css (cópia idêntica da página de perguntas, docs/contratos.md). Aqui só entram tokens da base:
+   tons translúcidos saem de `color-mix`, para o tema trocar só os tokens. */
+
+/* ---- faixas do topo: ocupam a largura toda acima das colunas ---- */
+.faixas { display: grid; gap: 10px; margin-top: 20px; }
+.faixas:not(:has(> :not([hidden]))) { display: none; }
+@media (min-width: 900px) { main > .faixas { grid-column: 1 / -1; margin-top: 0; margin-bottom: 8px; } }
+
+/* O aviso de reler a cota: o que mais chama atenção na página, com o botão junto. */
+.aviso-cota {
+  display: flex; align-items: center; gap: 12px 16px; flex-wrap: wrap;
+  padding: 14px 16px;
+  background:
+    linear-gradient(color-mix(in srgb, var(--alto) 10%, var(--vidro-forte)), color-mix(in srgb, var(--alto) 10%, var(--vidro-forte))) padding-box,
+    linear-gradient(135deg, var(--alto), var(--violeta)) border-box;
+  border: 1.5px solid transparent; border-radius: var(--raio);
+  box-shadow: 0 10px 34px -16px var(--violeta);
+  -webkit-backdrop-filter: blur(8px); backdrop-filter: blur(8px);
+}
+.aviso-cota[hidden] { display: none; }
+.aviso-cota.erro {
+  background:
+    linear-gradient(color-mix(in srgb, var(--critico) 12%, var(--vidro-forte)), color-mix(in srgb, var(--critico) 12%, var(--vidro-forte))) padding-box,
+    linear-gradient(135deg, var(--critico), var(--violeta)) border-box;
+  box-shadow: 0 10px 34px -16px var(--critico);
+}
+.aviso-cota-texto { flex: 1 1 220px; min-width: 0; }
+.aviso-cota-titulo { margin: 0; font: 500 var(--t-cartao)/20px var(--titulo); color: var(--alto); }
+.aviso-cota.erro .aviso-cota-titulo { color: var(--critico); }
+.aviso-cota-titulo::before { content: "●"; margin-right: 8px; font-size: 10px; vertical-align: 2px; animation: pisca 2.4s ease-in-out infinite; }
+.aviso-cota-corpo { margin: 2px 0 0; color: var(--texto); font-size: var(--t-corpo); line-height: 20px; overflow-wrap: anywhere; }
+.aviso-cota button { flex: 0 0 auto; min-height: 40px; padding-inline: 20px; }
+@keyframes pisca { 50% { opacity: 0.35; } }
+
+/* Faixas de andamento, desfecho e erro. */
+.faixa {
+  padding: 10px 14px; font-size: var(--t-apoio); line-height: 18px;
+  display: flex; gap: 8px 10px; align-items: center; flex-wrap: wrap;
+  background: var(--vidro-forte); border: 1px solid var(--fio-forte); border-radius: var(--raio);
+  -webkit-backdrop-filter: blur(6px); backdrop-filter: blur(6px);
+}
+.faixa[hidden] { display: none; }
+.faixa > span { flex: 1 1 180px; min-width: 0; }
+.faixa-andamento { border-color: color-mix(in srgb, var(--violeta) 60%, transparent); }
+.faixa-andamento::before {
+  content: ""; width: 12px; height: 12px; border-radius: 50%; flex: none;
+  border: 2px solid var(--violeta); border-right-color: transparent; animation: gira 0.9s linear infinite;
+}
+.faixa.ok { border-color: color-mix(in srgb, var(--ok) 55%, transparent); }
+.faixa.erro, .faixa-erro { border-color: color-mix(in srgb, var(--critico) 65%, transparent); }
+.faixa .fechar { margin-left: auto; }
+@keyframes gira { to { transform: rotate(360deg); } }
+
+/* ---- seções ---- */
+.acoes-cab { margin-left: auto; display: flex; gap: 6px; flex-wrap: wrap; }
+.apoio { color: var(--texto-2); font-size: var(--t-meta); line-height: 16px; margin: 8px 0 0; }
+.aviso {
+  margin: 12px 0 0; padding: 10px 12px; font-size: var(--t-apoio); line-height: 18px; color: var(--texto-2);
+  background: var(--vidro); border: 1px solid var(--fio); border-left: 3px solid var(--alto); border-radius: var(--raio-botao);
+}
+code { font: 12px var(--mono); background: var(--vidro-forte); padding: 1px 5px; border-radius: 4px; overflow-wrap: anywhere; }
+
+/* ---- cartões de conta ---- */
+.cartoes > li {
+  padding: 14px 16px;
+  background: var(--vidro); border: 1px solid var(--fio); border-radius: var(--raio);
+  -webkit-backdrop-filter: blur(6px); backdrop-filter: blur(6px);
+}
+.cartoes > li.vazio { background: none; border: 0; padding: 4px 0; -webkit-backdrop-filter: none; backdrop-filter: none; }
+.lista-contas > li.conta-ativa {
+  border-color: transparent;
+  background:
+    linear-gradient(var(--vidro-forte), var(--vidro-forte)) padding-box,
+    linear-gradient(135deg, color-mix(in srgb, var(--lilas) 70%, transparent), color-mix(in srgb, var(--violeta) 80%, transparent)) border-box;
+  box-shadow: 0 8px 30px -14px var(--violeta);
+}
+.esqueleto { height: 108px; background: linear-gradient(90deg, var(--vidro), var(--violeta-fundo), var(--vidro)); }
+
+.conta { display: grid; gap: 8px; }
+.conta-nome { font: 500 var(--t-cartao)/20px var(--titulo); letter-spacing: -0.005em; display: flex; align-items: center; gap: 6px 8px; flex-wrap: wrap; overflow-wrap: anywhere; }
+.conta-apoio { margin-top: 2px; color: var(--texto-3); font-size: var(--t-meta); line-height: 16px; overflow-wrap: anywhere; font-variant-numeric: tabular-nums; }
+.selo {
+  flex: none; padding: 1px 9px;
+  font: 500 11px/18px var(--fonte);
+  border-radius: 999px; border: 1px solid currentColor;
+}
+.selo-ativa { color: var(--ok); background: color-mix(in srgb, var(--ok) 8%, transparent); border-color: color-mix(in srgb, var(--ok) 35%, transparent); }
+.selo-sem-login { color: var(--alto); background: color-mix(in srgb, var(--alto) 8%, transparent); border-color: color-mix(in srgb, var(--alto) 35%, transparent); }
+.conta-uso { display: grid; gap: 6px; margin-top: 2px; }
+.conta-erro { font-size: var(--t-meta); line-height: 16px; color: var(--critico); }
+.conta-acoes { display: flex; gap: 6px; flex-wrap: wrap; }
+.conta-acoes .primario { flex: 1 1 auto; }
+/* Botões do cartão na altura da barra de cota: a coluna é estreita e o cartão fica baixo. */
+.conta-acoes button { min-height: 28px; height: 28px; padding: 0 12px; font-size: var(--t-meta); line-height: 1; border-radius: 8px; }
+
+/* ---- barra de cota: o texto mora dentro ---- */
+.barra {
+  position: relative; height: 28px; overflow: hidden;
+  background: color-mix(in srgb, var(--espaco) 70%, transparent); border: 1px solid var(--fio); border-radius: 8px;
+}
+.barra-cheia {
+  position: absolute; inset: 0 auto 0 0; display: block;
+  background: linear-gradient(90deg, color-mix(in srgb, var(--violeta) 55%, var(--espaco)), var(--violeta));
+  box-shadow: 4px 0 12px -2px color-mix(in srgb, var(--violeta) 70%, transparent);
+  border-radius: 0 6px 6px 0;
+}
+.barra.alto .barra-cheia { background: linear-gradient(90deg, var(--violeta), color-mix(in srgb, var(--alto) 70%, var(--violeta))); box-shadow: 4px 0 12px -2px color-mix(in srgb, var(--alto) 70%, transparent); }
+.barra.critico .barra-cheia { background: linear-gradient(90deg, color-mix(in srgb, var(--critico) 45%, var(--violeta)), color-mix(in srgb, var(--critico) 80%, var(--espaco))); box-shadow: 4px 0 12px -2px color-mix(in srgb, var(--critico) 75%, transparent); }
+.barra-texto {
+  position: relative; display: flex; align-items: center; gap: 8px; height: 100%; padding: 0 10px;
+  font: 500 var(--t-meta)/1 var(--fonte); font-variant-numeric: tabular-nums;
+  text-shadow: 0 1px 2px var(--espaco);
+  white-space: nowrap;
+}
+.barra-rot { color: var(--texto-2); flex: none; }
+.barra-dado { margin-left: auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; color: var(--texto); }
+
+/* ---- dar nome ---- */
+.nomear { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; }
+.nomear input {
+  font: inherit; min-height: 36px; padding: 8px 12px; flex: 1 1 100%; min-width: 0;
+  color: var(--texto); background: color-mix(in srgb, var(--espaco) 60%, transparent); border: 1px solid var(--fio-forte); border-radius: var(--raio-botao);
+}
+.nomear input:focus-visible { outline: 2px solid var(--foco); outline-offset: 2px; border-color: transparent; }
+.nomear button { flex: 1 1 0; }
+.nomear .motivo { color: var(--critico); font-size: var(--t-meta); width: 100%; }
+.nomear .motivo:empty { display: none; }
+
+/* ---- sessões: uma lista de vidro, linha por sessão ---- */
+.lista-sessoes { gap: 0; background: var(--vidro); border: 1px solid var(--fio); border-radius: var(--raio); overflow: hidden; -webkit-backdrop-filter: blur(6px); backdrop-filter: blur(6px); }
+.lista-sessoes > li { border-top: 1px solid var(--fio); }
+.lista-sessoes > li:first-child { border-top: 0; }
+.lista-sessoes > li.vazio { padding: 10px 16px; }
+.lista-sessoes:empty { display: none; }
+.sessao { display: flex; gap: 10px; align-items: baseline; padding: 10px 16px; }
+.ponto { width: 8px; height: 8px; border-radius: 50%; background: var(--texto-3); flex: none; transform: translateY(-1px); }
+.ponto.respondendo { background: var(--ok); box-shadow: 0 0 8px 1px color-mix(in srgb, var(--ok) 70%, transparent); animation: pulsa 2.4s ease-in-out infinite; }
+@keyframes pulsa { 50% { box-shadow: 0 0 3px 0 color-mix(in srgb, var(--ok) 40%, transparent); } }
+.sessao-corpo { min-width: 0; flex: 1; }
+.sessao-titulo { font-size: var(--t-corpo); line-height: 20px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.sessao-apoio { color: var(--texto-3); font-size: var(--t-meta); line-height: 16px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+@media (prefers-reduced-motion: reduce) {
+  .faixa-andamento::before, .ponto.respondendo, .aviso-cota-titulo::before { animation: none; }
+}

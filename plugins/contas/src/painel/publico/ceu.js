@@ -1,6 +1,9 @@
-// O céu do fundo: uma via láctea em diagonal (pintada uma vez numa camada fixa) e poucas constelações que cintilam.
+// O céu do fundo: uma via láctea em diagonal (pintada uma vez numa camada fixa), poucas constelações que cintilam
+// e um planeta nascendo no rodapé (planeta.js).
 // Leve de propósito: o painel fica aberto o dia todo. Até 12 quadros por segundo, para quando a aba some e,
 // com `prefers-reduced-motion`, desenha um quadro só.
+
+import { prepararPlaneta, quadroPlaneta } from './planeta.js';
 
 const QUADRO_MS = 1000 / 12;
 const DPR_MAX = 2;
@@ -28,17 +31,17 @@ function pertoDaFaixa(x, y, w, h) {
 
 function pintarFixo(ctx, w, h) {
   const fundo = ctx.createLinearGradient(0, 0, w, h);
-  fundo.addColorStop(0, '#060818');
-  fundo.addColorStop(0.55, '#0a0d2a');
-  fundo.addColorStop(1, '#120a2e');
+  fundo.addColorStop(0, '#030014');
+  fundo.addColorStop(0.55, '#06021c');
+  fundo.addColorStop(1, '#0c0428');
   ctx.fillStyle = fundo;
   ctx.fillRect(0, 0, w, h);
 
-  // Nebulosas: manchas largas e bem apagadas, azul de um lado e roxo do outro.
+  // Nebulosas: manchas largas e bem apagadas, índigo de um lado e violeta do outro (a paleta da página parte de #030014).
   const nebulosas = [
-    [w * 0.15, h * 0.85, Math.max(w, h) * 0.55, 'rgba(61, 91, 255, 0.16)'],
-    [w * 0.85, h * 0.12, Math.max(w, h) * 0.5, 'rgba(150, 70, 255, 0.16)'],
-    [w * 0.5, h * 0.5, Math.max(w, h) * 0.35, 'rgba(110, 80, 230, 0.10)'],
+    [w * 0.15, h * 0.85, Math.max(w, h) * 0.55, 'rgba(76, 60, 220, 0.12)'],
+    [w * 0.85, h * 0.12, Math.max(w, h) * 0.5, 'rgba(139, 70, 255, 0.14)'],
+    [w * 0.5, h * 0.5, Math.max(w, h) * 0.35, 'rgba(110, 70, 230, 0.07)'],
   ];
   for (const [x, y, r, cor] of nebulosas) {
     const g = ctx.createRadialGradient(x, y, 0, x, y, r);
@@ -63,7 +66,7 @@ function pintarFixo(ctx, w, h) {
   }
   const brilho = ctx.createLinearGradient(0, h, w, 0);
   brilho.addColorStop(0.3, 'rgba(120, 140, 255, 0)');
-  brilho.addColorStop(0.52, 'rgba(140, 130, 255, 0.11)');
+  brilho.addColorStop(0.52, 'rgba(150, 125, 255, 0.08)');
   brilho.addColorStop(0.75, 'rgba(120, 140, 255, 0)');
   ctx.fillStyle = brilho;
   ctx.fillRect(0, 0, w, h);
@@ -113,10 +116,13 @@ export function iniciarCeu(canvas) {
   let h = 0;
   let constelacoes = [];
   let cintilantes = [];
+  let planeta = null;
   let pedido = 0;
   let ultimo = 0;
 
   const quadro = (t) => {
+    // Aba aberta com tamanho 0 (painel recolhido): não há o que pintar, e drawImage de canvas vazio lança erro.
+    if (!camada.width || !camada.height) return;
     ctx.drawImage(camada, 0, 0, w, h);
     const s = t / 1000;
     ctx.lineWidth = 0.6;
@@ -128,6 +134,7 @@ export function iniciarCeu(canvas) {
       for (const p of pontos) estrela(ctx, p.x, p.y, 1.3, 0.65 + 0.35 * Math.sin(s * 0.8 + p.fase));
     }
     for (const c of cintilantes) estrela(ctx, c.x, c.y, c.tam, 0.25 + 0.5 * (0.5 + 0.5 * Math.sin(s * c.ritmo + c.fase)));
+    if (planeta) quadroPlaneta(ctx, planeta, s);
   };
 
   const medir = () => {
@@ -141,6 +148,7 @@ export function iniciarCeu(canvas) {
     pintarFixo(cctx, w, h);
     constelacoes = montarConstelacoes(w, h);
     cintilantes = montarCintilantes(w, h);
+    planeta = prepararPlaneta(w, h, dpr, sorteio);
     quadro(performance.now());
   };
 

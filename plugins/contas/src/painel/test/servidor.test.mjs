@@ -33,7 +33,7 @@ test('serve a tela com CSP e recusa Host de fora', async () => {
   const m = montar();
   const s = await subir(m.env);
   try {
-    for (const [caminho, tipo] of [['/', /text\/html/], ['/app.js', /javascript/], ['/regras.js', /javascript/], ['/ceu.js', /javascript/], ['/estilo.css', /text\/css/]]) {
+    for (const [caminho, tipo] of [['/', /text\/html/], ['/app.js', /javascript/], ['/regras.js', /javascript/], ['/ceu.js', /javascript/], ['/estilo.css', /text\/css/], ['/cotas.css', /text\/css/], ['/planeta.js', /javascript/], ['/fontes/geist-medium.woff2', /font\/woff2/]]) {
       const r = await pedir(s.porta, caminho);
       assert.equal(r.status, 200, caminho);
       assert.ok(r.texto.length > 0, caminho);
