@@ -2,12 +2,13 @@
 // `abrir-painel-de-contas [--porta N] [--sem-abrir]`: abre o painel no navegador do sistema e sai. Se o painel
 // não está no ar, sobe-o desacoplado (sobrevive a quem chamou, inclusive ao app do Claude fechar na troca) e
 // espera ele responder. Com `--sem-abrir`, só garante o painel no ar: é o `comando` do botão "Contas" da barra
-// (barra.json), que declara `url` e abre a página no navegador do app depois que o comando termina.
+// (barra.json), que declara `url` e abre a página no navegador do app depois que o comando termina. Se o painel no ar
+// é de outra versão do plugin (outra pasta no cache), troca-o pelo desta (ICH-F23).
 import { spawn } from 'node:child_process';
 import { realpathSync } from 'node:fs';
 import { setTimeout as esperar } from 'node:timers/promises';
 import { fileURLToPath } from 'node:url';
-import { PORTA_PADRAO, abrirNavegador, ehOPainel } from './cli.mjs';
+import { PASTA_DO_PLUGIN, PORTA_PADRAO, abrirNavegador, encerrarProcesso, processosNaPorta, saudeDoPainel, trocarPainelDeOutraVersao } from './cli.mjs';
 
 const CLI = fileURLToPath(new URL('./cli.mjs', import.meta.url));
 const PRAZO_MS = 8000;
@@ -40,16 +41,19 @@ function subirDesacoplado(porta) {
 /** Devolve o código de saída. Dependências trocáveis no teste. */
 export async function abrirPainel({
   argv = [], env = process.env, saida = (t) => console.log(t), erro = (t) => console.error(t),
-  noAr = ehOPainel, subir = subirDesacoplado, abrir = abrirNavegador, prazoMs = PRAZO_MS,
+  saude = saudeDoPainel, subir = subirDesacoplado, abrir = abrirNavegador, prazoMs = PRAZO_MS,
+  pasta = PASTA_DO_PLUGIN, processos = processosNaPorta, encerrar = encerrarProcesso,
 } = {}) {
   const a = lerPorta(argv, env);
   if (a.ajuda) { saida(USO); return 0; }
   if (a.erro) { erro(`${a.erro}\n${USO}`); return 2; }
   const url = `http://127.0.0.1:${a.porta}`;
-  if (!(await noAr(a.porta))) {
+  let noAr = await saude(a.porta);
+  if (noAr && noAr.pasta !== pasta && await trocarPainelDeOutraVersao(a.porta, { pasta, saude, processos, encerrar, prazoMs, aviso: erro })) noAr = null;
+  if (!noAr) {
     subir(a.porta);
     const limite = Date.now() + prazoMs;
-    while (!(await noAr(a.porta))) {
+    while (!(await saude(a.porta))) {
       if (Date.now() >= limite) {
         erro(`o painel não respondeu em ${url}; rode \`painel-de-contas --porta ${a.porta}\` num terminal para ver o erro`);
         return 1;

@@ -12,7 +12,7 @@
   "engines": { "node": ">=20" },
   "os": ["darwin"],
   "scripts": {
-    "test": "node --test --test-concurrency=4 'src/**/test/*.test.mjs'",
+    "test": "node --test --test-concurrency=4 'src/**/test/*.test.mjs' && node --test --test-concurrency=1 'src/**/test/*.serial.mjs'",
     "painel": "node src/painel/cli.mjs"
   },
   "license": "Apache-2.0"

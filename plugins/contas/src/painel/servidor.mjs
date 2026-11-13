@@ -41,8 +41,8 @@ export async function ceuDoAusente(env) {
   } catch { return 'dia'; }
 }
 
-/** `contas`: `{ env, app, spawn, cli, kill, comandoDoPid, uso: { fetch, agora, lerSenha } }`, tudo opcional (os testes injetam). */
-export function criarServidor({ publico, versao = '0.0.0', contas = {} }) {
+/** `pasta`: a do plugin (uma por versão no cache), que `/api/saude` diz para quem abre trocar o servidor de outra versão. `contas`: `{ env, app, spawn, cli, kill, comandoDoPid, uso: { fetch, agora, lerSenha } }`, tudo opcional (os testes injetam). */
+export function criarServidor({ publico, versao = '0.0.0', pasta = null, contas = {} }) {
   const servidor = createServer(async (req, res) => {
     const enviar = (status, tipo, corpo, extra = {}) => {
       res.writeHead(status, { ...SEGURANCA, 'Content-Type': tipo, ...extra });
@@ -67,7 +67,7 @@ export function criarServidor({ publico, versao = '0.0.0', contas = {} }) {
         if (caminho === '/') return enviar(200, tipo, corpo.toString('utf8').replace('<html lang="pt-BR">', `<html lang="pt-BR" data-ceu="${await ceuDoAusente(env)}">`), NO_STORE);
         return enviar(200, tipo, corpo, { 'Cache-Control': 'no-cache' });
       }
-      if (caminho === '/api/saude') return json(200, { painel: 'contas', versao, pid: process.pid }, NO_STORE);
+      if (caminho === '/api/saude') return json(200, { painel: 'contas', versao, pasta, pid: process.pid }, NO_STORE);
       if (caminho === '/api/ceu') return json(200, { ceu: await ceuDoAusente(env) }, NO_STORE);
       if (caminho === '/api/contas') {
         if (req.method === 'HEAD') return json(200, {}, NO_STORE);

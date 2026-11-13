@@ -1,7 +1,7 @@
 // A mesma conversa aparece na lista de cada conta, e cada cópia ocupava disco de novo (1,2 GB de repetição em 7 contas).
 // O enxugar re-clona a cópia a partir de uma só: os blocos passam a ser divididos e cada arquivo segue independente.
 import assert from 'node:assert/strict';
-import { closeSync, existsSync, fsyncSync, openSync, readFileSync, readdirSync, statSync, statfsSync, utimesSync, writeFileSync, writeSync } from 'node:fs';
+import { existsSync, readFileSync, readdirSync, statSync, utimesSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { describe, it } from 'node:test';
 import { enxugar, hashDoArquivo, reclonar } from '../conversas.mjs';
@@ -173,31 +173,4 @@ describe('enxugar: temporário de rodada interrompida', () => {
   });
 });
 
-describe('enxugar: o disco que volta (medido no volume)', () => {
-  // O teste que faltava: conteúdo igual e `ino` diferente também passariam numa cópia comum, que gasta o disco de novo.
-  // Aqui o que se mede é o espaço livre do volume antes e depois.
-  const gravar = (caminho, texto) => {
-    const fd = openSync(caminho, 'w');
-    try { writeSync(fd, texto); fsyncSync(fd); } finally { closeSync(fd); }
-  };
-
-  it('a cópia re-clonada devolve o espaço que a cópia comum gastou', (t) => {
-    if (process.platform !== 'darwin') { t.skip('o clone de blocos é do APFS'); return; }
-    const amb = montar();
-    const grande = `{"t":"${'x'.repeat(24 * 1024 * 1024)}"}`;
-    const a = entrada(amb.sessoes, CONTA_A, ORG, 'g');
-    const b = entrada(amb.sessoes, CONTA_B, ORG, 'g');
-    const livre = () => { const s = statfsSync(amb.sessoes); return s.bavail * s.bsize; };
-    gravar(a, grande);
-    const antesDaCopia = livre();
-    gravar(b, grande); // cópia comum: o mesmo conteúdo gastando disco de novo
-    const gasto = antesDaCopia - livre();
-    if (gasto < 12 * 1024 * 1024) { t.skip(`o espaço livre do volume não mostra o gasto da cópia (${gasto} bytes): a medição não detectaria a economia`); return; }
-    const depoisDaCopia = livre();
-    const r = enxugar(amb.sessoes, { referencia: CONTA_A, aplicar: true });
-    assert.deepEqual({ reclonados: r.reclonados, pulados: r.pulados }, { reclonados: 1, pulados: 0 });
-    const devolvido = livre() - depoisDaCopia;
-    assert.ok(devolvido > gasto / 2, `o enxugo devolveu ${devolvido} bytes dos ${gasto} que a cópia gastou: não clonou, só copiou de novo`);
-    assert.equal(readFileSync(b, 'utf8'), grande, 'a cópia re-clonada perdeu o conteúdo');
-  });
-});
+// O teste que mede o espaço livre do volume fica em enxugar-disco.serial.mjs: roda depois, sem outro teste gravando junto.
