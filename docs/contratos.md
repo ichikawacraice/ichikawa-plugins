@@ -11,9 +11,11 @@ Tudo o que é de máquina (não de projeto) mora em `~/.claude/ichikawa/` (`$ICH
 | `ausente.json` | `barra` | `orquestracao` |
 | `perguntas/<projeto>/Q<n>.json` | `orquestracao` | `orquestracao` (página) |
 | `itens/<projeto>/F<n>.json` | `orquestracao` | `orquestracao` (página) |
+| `siglas.json` | `orquestracao` (`perguntas sigla`) | `orquestracao` |
 | `pedidos/<uuid>.json` | página do `orquestracao` | `barra` (o mod toma, executa e apaga) |
 
 - **`<projeto>`** é o nome da pasta raiz do repositório principal (pai do `git rev-parse --path-format=absolute --git-common-dir`), para todos os worktrees darem o mesmo nome.
+- **Sigla do projeto**: 3 letras ou dígitos que antecedem o id na leitura (`IZA-F3`, `IZA-Q12`). Sai das 3 primeiras letras ou dígitos do nome, em maiúsculas, ou de `siglas.json` (`{ "<projeto>": "IZA" }`, gravado por `perguntas sigla`). O arquivo e o campo `id` seguem sem sigla (`F3.json`, `"id": "F3"`); o CLI aceita os dois formatos.
 - **Um arquivo por registro.** Ninguém acrescenta linha a arquivo dividido. O próximo número sai de varrer a pasta e criar `Q<max+1>.json` com a flag `wx`; se o arquivo já existir (outra sessão ganhou), tenta o seguinte.
 
 ### `ausente.json`

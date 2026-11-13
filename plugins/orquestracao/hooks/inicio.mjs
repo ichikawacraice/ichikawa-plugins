@@ -11,13 +11,14 @@ const REGRAS = fileURLToPath(new URL('../regras.md', import.meta.url));
 export function contexto(entrada) {
   const partes = [readFileSync(REGRAS, 'utf8').trim()];
   if (entrada.session_id) partes.push(`ID desta sessão para \`perguntas papel\`: ${entrada.session_id}`);
+  const projeto = estado.nomeDoProjeto(entrada.cwd || process.cwd());
+  partes.push(`Sigla do projeto: **${estado.sigla(projeto)}** — itens e perguntas se escrevem \`${estado.sigla(projeto)}-F7\`, \`${estado.sigla(projeto)}-Q12\` em títulos e mensagens (o CLI aceita os dois).`);
   const herdado = herdarPapel(entrada);
   const papel = herdado ?? papelDe(entrada.session_id);
   if (papel) partes.push(`Papel desta sessão: **${papel}** (siga a skill \`orquestracao:${papel}\`).`);
   if (herdado) partes.push('Você acabou de ser limpa: o andamento está em `perguntas item listar` e `perguntas listar`. Não releia transcripts; responda ao que chegar.');
   const ausente = estado.lerAusente();
   if (ausente) partes.push(`O operador está AUSENTE desde ${ausente.desde ?? '?'}: pergunte pela página (\`perguntas nova\`), não pare esperando no chat; siga com o que não depende dele.`);
-  const projeto = estado.nomeDoProjeto(entrada.cwd || process.cwd());
   const novas = estado.listar('perguntas', projeto).filter((p) => p.estado === 'respondida' && p.lida === false);
   if (novas.length) partes.push(`Há ${novas.length} resposta(s) dada(s) pela página e não lida(s): rode \`perguntas novidades\`.`);
   return partes.join('\n\n');

@@ -5,7 +5,7 @@ import { existsSync, readFileSync, writeFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { lerEntrada, marcadorDe, papelDe, rodar, tokensDoContexto } from './comum.mjs';
 
-const LIMITE_PADRAO = 110_000;
+const LIMITE_PADRAO = 150_000;
 const DEGRAU = 40_000;
 const MIL = 1_000;
 

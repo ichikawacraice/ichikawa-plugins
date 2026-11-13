@@ -294,15 +294,92 @@ test('passar-papel leva a orquestradora para o novo id depois do /clear, só na 
 test('a limpeza lê o contexto do transcript e só pede à orquestradora, uma vez por degrau', async () => {
   const transcript = join(mkdtempSync(join(tmpdir(), 'tr-')), 't.jsonl');
   const uso = (n) => JSON.stringify({ type: 'assistant', message: { usage: { input_tokens: 2, cache_creation_input_tokens: 0, cache_read_input_tokens: n } } });
-  writeFileSync(transcript, `${uso(50_000)}\n{"type":"user"}\n${uso(130_000)}\nlinha quebrada\n`);
-  assert.equal(tokensDoContexto(transcript), 130_002);
+  writeFileSync(transcript, `${uso(50_000)}\n{"type":"user"}\n${uso(160_000)}\nlinha quebrada\n`);
+  assert.equal(tokensDoContexto(transcript), 160_002);
   const entrada = { session_id: 'sessao-limpa-1', transcript_path: transcript };
   assert.equal(pedirLimpeza(entrada), null);
   await rodar('papel', 'orquestradora', '--sessao-id', 'sessao-limpa-1');
   assert.equal(pedirLimpeza({ ...entrada, stop_hook_active: true }), null);
-  assert.match(pedirLimpeza(entrada), /130 mil/);
+  assert.match(pedirLimpeza(entrada), /160 mil/);
   assert.equal(pedirLimpeza(entrada), null);
-  writeFileSync(transcript, `${uso(170_000)}\n`);
-  assert.match(pedirLimpeza(entrada), /170 mil/);
+  writeFileSync(transcript, `${uso(200_000)}\n`);
+  assert.match(pedirLimpeza(entrada), /200 mil/);
   assert.equal(tokensDoContexto(join(tmpdir(), 'nao-existe.jsonl')), null);
+});
+
+test('o limite padrão da limpeza é 150 mil: 140 mil não pede, 150 mil pede', async () => {
+  delete process.env.ORQUESTRADORA_LIMPA_EM;
+  const transcript = join(mkdtempSync(join(tmpdir(), 'tr-')), 't.jsonl');
+  const uso = (n) => JSON.stringify({ type: 'assistant', message: { usage: { input_tokens: 0, cache_read_input_tokens: n } } });
+  await rodar('papel', 'orquestradora', '--sessao-id', 'sessao-limpa-2');
+  const entrada = { session_id: 'sessao-limpa-2', transcript_path: transcript };
+  writeFileSync(transcript, `${uso(140_000)}\n`);
+  assert.equal(pedirLimpeza(entrada), null);
+  writeFileSync(transcript, `${uso(150_000)}\n`);
+  assert.match(pedirLimpeza(entrada), /150 mil/);
+});
+
+test('a sigla sai das 3 primeiras letras do nome e pode ser configurada, sem repetir a de outro projeto', async () => {
+  assert.equal(estado.sigla('Izanagi'), 'IZA');
+  assert.equal(estado.sigla('ichikawa-plugins'), 'ICH');
+  assert.equal(estado.sigla('WiControl'), 'WIC');
+  assert.equal(estado.sigla('a-b'), 'ABX');
+  assert.equal(estado.rotulo('Izanagi', 'F3'), 'IZA-F3');
+  estado.criar('itens', 'Izanagi', { titulo: 'x' });
+  estado.criar('itens', 'Izanagui', { titulo: 'y' });
+  await rodar('sigla', '--todas');
+  assert.match(saida.join('\n'), /IZA · Izanagi .*coincide/);
+  await assert.rejects(rodar('sigla', 'iza', '--projeto', 'Izanagui'), /IZA já é de Izanagi/);
+  await assert.rejects(rodar('sigla', 'I2', '--projeto', 'Izanagui'), /3 letras/);
+  await rodar('sigla', 'izg', '--projeto', 'Izanagui');
+  assert.equal(estado.sigla('Izanagui'), 'IZG');
+  await rodar('sigla', '--projeto', 'Izanagui');
+  assert.equal(saida[0], 'IZG');
+  await rodar('item', 'listar', '--projeto', 'Izanagui');
+  assert.match(saida[0], /^IZG-F1 · y/);
+});
+
+test('o CLI aceita F3 e IZA-F3; a sigla escolhe o projeto e não deixa mexer no de outro', async () => {
+  await rodar('item', 'nova', 'Login', '--projeto', 'Izanagi');
+  assert.equal(saida[0], 'IZA-F1');
+  await rodar('item', 'nova', 'Busca', '--projeto', 'Izanagi');
+  await rodar('item', 'etapa', 'F1', 'execucao', '--projeto', 'Izanagi');
+  assert.equal(saida[0], 'IZA-F1 · Login — execucao');
+  await rodar('item', 'etapa', 'iza-f2', 'revisao');
+  assert.equal(estado.ler('itens', 'Izanagi', 'F2').etapa, 'revisao');
+  await assert.rejects(rodar('item', 'etapa', 'IZA-F1', 'pr', '--projeto', 'WiControl'), /IZA-F1 é de Izanagi/);
+  await assert.rejects(rodar('item', 'etapa', 'ZZZ-F1', 'pr'), /nenhum projeto com a sigla ZZZ/);
+  await rodar('nova', '--titulo', 'T', '--caso', 'c', '--se-nao', 's', '--recomendacao', 'r', '--item', 'IZA-F1');
+  assert.equal(saida[0], 'IZA-Q1');
+  assert.equal(estado.ler('perguntas', 'Izanagi', 'Q1').item, 'F1');
+  await rodar('responder', 'IZA-Q1', 'pode');
+  assert.match(saida[0], /^IZA-Q1 · T \(IZA-F1\) — respondida/);
+  await rodar('item', 'entregar', 'IZA-F2', '--desfecho', 'entregue', '--resultado', 'ok');
+  assert.equal(saida[0], 'IZA-F2 · Busca — entregue');
+  await rodar('item', 'listar', '--projeto', 'Izanagi');
+  assert.deepEqual(saida, ['IZA-F1 · Login — execucao']);
+});
+
+test('a página separa Em andamento por projeto e põe o projeto na primeira linha de Perguntas e Entregues', () => {
+  const agora = new Date().toISOString();
+  estado.criar('itens', 'WiControl', { titulo: 'painel', etapa: 'execucao' });
+  estado.criar('itens', 'Izanagi', { titulo: 'login', etapa: 'execucao' });
+  estado.criar('itens', 'Izanagi', { titulo: 'busca', etapa: 'pr', pr: 9 });
+  estado.criar('itens', 'Izanagi', { titulo: 'feito', etapa: 'feito', entrega: { desfecho: 'entregue', resultado: 'ok', em: agora } });
+  estado.criar('perguntas', 'WiControl', { titulo: 'apagar?', estado: 'aberta', item: 'F1' });
+  const h = html();
+  const andamento = h.slice(h.indexOf('id="h-andamento"'), h.indexOf('id="h-entregas"'));
+  const grupos = [...andamento.matchAll(/<h3 class="grupo">([^<]+)<\/h3>/g)].map((m) => m[1]);
+  assert.deepEqual(grupos, ['Izanagi', 'WiControl']);
+  assert.ok(andamento.indexOf('IZA-F2') < andamento.indexOf('WiControl'), 'os itens ficam sob o próprio projeto');
+  assert.doesNotMatch(andamento, /cartao-projeto/, 'em andamento não repete o projeto no cartão');
+  const pergunta = /<li><p class="cartao-projeto">([^<]+)<\/p><div class="cartao-cab"><span class="id">([^<]+)<\/span>/.exec(h);
+  assert.deepEqual([pergunta[1], pergunta[2]], ['WiControl', 'WIC-Q1']);
+  assert.match(h, /WIC-F1/);
+  const entregues = h.slice(h.indexOf('id="h-entregas"'));
+  assert.match(entregues, /<li><p class="cartao-projeto">Izanagi<\/p><div class="cartao-cab"><span class="id">IZA-F3<\/span>/);
+});
+
+test('o início diz a sigla do projeto', () => {
+  assert.match(contexto({ session_id: 'sessao-teste-3', cwd: join(tmpdir(), 'Izanagi') }), /Sigla do projeto: \*\*IZA\*\*/);
 });
