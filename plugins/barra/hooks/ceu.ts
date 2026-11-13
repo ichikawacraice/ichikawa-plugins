@@ -1,5 +1,5 @@
 // O céu da barra, puro e testado direto. Dois temas pelo modo ausente: noite (ligado; a paleta do painel, #030014,
-// estrelas e o planeta) e dia (desligado; céu azul, sol e nuvens). Posições vêm de uma semente fixa: a barra não
+// estrelas e a lua) e dia (desligado; céu azul, sol e nuvens). Posições vêm de uma semente fixa: a barra não
 // "pula" a cada desenho.
 //
 // O app não pinta `Svg` numa caixa `position="absolute"` (medido no ICH-F22): o desktop leva a cor lisa do céu
@@ -132,7 +132,7 @@ const ESTILO_DIA =
   `@keyframes deriva{from{transform:translateX(0)}to{transform:translateX(-50px)}}` +
   `.nuvens{animation:deriva 60s linear infinite alternate}@media (prefers-reduced-motion:reduce){.nuvens{animation:none}}`
 
-/** Noite: o fundo escurece para a direita, estrelas e o planeta nascendo na borda de baixo com o limbo aceso. */
+/** Noite: o fundo escurece para a direita, estrelas e a lua crescente na ponta direita, onde de dia fica o sol. */
 function cenaDaNoite(l: number, parado: boolean): string {
   const a = SVG_ALTURA
   const sortear = sorteador(SEMENTE)
@@ -146,30 +146,26 @@ function cenaDaNoite(l: number, parado: boolean): string {
     const classe = i % CINTILA_A_CADA === 1 ? ` class="c${quadro ? ` c${quadro}` : ''}"` : ''
     estrelas.push(`<circle cx="${x}" cy="${y}" r="${r}" fill="${cor}"${classe}/>`)
   }
-  const cx = l - 120
-  const cy = a + 190
-  const R = 205
-  const H = R + 60
+  // A lua no lugar do sol: crescente com brilho suave, a 50 px do primeiro botão.
+  const mx = l - ESPACO_SOL_BOTOES - RAIO_SOL
+  const my = Math.round(a / 2)
 
   return (
     `<svg xmlns="http://www.w3.org/2000/svg" width="${l}" height="${a}" viewBox="0 0 ${l} ${a}">` +
     (parado ? '' : `<style>${ESTILO_NOITE}</style>`) +
     `<defs><linearGradient id="fundo" x1="0" x2="1"><stop offset="0" stop-color="${TEMAS.noite.fundo}"/>` +
     `<stop offset=".6" stop-color="#07021a"/><stop offset="1" stop-color="#120632"/></linearGradient>` +
-    `<radialGradient id="halo" cx="${cx}" cy="${cy}" r="${H}" gradientUnits="userSpaceOnUse">` +
-    `<stop offset="${d3((R * 0.99) / H)}" stop-color="#e1b4ff" stop-opacity=".6"/>` +
-    `<stop offset="${d3((R + 8) / H)}" stop-color="#a855f7" stop-opacity=".35"/>` +
-    `<stop offset="${d3((R + 26) / H)}" stop-color="#8f7cff" stop-opacity=".1"/>` +
+    `<radialGradient id="luar" cx="${mx}" cy="${my}" r="60" gradientUnits="userSpaceOnUse">` +
+    `<stop offset="0" stop-color="#e1d6ff" stop-opacity=".55"/><stop offset=".3" stop-color="#a78bfa" stop-opacity=".18"/>` +
     `<stop offset="1" stop-color="#8f7cff" stop-opacity="0"/></radialGradient>` +
-    `<radialGradient id="atmosfera" cx="${cx}" cy="${cy}" r="${R}" gradientUnits="userSpaceOnUse">` +
-    `<stop offset="${d3((R - 34) / R)}" stop-color="#5b3fd6" stop-opacity="0"/>` +
-    `<stop offset=".93" stop-color="#9346e6" stop-opacity=".32"/><stop offset=".985" stop-color="#c882fa" stop-opacity=".66"/>` +
-    `<stop offset="1" stop-color="#f5e1ff" stop-opacity=".95"/></radialGradient></defs>` +
+    `<radialGradient id="lua" cx="35%" cy="35%" r="75%"><stop offset="0" stop-color="#ffffff"/>` +
+    `<stop offset=".7" stop-color="#e9e3ff"/><stop offset="1" stop-color="#c8b8ff"/></radialGradient>` +
+    `<mask id="crescente"><rect width="${l}" height="${a}" fill="#fff"/>` +
+    `<circle cx="${mx + 5}" cy="${my - 3}" r="${RAIO_SOL}" fill="#000"/></mask></defs>` +
     `<rect width="${l}" height="${a}" fill="url(#fundo)"/>` +
     estrelas.join('') +
-    `<circle cx="${cx}" cy="${cy}" r="${H}" fill="url(#halo)"/>` +
-    `<circle cx="${cx}" cy="${cy}" r="${R}" fill="#0c0722"/><circle cx="${cx}" cy="${cy}" r="${R}" fill="url(#atmosfera)"/>` +
-    `<circle cx="${cx}" cy="${cy}" r="${R}" fill="none" stroke="#f0e1ff" stroke-opacity=".85" stroke-width="1.1"/>` +
+    `<circle cx="${mx}" cy="${my}" r="60" fill="url(#luar)"/>` +
+    `<circle cx="${mx}" cy="${my}" r="${RAIO_SOL}" fill="url(#lua)" mask="url(#crescente)"/>` +
     `</svg>`
   )
 }
@@ -235,7 +231,7 @@ export function larguraDaCena(colunas: number, texto: string, rotulos: string[])
 }
 
 /**
- * A cena do desktop para o modo, com `largura` pixels: fica entre o relógio e os botões, com o sol (ou o planeta) na
+ * A cena do desktop para o modo, com `largura` pixels: fica entre o relógio e os botões, com o sol (ou a lua) na
  * ponta direita e `ESPACO_SOL_BOTOES` de céu livre antes do primeiro botão; começa na cor do fundo para emendar sem borda. A animação é CSS do próprio SVG (estrelas em degraus de 1 s, nuvens a
  * deriva lenta); `prefers-reduced-motion` a para no app, e `parado` a tira do desenho.
  */

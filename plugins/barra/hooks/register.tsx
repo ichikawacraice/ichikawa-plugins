@@ -368,12 +368,14 @@ export const register: Register = on => {
           {texto}
         </Text>
       )
+    // De dia o botão primário (claro e sólido) se destaca do céu claro; de noite o secundário (escuro) combina.
+    const variante = modo === 'dia' ? 'primary' : 'secondary'
     const botoesDaBarra = [
-      <Button key="ausente" variant="secondary" onPress={() => void alternarAusente($)}>
+      <Button key="ausente" variant={variante} onPress={() => void alternarAusente($)}>
         {rotulo('r-ausente', rotuloAusente)}
       </Button>,
       ...lista.map((b, i) => (
-        <Button key={b.chave} variant="secondary" onPress={() => void clicar($, b)}>
+        <Button key={b.chave} variant={variante} onPress={() => void clicar($, b)}>
           {rotulo(`r-${b.chave}`, rotulos[i] ?? b.rotulo)}
         </Button>
       )),
@@ -386,10 +388,10 @@ export const register: Register = on => {
       const largura = larguraDaCena(e.props.bodyColumns, texto, [rotuloAusente, ...rotulos])
 
       return (
-        <Box key={`barra-${modo}`} flexDirection="row" alignItems="center" columnGap={1} paddingX={1} backgroundColor={tema.fundo}>
+        <Box key={`barra-${modo}`} flexDirection="row" alignItems="center" columnGap={1} paddingX={1} paddingY="sm" backgroundColor={tema.fundo}>
           {relogioDoCache}
           <Box key="ceu" flexGrow={1} flexDirection="row" justifyContent="flex-end">
-            {largura ? <Svg source={svgDaCena(modo, largura, semMovimento)} alt="" width={largura} height={SVG_ALTURA} /> : null}
+            {largura ? <Svg source={svgDaCena(modo, largura, semMovimento)} alt={modo === 'noite' ? 'Céu estrelado com a lua' : 'Céu com o sol'} width={largura} height={SVG_ALTURA} /> : null}
           </Box>
           {botoesDaBarra}
         </Box>

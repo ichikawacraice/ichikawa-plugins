@@ -467,12 +467,12 @@ test('céu: ausente desligado é dia — fundo azul, cena do sol entre o relógi
   }
 })
 
-test('céu: ausente ligado é noite — fundo do painel, planeta no desktop, estrelas no terminal', async ($, on) => {
+test('céu: ausente ligado é noite — fundo do painel, lua no desktop, estrelas no terminal', async ($, on) => {
   await iniciar($, on, { arquivos: { [`${ICH}/ausente.json`]: '{"ligado": true}' } })
   for (const surface of SUPERFICIES) {
     const ui = await montar($, surface)
     expect((await ui.findAll({ type: 'Box' }))[0]?.props.backgroundColor).toBe('#030014')
-    if (surface === 'desktop') expect(String((await ui.find({ type: 'Svg' }))?.props.source)).toMatch(/radialGradient id="atmosfera"/)
+    if (surface === 'desktop') expect(String((await ui.find({ type: 'Svg' }))?.props.source)).toMatch(/mask id="crescente"/)
     else expect(await estrelas(ui)).toMatch(/[·✦⋆]/)
     expect(await ui.find({ type: 'Button', text: /☾ Estou de volta/ })).toBeDefined()
     await ui.unmount()

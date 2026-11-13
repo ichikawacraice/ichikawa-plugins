@@ -20,11 +20,11 @@ test('estrelas do terminal: cintilam pelo quadro e, paradas, ficam acesas e igua
   expect(parada).not.toMatch(/⋆/)
 })
 
-test('cena da noite: começa no fundo do painel, planeta com limbo, cintilação em degraus de 1 s e parada', () => {
+test('cena da noite: começa no fundo do painel, lua crescente, cintilação em degraus de 1 s e parada', () => {
   const svg = svgDaCena('noite', 960, false)
   expect(svg.startsWith('<svg')).toBe(true)
   expect(svg).toMatch(new RegExp(`stop-color="${TEMAS.noite.fundo}"`))
-  expect(svg).toMatch(/radialGradient id="atmosfera"/)
+  expect(svg).toMatch(/mask id="crescente"/)
   expect(svg).toMatch(new RegExp(`animation:cintila ${CICLO_CINTILA}s steps\\(${CICLO_CINTILA}`))
   expect(svg).toMatch(/prefers-reduced-motion:reduce/)
   expect(svg).not.toMatch(/<script|on[a-z]+=/i)
