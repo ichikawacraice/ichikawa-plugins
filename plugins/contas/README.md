@@ -46,7 +46,7 @@ Copia de `~/.claude/orquestracao/troca-de-conta/` os logins, os nomes e a últim
 
 ### Como plugin do Claude Code (`contas`)
 
-O repositório também é o plugin `contas`: o botão **Contas** da barra (`barra.json`) roda `node src/painel/abrir.mjs`, que sobe o painel desacoplado se ele não estiver no ar e abre o navegador (o mesmo que `abrir-painel-de-contas`). A skill `trocar-conta` lista as contas e abre o painel, mas nunca troca de dentro da sessão: a troca fecha o app.
+O repositório também é o plugin `contas`: o botão **Contas** da barra (`barra.json`) roda `node src/painel/abrir.mjs --sem-abrir`, que sobe o painel desacoplado se ele não estiver no ar, e a barra abre a página no navegador do app (`url` no `barra.json`). No terminal, `abrir-painel-de-contas` faz o mesmo e abre o navegador do sistema. A skill `trocar-conta` lista as contas e abre o painel, mas nunca troca de dentro da sessão: a troca fecha o app.
 
 ## O que você precisa saber
 
