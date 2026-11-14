@@ -38,4 +38,4 @@ node --test 'hooks/tests/*.test.mjs' 'scripts/tests/*.test.mjs'
 node evals/casos.mjs --conferir   # as pastas de eval batem com a lista
 ```
 
-Os pacotes `@wicomm/tokens`, `@wicomm/guardas` e o registro moram no repositório do design system (`kit-de-orquestracao/design-system/`); as cópias que os scripts carregam (`scripts/lib/`, `scripts/dados/tokens-wicomm.json`) não têm conferência automática aqui: quando o pacote mudar, recopie à mão.
+Os pacotes `@wicomm/tokens`, `@wicomm/guardas` e o registro moram no repositório do ateliê (`ichikawacraice/wicomm-atelie`); as cópias que os scripts carregam (`scripts/lib/`, `scripts/dados/tokens-wicomm.json`) não têm conferência automática aqui: quando o pacote mudar, recopie à mão.
