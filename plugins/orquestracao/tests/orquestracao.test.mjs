@@ -291,6 +291,10 @@ test('a página só aceita POST da própria origem e grava o pedido de resposta'
     const pedido = JSON.parse(readFileSync(join(pasta, readdirSync(pasta)[0]), 'utf8'));
     assert.equal(pedido.tipo, 'responder');
     assert.equal(pedido.sessao, SESSAO_DO_APP);
+    // Depois de uma limpeza a sessão não lembra a pergunta: o texto diz que é dela e traz o título.
+    assert.match(pedido.texto, /^Q1 · pergunta aberta por esta sessão/);
+    assert.match(pedido.texto, /«T»/);
+    assert.match(pedido.texto, /: pode$/);
   } finally {
     servidor.close();
   }

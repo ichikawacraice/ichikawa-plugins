@@ -279,7 +279,8 @@ async function responder(req, res, porta) {
   const resposta = f.get('acao') === 'aceitar' ? RESPOSTA_PADRAO : f.get('resposta')?.trim();
   if (!resposta) { res.writeHead(400, { 'Content-Type': 'text/plain; charset=utf-8' }).end('resposta vazia: escreva a resposta ou use "Aceitar recomendação"'); return; }
   estado.atualizar('perguntas', projeto, p.id, { estado: 'respondida', resposta, respondidaEm: new Date().toISOString(), lida: false });
-  if (ehSessaoDoApp(p.sessao)) gravarPedido('responder', p.sessao, `${p.id} (resposta pela página): ${resposta}`);
+  // A sessão pode ter se limpado depois de perguntar: o texto diz que a pergunta é dela e traz o título.
+  if (ehSessaoDoApp(p.sessao)) gravarPedido('responder', p.sessao, `${p.id} · pergunta aberta por esta sessão («${p.titulo}»), resposta do operador pela página: ${resposta}`);
   res.writeHead(303, { Location: '/' }).end();
 }
 
