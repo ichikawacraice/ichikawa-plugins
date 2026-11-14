@@ -1,6 +1,6 @@
 ---
 name: design-system
-versao: 0.30.0
+versao: 0.32.0
 description: A direção de design dos apps React do sistema — como a tela parece, com a regra, o porquê medido e como cada regra se confere.
 colors:
   marca: "do tema (temas/<id>/tema.tokens.json, slot marca): cor, hover, sobre, tinta e gradiente, nos dois temas"
@@ -53,6 +53,7 @@ typography:
   vozes:
     t-display: { fontSize: "23px", fontWeight: 600, fontStretch: "106%", letterSpacing: "-.024em", lineHeight: 1.15 }
     t-titulo: { fontSize: "15px", fontWeight: 600, letterSpacing: "-.014em", lineHeight: 1.3 }
+    t-peca: { fontSize: "16px", fontWeight: 600, letterSpacing: "-.014em", lineHeight: 1.3, textTransform: none, color: "foreground" }
     t-denso: { fontSize: "12px", fontWeight: 400 }
     t-rotulo: { fontSize: "10.5px", fontWeight: 700, fontStretch: "80%", letterSpacing: ".13em", textTransform: uppercase, color: "foreground-2" }
     t-coluna: { fontSize: "10.5px", fontWeight: 500, letterSpacing: ".08em", textTransform: uppercase, color: "foreground-2" }
@@ -301,10 +302,11 @@ O sistema é **reservado**: a cor fala pouco, e quando fala responde uma pergunt
   |---|---|
   | `t-display` | o título da página — um por tela (no Editor, o `h1` da barra vai em `t-titulo`, TIPO-04) |
   | `t-titulo` | o nome de bloco, de cartão e de diálogo; em densidade site, também o nome do grupo de linhas e o nome da coluna do quadro |
+  | `t-peca` | o título de um assunto que é uma peça inteira, com o título dentro da superfície (`Bloco voz="peca"`) |
   | `t-denso` | o corpo em densidade instrumento: célula, metadado, linha de lista |
   | `t-rotulo` | nomeia um **conjunto** (seção dentro de um bloco, faixa, grupo de campos) — aparece uma vez, sozinho |
   | `t-coluna` | nomeia um **valor** que se repete (cabeçalho de coluna, legenda de imagem, unidade) — mais leve que o rótulo |
-  | `t-campo` | o rótulo de campo em densidade **site** (frase de quem usa, sem caixa alta) |
+  | `t-campo` | o rótulo de campo em densidade **site** (frase de quem usa, sem caixa alta); em densidade instrumento, também o do formulário de quem **não é especialista** (entrar, a própria conta, o primeiro acesso) — a caixa alta do `t-rotulo` fica para o que nomeia figura e conjunto |
   | `t-medida` | número que se compara (TIPO-03) |
   Fora das vozes, só os tamanhos utilitários do frontmatter (`text-sm` para corpo em densidade site e, com peso 600, para o nome do grupo de linhas e da coluna do quadro em densidade instrumento; `text-controle font-medium leading-snug`, 13/500, para o título do item de quadro, que identifica o item sem pesar como nome de bloco; os tamanhos de controle do kit; `text-legenda`). `text-[15px]` e afins são defeito; voz escrita à mão (`text-xl font-bold tracking-tight` no lugar de `t-display`) também.
 - **Por quê.** O papel de cabeçalho de coluna nunca teve voz e era escrito à mão em 47 lugares, de 11 formas; um título de tela na voz anterior passou por uma varredura que só olhava um tipo de arquivo. O nome do grupo no mesmo corpo da linha (12px, só com o peso a mais) não se achava ao rolar uma lista de seis grupos.
@@ -360,8 +362,8 @@ Cada app declara a sua densidade no arquivo do projeto, `design/design-system.js
 - **Confere.** `crítica:densidade`.
 
 ### LAY-03 · Ritmo por gap, e o de fora é o dobro do de dentro
-- **Regra.** `flex` + `gap`, quase nunca `space-y`. **O espaço entre blocos é ≥ 2× o espaço dentro do bloco** (padrão: `gap-6` fora, `gap-3` dentro; dentro de linha, `gap-2`/`gap-1.5`). Padding lateral do casco: 24px.
-- **Por quê.** `gap-4` fora com `gap-3` dentro mediu 1,33 e foi a causa de "as seções se confundem".
+- **Regra.** `flex` + `gap`, quase nunca `space-y`. **O espaço entre blocos é ≥ 2× o espaço dentro do bloco** (padrão: `gap-6` fora, `gap-3` dentro; dentro de linha, `gap-2`/`gap-1.5`). Padding lateral do casco: 24px. A paleta do vão estrutural tem mais um valor: **`gap-12` entre peças sem tinta dentro de um diálogo**, onde o ar faz o corte que a superfície faria. **O pai direto de subseções (`Dobra gatilho="titulo"`) não leva `gap`**: a subseção já traz o ar de cima (16px) e o de baixo (8px), e o `gap` no pai dobra o vão e descola a subseção do assunto.
+- **Por quê.** `gap-4` fora com `gap-3` dentro mediu 1,33 e foi a causa de "as seções se confundem". Num diálogo sem tinta entre as peças, o `gap-6` deixava dois formulários lidos como um; e as subseções, com o `gap` do pai somado ao ar delas, ficavam mais perto da seguinte que do próprio título.
 - **Confere.** `guarda:composicao-tem-grau` · `crítica:hierarquia`.
 
 ### LAY-04 · Responsivo: desktop e notebook primeiro
@@ -561,7 +563,7 @@ Cada app declara a sua densidade no arquivo do projeto, `design/design-system.js
 | DENS-02 | Site | crítica |
 | LAY-01 | O casco não rola | registro, crítica |
 | LAY-02 | Largura de página | crítica |
-| LAY-03 | Fora ≥ 2× dentro | guarda, crítica |
+| LAY-03 | Fora ≥ 2× dentro; `gap-12` no diálogo; subseção sem `gap` no pai | guarda, crítica |
 | LAY-04 | 1280px é o pior caso | crítica |
 | LAY-05 | Empilhamento declarado | revisão, navegador |
 | LAY-06 | Largura de leitura e respiro | crítica, guarda |

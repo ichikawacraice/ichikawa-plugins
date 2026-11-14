@@ -1,6 +1,6 @@
 ---
 name: design-system
-versao: 0.30.0
+versao: 0.32.0
 description: A anatomia dos apps React do sistema — o que vai onde na tela, com a regra, o porquê e como cada regra se confere.
 ---
 
@@ -85,6 +85,11 @@ O casco é o que faz dois apps da mesma empresa parecerem um só: é a primeira 
 - **Por quê.** Cada app com a própria cópia da barra é cada app com uma barra um pouco diferente: a pessoa que alterna entre eles vê a moldura mudar de medida e de comportamento, e é isso que faz dois apps da mesma empresa parecerem dois.
 - **Confere.** Bloco da barra (registro, `@wicomm/barra-das-ias`, com os testes do comportamento) · `crítica:consistência`.
 
+### CASCO-06 · A conta e o *Sair* moram num lugar só
+- **Regra.** O que é da conta de quem está logado — o nome, a conta, trocar de conta, *Sair* — mora num lugar só: o menu da pessoa (`MenuDaConta`, aberto pelo monograma), onde o casco o põe (o pé da barra lateral; com a barra da família, o pé dela, CASCO-05). Repetir a conta ou o *Sair* em outra região — no topo e no pé, na barra do app e na da família, como item solto da navegação — é defeito.
+- **Por quê.** Duas portas para a mesma conta fazem a pessoa perguntar se são contas diferentes, e o *Sair* repetido é o gesto destrutivo do casco posto duas vezes ao alcance do clique.
+- **Confere.** Peça `MenuDaConta` e bloco da barra lateral (registro) · `crítica:consistência`.
+
 ---
 
 <a id="arquetipos"></a>
@@ -100,7 +105,7 @@ O casco é o que faz dois apps da mesma empresa parecerem um só: é a primeira 
   | **Entrada** | *qual é o único passo?* | login, senha nova, conectar uma conta | cartão sozinho no fundo, uma ação (`xl`) |
   | **Formulário** | *o que eu preciso dizer para disparar?* | novo pedido, nova conferência | casco de formulário (largura de LAY-02) · um `Bloco` por grupo de campos (`fieldset`/`legend` por dentro, como semântica) · um primário no fim |
   A **Mesa pode não ter primário** quando a tela é de leitura e o gesto mora noutra: o topo é só nome + estado, e o caminho de ação é uma linha com link, nunca um segundo lugar para o mesmo gesto. A **Mesa com abas** põe as abas no lugar do trilho, sem apoio à direita.
-  **A espera tem a forma do que vai chegar** (EST-01): a tela com mais de uma vista (abas, `BarraDeModos`) espera na forma da vista que está aberta, não na de outra — a Mesa com abas espera em abas; a lista corrida, em linhas (`EsperaDaLista`); a lista agrupada, em grupos (`EsperaDosGrupos`); o quadro, em colunas (`EsperaDoQuadro`). A troca de vista troca a espera junto. Em toda espera, a altura da linha é a da linha real com o conteúdo de verdade; na lista agrupada, o degrau, o ar, o recuo e o vão também são os da peça que vem e saem dela (`EsperaDosGrupos`), não da tela, com o grupo fechado esperando fechado.
+  **A espera tem a forma do que vai chegar** (EST-01): a tela com mais de uma vista (abas, `BarraDeModos`) espera na forma da vista que está aberta, não na de outra — a Mesa com abas espera em abas; a lista corrida, em linhas (`EsperaDaLista`); a lista agrupada, em grupos (`EsperaDosGrupos`); o quadro, em colunas (`EsperaDoQuadro`); a peça com o título dentro, na mesma superfície com o nome já escrito (`EsperaDaPeca`). A troca de vista troca a espera junto. Em toda espera, a altura da linha é a da linha real com o conteúdo de verdade; na lista agrupada, o degrau, o ar, o recuo e o vão também são os da peça que vem e saem dela (`EsperaDosGrupos`), não da tela, com o grupo fechado esperando fechado.
 - **Por quê.** Cinco formas conhecidas deixam a pessoa saber onde está o primário antes de ler a tela. A espera de outra forma promete uma tela que não vem, e a de medidas escritas à mão faz a lista pular quando os dados chegam.
 - **Confere.** Revisão de arquitetura (declara o arquétipo) · auditoria de projeto (classifica cada rota) · `crítica:hierarquia` · `crítica:aderência` (a espera de cada vista, no ateliê, contra a vista que chega).
 
@@ -199,6 +204,11 @@ A pergunta que decide o lugar: **a quem a mensagem diz respeito, e por quanto te
 - **Por quê.** *Ocorreu um erro* diz que falhou e não diz o que fazer: a pessoa repete o mesmo gesto, falha de novo e desiste.
 - **Confere.** `crítica:aderência` · skill `textos-de-interface` (busca por *Ocorreu um erro*, *Erro:* e mensagem crua do servidor repassada à tela).
 
+### MSG-10 · *Tirar* o que não foi gravado, *Remover* o que pede confirmação
+- **Regra.** Tirar um item de uma lista local que ainda não foi gravada (o × de um critério, de um anexo escolhido, de um filtro) diz *Tirar*, sem `variant="destructive"` e sem confirmação: nada se perde que a pessoa não refaça no mesmo gesto. *Remover* (e *Excluir*) fica para o que some de algo já gravado, e esse pede confirmação (MSG-08) com a variante destrutiva (PESO-02).
+- **Por quê.** O mesmo verbo para os dois ensina a pessoa a clicar *Remover* sem ler; e o *Remover* sem confirmação, posto ao lado de um que confirma, vira a exceção que a guarda do irreversível tem de listar uma a uma.
+- **Confere.** `guarda:composicao-tem-grau` (verbo destrutivo sem a variante) · `crítica:clareza da ação` · skill `textos-de-interface`.
+
 ---
 
 <a id="pecas"></a>
@@ -209,14 +219,15 @@ A pergunta que decide o lugar: **a quem a mensagem diz respeito, e por quanto te
   | Função | Peça | Não use |
   |---|---|---|
   | Superfície de um assunto | `Card` / `Painel` / `Bloco` | `div` com borda à mão |
+  | Assunto que é uma peça inteira (formulário, ficha) | `Bloco voz="peca"`: o título dentro da superfície, como primeiro filho, em `t-peca`, com a `contagem` e a `acao` na linha dele; dentro de um diálogo, `semSuperficie` (o diálogo já é a superfície). Dentro da peça, nenhum filete, nem nas linhas da tabela (`Table moldura="dentro"`); as subseções são `Dobra gatilho="titulo"` (com `nivel`, para entrarem na estrutura da tela) | o nome solto sobre o fundo com a ficha num cartão separado, filete entre campos ou linhas, cartão dentro da peça |
   | Agrupar dentro da peça | `BlocoDeTinta` (degrau de tinta) | segunda superfície, filete |
   | Título de bloco | `Secao`, `TopoDoPainel` | `h3` com classe à mão |
-  | Esconder o informativo | `Dobra` (dentro de uma peça; numa linha de lista, a própria frase abre), `PainelDobravel` (a peça inteira) | esconder ação disponível |
+  | Esconder o informativo | `Dobra` (dentro de uma peça; a subseção da peça é `gatilho="titulo"`; numa linha de lista, a própria frase abre), `PainelDobravel` (a peça inteira) | esconder ação disponível |
   | Assunto da janela ou do item, antes da leitura | `MedalhaoDoIcone` (`md` no cabeçalho, `sm` no item; neutro por padrão, `tom` quando a tela diz erro ou recusa — a ausência é neutra, COR-10) | disco com ícone feito à mão |
   | Estado em uma palavra | `ChipDeEstado` (declara `tom`) | `span` colorido |
   | Estado que abre o detalhe | `ChipQueAbre` | `button` à mão em volta do chip |
   | Valor rotulado (um valor que classifica, não um estado) | `Badge`: neutro por padrão; `variant="marca"` explícito, na tinta neutra com texto em tinta e o filete da marca (CTRL-05) | chip para valor, `Badge` com `tom`, `ChipDeEstado` para valor, `Badge` de marca em tinta rosa |
-  | Marcador mínimo de voz | `Estado` (`ponto`, `play`) | círculo à mão |
+  | Marcador mínimo de voz | `Estado` (`ponto`, `play`; `selo` — o círculo na tinta da voz com o glifo de cada voz, que se distingue sem cor, em quatro tamanhos) | círculo à mão |
   | O percurso de um objeto (na Mesa) | `TrilhoDoPercurso`: as etapas em ordem, só a atual com `Estado` e `tom`, a feita com o ícone de feito, a que vem sem ponto; a cor de etapa, quando o projeto a declara, entra como `PontoDaEtapa` dentro da estação | `Estado` com `tom` em toda etapa, cor da etapa à mão, `Passos` ou `Progress` para o percurso |
   | Região sem itens | `Vazio`, declarando a causa (`nada-ainda`, `filtro`, `nao-se-aplica`, `nao-informado`) e a saída quando há | ✓ sobre nada, cartão de voz, texto solto |
   | Lista de objetos | `Table`, que declara a `densidade`: a linha cresce com o conteúdo e guarda o ar da DESIGN (SUP-03); o filete-guia entre linhas e a régua do cabeçalho são da peça; cabeçalho `t-coluna` de 40px, grudado, sem fundo; a linha inteira abre por `LinkDaLinha`; o hover tem a forma do foco e apaga o filete; a coluna que some no celular é `esconderNoCelular`; mora numa superfície (`Painel`, `Card`) | linha escrita pela tela (`divide-y`, `border-b` na linha), filete de ponta a ponta, zebra, fundo no cabeçalho, borda em volta da tabela, altura fixa na célula que espreme a segunda linha, grade de `div` à mão |
@@ -329,8 +340,8 @@ A pergunta que decide o lugar: **a quem a mensagem diz respeito, e por quanto te
 - **Confere.** `crítica:aderência` · guarda por projeto (quem dispara observa).
 
 ### EST-04 · Todos os contadores, e o zero é número
-- **Regra.** Uma fileira de contadores mostra **todos** os da fonte, inclusive os zerados. O zero é sempre o número `0`: quando ele não informa nada, sai em `neutro` e o **rótulo** muda para a frase que diz o que o zero quer dizer. O não contado é `‒` (o travessão numérico, da largura de um algarismo), também em `neutro`. O tom é do número que pede ação.
-- **Por quê.** Mostrar só os diferentes de zero faz a linha mentir por omissão.
+- **Regra.** Uma fileira de contadores mostra **todos** os da fonte, inclusive os zerados. O zero é sempre o número `0`: quando ele não informa nada, sai em `neutro` e o **rótulo** muda para a frase que diz o que o zero quer dizer. O não contado é `‒` (o travessão numérico, da largura de um algarismo), também em `neutro`. O tom é do número que pede ação. **A exceção é o número da aba:** o contador que vive no rótulo de uma aba (ou da porta que abre uma gaveta) some no zero e na aba aberta; a fileira de contadores continua com todos.
+- **Por quê.** Mostrar só os diferentes de zero faz a linha mentir por omissão. Na aba é outra coisa: o número ali só chama a pessoa a abrir; o `0` ao lado de cada aba vazia é ruído repetido, e o da aba aberta repete a contagem que o conteúdo já mostra logo abaixo.
 - **Confere.** `crítica:aderência`.
 
 ### EST-05 · Nenhuma porcentagem única para números com donos diferentes
@@ -370,6 +381,7 @@ A pergunta que decide o lugar: **a quem a mensagem diz respeito, e por quanto te
 | CASCO-03 | Tela de detalhe tem trilha | guarda |
 | CASCO-04 | Estado no título, valor embaixo | registro, crítica |
 | CASCO-05 | A barra da família de apps vem do registro | registro, crítica |
+| CASCO-06 | A conta e o *Sair* num lugar só | registro, crítica |
 | ARQ-01 | Cinco arquétipos | revisão, auditoria, crítica |
 | ARQ-02 | Análise é Lista com medidores | crítica |
 | ARQ-03 | O Editor, região por região | registro, crítica |
@@ -384,6 +396,7 @@ A pergunta que decide o lugar: **a quem a mensagem diz respeito, e por quanto te
 | MSG-07 | O botão diz o que acontece | crítica, skill |
 | MSG-08 | A confirmação pergunta a ação | crítica, skill |
 | MSG-09 | O erro diz o que fazer agora | crítica, skill |
+| MSG-10 | *Tirar* o não gravado, *Remover* o que confirma | guarda, crítica, skill |
 | PECA-01 | A peça de cada função | crítica, guarda |
 | PECA-02 | De onde a peça nova parte | revisão, crítica |
 | PECA-03 | O gráfico tem a forma do dado | revisão, crítica |
@@ -395,7 +408,7 @@ A pergunta que decide o lugar: **a quem a mensagem diz respeito, e por quanto te
 | EST-01 | Sete estados por região | revisão, crítica, guarda |
 | EST-02 | Vazio diz a causa | crítica |
 | EST-03 | Ação assíncrona visível | crítica, guarda |
-| EST-04 | Todos os contadores, zero é número | crítica |
+| EST-04 | Todos os contadores, zero é número (a aba, não) | crítica |
 | EST-05 | Sem porcentagem única | crítica |
 | EST-06 | A vista diz quantos deixou de fora | crítica |
 | MOVA-01 | O que entra se move | guarda, crítica |
