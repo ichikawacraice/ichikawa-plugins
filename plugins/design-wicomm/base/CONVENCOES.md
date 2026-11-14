@@ -138,7 +138,7 @@ As guardas do pacote (`@wicomm/guardas`) e as de cada projeto seguem estas regra
 ### CONV-20 · A nota é a porta
 - **Regra.** A crítica dá nota em seis eixos de 0 a 5 — hierarquia, densidade, consistência com o design system, ruído visual, clareza da ação primária, aderência à DESIGN e à ANATOMIA. **24/30 sem ressalva alta** libera o PR da tela; no máximo duas recríticas na tela nova e uma no ajuste. Em densidade site, entra o sétimo eixo, *cara de site*, e o teto vira 28/35 (80%).
 - **Por quê.** Um número dá ao dono do produto como comparar telas e projetos; a escala fixa evita a nota que muda de régua por tela.
-- **Confere.** Skill de crítica (forma da entrega) · `/design-wicomm:estado` (média das últimas críticas).
+- **Confere.** Skill de crítica (forma da entrega) · o comando `estado` do plugin (média das últimas críticas).
 
 ### CONV-21 · O protótipo aprovado é o contrato
 - **Regra.** Tela com protótipo ou revisão aprovada é implementada **como aprovada**. Mudança de desenho durante a implementação volta à revisão; não se decide no código.
@@ -162,7 +162,7 @@ As guardas do pacote (`@wicomm/guardas`) e as de cada projeto seguem estas regra
 ### CONV-25 · *Revogada na 0.16.0* — o build de produção com pacote privado `@wicomm` era feito na máquina
 - **Regra.** *Revogada.* Valia: projeto que instalava os pacotes `@wicomm` privados (tokens, guardas) fazia o build de produção na máquina de quem publica (`vercel build --prod && vercel deploy --prebuilt --prod`), e a Vercel não recebia o token dos pacotes. Os pacotes passaram ao npm público: o `install` em qualquer lugar os baixa sem token, e o build de produção volta a ser o da Vercel, como o de qualquer app. O que sobra da regra vale sem ela: nenhum token de pacote (`NPM_RC`, `NPM_TOKEN`, `NODE_AUTH_TOKEN`) no repositório nem na Vercel, porque nenhum é preciso.
 - **Por quê.** O motivo era o 401 do registro privado na Vercel; sem registro privado, o build na máquina só tira o deploy do push e deixa o release na mão de uma pessoa. O código não se reaproveita (a base não renumera).
-- **Confere.** Nada a conferir. Projeto que ainda faz o build na máquina pode voltar ao build da Vercel (`/design-wicomm:atualizar` diz como).
+- **Confere.** Nada a conferir. Projeto que ainda faz o build na máquina pode voltar ao build da Vercel (o comando `atualizar` do plugin diz como).
 
 
 <a id="acessibilidade"></a>
