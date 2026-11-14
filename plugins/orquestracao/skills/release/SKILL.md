@@ -21,7 +21,7 @@ Se o projeto tem script próprio de release (ex.: `scripts/o-release.mjs` no Iza
 3. **O gate completo**, na máquina: build, typecheck, a suíte inteira e o que mais o `CLAUDE.md` pedir. Saída num `.log`. Vermelho: pare e conserte por uma branch normal (não na `main`).
 4. **A `develop` não andou:** `git fetch origin && test "$(git rev-parse origin/develop)" = "$SHA"`. Se andou, volte ao passo 2.
 5. **Pergunte ao operador**, inteiro: o que entra em produção (a lista do passo 2); o que acontece se não soltar agora (nada muda no ar, as entregas esperam); a sua recomendação e o motivo.
-6. **Com o sim:** `git push origin "$SHA:refs/heads/main"`. O servidor recusa o que não for avanço rápido; nunca `--force`.
+6. **Com o sim:** `git push origin "${SHA}:refs/heads/main"` (com as chaves: no zsh, o `:r` colado ao `$SHA` vira um modificador que corta o valor, e o push falha). O servidor recusa o que não for avanço rápido; nunca `--force`.
 7. **Acompanhe o deploy:** `gh run list --branch main --limit 3`, e `gh run watch <id>` em segundo plano. Falhou: diga ao operador o passo e o erro, e se o que está no ar mudou.
    **Conferência pós-deploy** (do `canary-watch`, ECC, MIT; uma passada só, sem laço de monitoramento): com o deploy verde, abra a URL de produção e confira, com a saída à vista:
    - a página principal responde 200, e o `h1`, a navegação e o botão da ação principal estão lá;
