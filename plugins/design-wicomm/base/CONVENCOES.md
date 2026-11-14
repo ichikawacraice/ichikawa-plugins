@@ -1,6 +1,6 @@
 ---
 name: design-system
-versao: 0.30.0
+versao: 0.32.0
 description: As convenções de engenharia do front dos apps React do sistema — o que o código faz para a direção de design e a anatomia se manterem verdadeiras.
 ---
 
@@ -37,6 +37,11 @@ description: As convenções de engenharia do front dos apps React do sistema �
 - **Regra.** Toda escala, fração ou posição tirada de um nó medido lê `clientWidth`/`clientLeft` — nunca `getBoundingClientRect()`/`offsetWidth` —, e o elemento cuja largura a escala assume declara `box-content`. Largura 0 (jsdom, antes da pintura) não vira divisor: devolve "não dá para concluir".
 - **Por quê.** Com `border-box`, 1px de contorno come 2px de dentro: a escala sai 0,48% adiantada (29px no fim de uma imagem longa), e a conferência ingênua aprova o defeito, porque a caixa de borda devolve o número esperado.
 - **Confere.** Revisão de código · teste com contorno.
+
+### CONV-27 · O que se esconde por `hidden` não leva classe de display
+- **Regra.** Elemento que se esconde (pelo atributo `hidden` ou pela classe) não leva utilitário de display (`flex`, `grid`, `block`, nem com prefixo de tela, `md:grid`) na mesma classe. A peça esconde um **invólucro** só com o `id` e o `hidden`, e a classe de quem chama vai num elemento de dentro. O teste passa um `className` com display responsivo e afirma o invólucro escondido (`toHaveClass("hidden")` ou o atributo), porque o jsdom não aplica CSS e `toBeVisible` passa com o corpo à vista.
+- **Por quê.** A classe vence o atributo: `[hidden]` é uma regra de pouco peso do navegador, e o `flex` do Tailwind a sobrescreve. O corpo fechado de um bloco recolhível seguia aberto, com o teste verde. Pôr `hidden` por último no `cn` não basta: o `tailwind-merge` só descarta o display sem prefixo, e o `md:grid` reabre o corpo a partir de 768px.
+- **Confere.** Revisão de código · teste da peça que recolhe.
 
 <a id="estado"></a>
 ## 2. Estado de tela
@@ -141,9 +146,9 @@ As guardas do pacote (`@wicomm/guardas`) e as de cada projeto seguem estas regra
 - **Confere.** Skill de crítica (forma da entrega) · o comando `estado` do plugin (média das últimas críticas).
 
 ### CONV-21 · O protótipo aprovado é o contrato
-- **Regra.** Tela com protótipo ou revisão aprovada é implementada **como aprovada**. Mudança de desenho durante a implementação volta à revisão; não se decide no código.
-- **Por quê.** O desenho que muda no código perde a crítica que o aprovou.
-- **Confere.** A crítica pós-código compara a tela com a revisão aprovada.
+- **Regra.** Tela com protótipo ou revisão aprovada é implementada **como aprovada**. Mudança de desenho durante a implementação volta à revisão; não se decide no código. **Quando o protótipo aprovado muda uma peça do kit** (o relayout), ele vence a peça de hoje, e o desvio não é achado **se a mudança vai na própria peça do registro** (e, quando é regra, na base), para toda tela; a variação local, só naquela tela, continua achado. O PR do relayout lista as peças que mudaram e as telas que as consomem, para a propagação virar item.
+- **Por quê.** O desenho que muda no código perde a crítica que o aprovou. E a peça corrigida só numa tela vira duas peças para a mesma função (PECA-01).
+- **Confere.** A crítica pós-código compara a tela com a revisão aprovada (eixo de fidelidade ao protótipo).
 
 ### CONV-22 · Ferramenta de terceiros é auxiliar, e sem rede por padrão
 - **Regra.** Detector de anti-padrões de terceiros pode rodar **localmente** como insumo do crítico. Comando que consulta rede ou manda telemetria só roda com ok explícito do projeto. Catálogo de estilo de terceiros não entra (propõe outra marca, outra fonte e padrão de landing page).
@@ -216,6 +221,7 @@ O contraste, o anel de foco e o escape do movimento já são regra da DESIGN (CO
 | CONV-03 | Token nunca `transparent` | tokens |
 | CONV-04 | Nenhum valor solto | hook, guarda |
 | CONV-05 | Escala lê a caixa de conteúdo | revisão |
+| CONV-27 | `hidden` sem classe de display | revisão, testes |
 | CONV-06 | Estado de vista no URL, sem servidor | guarda |
 | CONV-07 | Ação assíncrona visível | guarda |
 | CONV-08 | Efeito na hora, recusa desfaz | auditoria, revisão |
@@ -233,7 +239,7 @@ O contraste, o anel de foco e o escape do movimento já são regra da DESIGN (CO
 | CONV-24 | Teste de ausência declara a ausência | revisão |
 | CONV-19 | Quem desenha não julga | lembrete, revisão do PR |
 | CONV-20 | A nota é a porta | skill |
-| CONV-21 | Protótipo aprovado é contrato | crítica |
+| CONV-21 | Protótipo aprovado é contrato; relayout vai na peça | crítica |
 | CONV-22 | Terceiros sem rede por padrão | config |
 | CONV-23 | Conferir no ateliê | guarda, crítica |
 | CONV-25 | *Revogada:* build de produção na máquina | — |
