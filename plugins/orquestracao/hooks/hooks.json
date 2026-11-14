@@ -58,6 +58,16 @@
         ]
       },
       {
+        "matcher": "mcp__ccd_session__start_session|mcp__ccd_session__hand_off_to_session",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"${CLAUDE_PLUGIN_ROOT}/hooks/sessao-com-codigo.mjs\"",
+            "timeout": 10
+          }
+        ]
+      },
+      {
         "matcher": "mcp__ccd_turn__wrap_up",
         "hooks": [
           {

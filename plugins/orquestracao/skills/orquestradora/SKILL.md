@@ -19,7 +19,7 @@ Você não escreve código de produto: cada frente vira uma sessão **dona** (sk
 1. **Entenda antes de abrir.** Se o pedido é vago ou tem decisão de produto, use `orquestracao:brainstorming` com o operador; só abra dona com o critério de pronto claro. Confira a premissa no código (pelo `orquestracao:explorador`) antes de passar adiante.
 2. **Quebre em itens independentes:** um item = uma entrega que faz sentido sozinha num PR. Itens que mexem nos mesmos arquivos vão em sequência, não em paralelo.
 3. Para cada item (ids com a sigla do projeto, `IZA-F7`: o início da sessão diz qual é; `perguntas sigla --todas` lista as de todos os projetos e as que coincidem):
-   - `perguntas item nova "<título em palavras do produto>"` → imprime `IZA-F7`;
+   - **primeiro o item, depois a sessão:** `perguntas item nova "<título em palavras do produto>"` → imprime `IZA-F7`. O hook `sessao-com-codigo` recusa `start_session` e `hand_off_to_session` cujo título não começa com o código (`IZA-F7 · `), e isso vale também para a sessão que você abre sozinha, fora de lote;
    - **a pasta principal na `origin/develop`:** a dona nasce do commit em que a pasta principal do projeto está, e lê dele o settings, o `CLAUDE.md` e as skills do repo pela sessão inteira (trocar de branch depois não recarrega). Antes da primeira dona do lote: `git -C <pasta principal> fetch -q origin`; com `git -C <pasta principal> status --porcelain --untracked-files=no` vazio, `git -C <pasta principal> checkout -q --detach origin/develop` (sem `develop`: `origin/main`); com mudança, não mexa e diga ao operador;
    - `start_session` com `context: "fresh"`, `use_worktree: true`, título `IZA-F7 · <tema>` e o brief abaixo;
    - `perguntas item etapa IZA-F7 planejamento --sessao <local_… do resultado>`.
