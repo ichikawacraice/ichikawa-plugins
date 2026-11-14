@@ -18,10 +18,11 @@ Leia o `package.json` da raiz (e o do front, num monorepo). Rode `node "${CLAUDE
 
 ## 2. Entrevista curta (vira `design/PRODUCT.md`)
 
-Três perguntas, uma mensagem só, cada uma com a sua recomendação:
+Quatro perguntas, uma mensagem só, cada uma com a sua recomendação:
 1. **Quem usa** (papéis) e **para quê** (a tarefa principal de cada papel).
 2. **Em que tela e largura** (notebook de escritório? celular em campo?) e **com que frequência** (o dia todo × de vez em quando).
 3. **A primeira tela** a construir e o arquétipo dela (ANATOMIA, ARQ-01).
+4. **É um app do Wicomm Station** (uma das IAs da Wicomm: Ártemis, Empiria, Izanagi, Octo, Prometheus, Talos)? Recomende *sim* quando o nome ou o pedido é o de uma delas; o *sim* leva a barra das IAs (passo 4).
 
 A frequência define a **densidade** (DESIGN): quem opera o dia todo → `instrumento` (DENS-01); quem usa de vez em quando, inclusive o cliente final → `site` (DENS-02). A marca é a Wicomm, que vem com este plugin (`tema/`): não pergunte cor nem fonte. Escreva `design/PRODUCT.md` com as respostas (papéis, cenas de uso, largura de referência, densidade e o porquê).
 
@@ -53,6 +54,7 @@ Confira antes de prometer: o pacote `@wicomm/tokens`, o registro shadcn `@wicomm
   2. Num `add` só, todas as peças (`registry:ui` e `registry:lib` do `registry.json` do registro), o `casco` e o bloco do arquétipo da primeira tela: `npx -y shadcn@4.21.5 add @wicomm/button @wicomm/card … @wicomm/casco @wicomm/lista --yes`. Cada nome leva o `@wicomm/`: `toast` sem prefixo é o do shadcn, que o CLI recusa. O `casco` instala também o cabeçalho (`cabecalho-do-app.tsx`) e a troca de contexto (`menu-do-contexto.tsx`): o `casco-no-next.tsx` os monta. O app que não tem o que pôr ali (uma equipe só, nada a trocar) tira o `cabecalho` do `casco-no-next.tsx` e **então** apaga os dois arquivos (apagar antes quebra o build pelo import; tirar sem apagar deixa a `componente-que-ninguem-monta` em erro); eles voltam pelo `add` quando o app precisar.
   2b. **A página do `create-next-app`** (`app/page.tsx`) é a vitrine do Next, com cor literal, paleta direto e vidro: sozinha reprova quatro guardas. Troque por um `redirect` para a primeira tela.
   3. **O layout raiz** (`app/layout.tsx`): a fonte Archivo com o eixo de largura por `next/font` (`variable: "--font-archivo"`, TIPO-01), `<ScriptsAntesDoDesenho />` de `@/lib/antes-do-desenho` no `<head>`, `lang="pt-BR"` e `suppressHydrationWarning` no `<html>`. Sem isso o texto cai na fonte do sistema e o tema pisca.
+  3a. **App do Wicomm Station:** com o layout raiz pronto, siga o comando `/design-wicomm:barra-das-ias <id>` (`${CLAUDE_PLUGIN_ROOT}/commands/barra-das-ias.md`): a barra das IAs do registro, em volta do casco (ANATOMIA, CASCO-05). App fora do Station não a leva.
   4. **As guardas:** `"test": "wicomm-guardas"` no `package.json` e um workflow de CI que roda `npm ci && npm test` (os pacotes são públicos: o job não precisa de token). A chave `guardas` do `design/design-system.json` precisa de: o `glossario` do `o-vocabulario-da-tela` (palavra do código → palavra da tela; o bloco do registro fala a palavra do exemplo, como "pedido"); `ignorar: ["<app>/atelie/"]` (o ateliê é catálogo, não tela do produto); e, desligadas com o motivo, as guardas cujo assunto o app ainda não tem (`a-tela-de-entrada-tem-o-botao-grande` sem tela de Entrada, `o-erro-de-submissao-alcanca-os-olhos` sem formulário), que voltam com ele. Guarda que não achou o que examinar é erro (CONV-14), não verde.
   5. **O `/atelie`:** o registro ainda não tem o item do ateliê. Até ter, a rota mostra cada peça instalada viva, com `data-vitrine="<nome>"`, num palco por tema (um iframe para o claro e outro para o escuro: o `.dark` no `<html>` não se desfaz num contêiner).
   6. Anote cada peça no `pecas` do `design/design-system.json` (`peca-do-kit`, seção 3).

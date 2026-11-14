@@ -1,6 +1,6 @@
 ---
 name: design-system
-versao: 0.29.0
+versao: 0.30.0
 description: A direção de design dos apps React do sistema — como a tela parece, com a regra, o porquê medido e como cada regra se confere.
 colors:
   marca: "do tema (temas/<id>/tema.tokens.json, slot marca): cor, hover, sobre, tinta e gradiente, nos dois temas"
@@ -114,6 +114,8 @@ motion:
   dobra-fecha: "150ms"
   cor: "150ms"
   revela: "150ms"
+  station-abre: "500ms"
+  station-peca: "300ms"
   veu: "120ms (atraso)"
   espiada-abre: "250ms (atraso, abrir no passar do mouse)"
   espiada-fecha: "300ms (atraso, tolerância ao sair)"

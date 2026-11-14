@@ -22,7 +22,7 @@ App de cliente ou de fora da empresa não liga este plugin: a marca Wicomm não 
 | Agente `critico-de-ui` | Nota em seis eixos (sete na densidade site), no máximo 5 problemas, teto 24/30 (28/35). **Obrigatório em tela nova; opcional no ajuste.** |
 | Agente `auditor-de-padrao` | Mede, só lendo, um projeto existente contra a base. |
 | Skills | `novo-projeto`, `auditar-projeto`, `plano-de-padronizacao`, `peca-do-kit`, `atualizar-sistema`, `acessibilidade`, `textos-de-interface`, `critica-de-ui`, `revisao-de-arquitetura-de-ui`, `aplicar-tema`. |
-| Comandos | `/design-wicomm:novo`, `:auditar`, `:padronizar`, `:atualizar`, `:estado`. |
+| Comandos | `/design-wicomm:novo`, `:auditar`, `:padronizar`, `:atualizar`, `:estado`, `:barra-das-ias` (a barra das IAs nos apps do Wicomm Station). |
 | Hooks (só avisam) | `lembrete-de-design.mjs` (no pedido de design, lembra o processo) e `valor-solto.mjs` (na escrita de tela, aponta `#hex`, `text-[15px]`, `duration-200`, paleta direto, ícone fora do `lucide-react`). Nenhum nega ferramenta nem segura o turno. |
 | Scripts | `medir-deriva`, `medir-contraste`, `densidade`, `estado`, `base-do-projeto`. |
 | `.mcp.json` | MCP do shadcn, para a `peca-do-kit` consultar o registro `@wicomm`. |

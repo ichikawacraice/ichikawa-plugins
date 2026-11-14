@@ -1,6 +1,6 @@
 ---
 name: design-system
-versao: 0.29.0
+versao: 0.30.0
 description: A anatomia dos apps React do sistema — o que vai onde na tela, com a regra, o porquê e como cada regra se confere.
 ---
 
@@ -79,6 +79,11 @@ O casco é o que faz dois apps da mesma empresa parecerem um só: é a primeira 
 - **Regra.** Na tela de um objeto, o topo leva o **estado** do objeto na linha do título (`estado`, um `ChipDeEstado` com voz) e os **valores que o classificam** — a categoria, o nível, a origem — numa linha própria logo abaixo (`valores` do `TopoDaPagina`, só `Badge` neutro — o de marca não entra no topo, onde disputaria a voz com o estado —, numa linha que quebra no estreito). Sem valores, a linha não existe; enquanto carregam, a peça desenha a espera já na altura final (`valores="carregando"`). Valor na linha do título, valor no `estado` e linha de valores montada à mão na tela são defeito.
 - **Por quê.** O título é a única coisa da linha que encolhe: cada valor posto ao lado dele tira largura do nome, e com quatro valores e as ações o título some em tela larga e corta na comum. Estado tem voz e decide o que a pessoa faz; valor só situa, e não deve disputar o lugar do estado.
 - **Confere.** Peça `TopoDaPagina` (registro, slot `valores`) · `crítica:consistência` · `crítica:hierarquia`.
+
+### CASCO-05 · A barra da família de apps vem do registro
+- **Regra.** App de uma família de apps (os produtos da mesma empresa que a pessoa alterna no dia) leva a barra da família, do registro (`@wicomm/barra-das-ias`), em volta do casco, no layout raiz: a moldura por fora do site, os apps da família na borda esquerda com o atual marcado e sem link, quem está logado ao pé e o botão que a recolhe à aba do canto. A barra se instala, não se redesenha nem se copia: classe, medida, movimento e texto são os do registro. O app só diz qual é ele (`atual`), quem pode vê-la (`comBarra`) e as rotas de tela inteira em que ela some (`foraDaBarra`), o Editor entre elas. Aberta ou oculta é preferência de vista: mora num cookie, lido no servidor, para a página nascer no estado certo, sem animar na carga.
+- **Por quê.** Cada app com a própria cópia da barra é cada app com uma barra um pouco diferente: a pessoa que alterna entre eles vê a moldura mudar de medida e de comportamento, e é isso que faz dois apps da mesma empresa parecerem dois.
+- **Confere.** Bloco da barra (registro, `@wicomm/barra-das-ias`, com os testes do comportamento) · `crítica:consistência`.
 
 ---
 
@@ -225,6 +230,7 @@ A pergunta que decide o lugar: **a quem a mensagem diz respeito, e por quanto te
   | Intervalo de dois valores (de, até: datas, valores) | `IntervaloDeCampos`: o `fieldset` com a legenda da grandeza (e a unidade) e um campo por linha, com o rótulo visível à esquerda (*De*, *Até*); as pontas amarradas no seletor; o erro abaixo do campo do lado; cabe no popover | dois campos lado a lado com *e* no meio, `fieldset` sem `min-w-0`, `aria-label` no lugar do rótulo visível, intervalo montado à mão |
   | Trocar um valor na própria célula | `EscolhaNaCelula`: a leitura no peso dela e o chevron de 14px sempre à vista; o menu (a escolha é a ação) ou o popover com o formulário (*Salvar* e Enter gravam, *Cancelar* fecha; o que impede salvar fica escrito no formulário, ligado ao *Salvar*); sem valor, a leitura vazia da peça com o chevron; gravando inerte com o valor novo na hora, a recusa desfaz e diz *Não mudou*; quem não pode trocar vê só a leitura | `Select` com contorno na célula, controle que só aparece no hover, gatilho que esconde o valor, chevron sozinho na célula vazia, *Salvar* que fecha o que o formulário recusou |
   | Coluna que rola | `RolagemDoPainel`, numa das densidades da LAY-06 | `ScrollArea`, `overflow-y-auto` com respiro à mão |
+  | A moldura da família de apps, em volta do casco | `CascoComBarra` pela cola `BarraDasIasNoNext` (`@wicomm/barra-das-ias`, no layout raiz; CASCO-05) | barra da família copiada no app, lista das IAs e bonecos em `public/`, a medida ou o texto ajustados à mão |
   | O topo da tela dentro do casco | `PaginaDoApp` + `TopoDaPagina` (o único que escreve o `h1`; os valores que classificam o objeto no slot `valores`, CASCO-04) | `h1` e linha de ações à mão em cada tela, `Badge` no `estado` ou ao lado do título |
   | A marca no casco e na Entrada | `Logotipo` | imagem ou texto da marca à mão |
   | Conta e tema | `MenuDaConta`, `MenuDoTema` (no pé da barra lateral) | conta ou tema no cabeçalho, `Select` de tema |
@@ -363,6 +369,7 @@ A pergunta que decide o lugar: **a quem a mensagem diz respeito, e por quanto te
 | CASCO-02 | Um menu só, o do kit | guarda |
 | CASCO-03 | Tela de detalhe tem trilha | guarda |
 | CASCO-04 | Estado no título, valor embaixo | registro, crítica |
+| CASCO-05 | A barra da família de apps vem do registro | registro, crítica |
 | ARQ-01 | Cinco arquétipos | revisão, auditoria, crítica |
 | ARQ-02 | Análise é Lista com medidores | crítica |
 | ARQ-03 | O Editor, região por região | registro, crítica |
