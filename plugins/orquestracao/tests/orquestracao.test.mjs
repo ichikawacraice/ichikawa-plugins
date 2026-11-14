@@ -804,3 +804,20 @@ test('a caixa do app (wrap_up com ask) que espera o operador só passa com a per
   await rodar('papel', 'orquestradora', '--sessao-id', SESSAO_DO_APP);
   assert.match(perguntaNaCaixa(caixa('Abro o PR?')), /perguntas nova/, 'na orquestradora, toda caixa com pergunta vai à página');
 });
+
+test('nenhum comando das skills cola `:` logo depois de `$VAR` (no zsh, `$SHA:r…` vira o modificador :r e corta o valor)', () => {
+  const pastaDosPlugins = join(import.meta.dirname, '..', '..');
+  const achados = [];
+  for (const plugin of readdirSync(pastaDosPlugins)) {
+    const skills = join(pastaDosPlugins, plugin, 'skills');
+    if (!existsSync(skills)) continue;
+    for (const skill of readdirSync(skills)) {
+      const arquivo = join(skills, skill, 'SKILL.md');
+      if (!existsSync(arquivo)) continue;
+      readFileSync(arquivo, 'utf8').split('\n').forEach((linha, i) => {
+        if (/\$[A-Za-z_][A-Za-z0-9_]*:[A-Za-z]/.test(linha)) achados.push(`${plugin}/skills/${skill}/SKILL.md:${i + 1}`);
+      });
+    }
+  }
+  assert.deepEqual(achados, [], 'escreva ${VAR}: no lugar de $VAR:');
+});
