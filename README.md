@@ -10,13 +10,7 @@ Junto vêm os padrões da stack (React, TypeScript, Next, Postgres, Google Cloud
   <img src="docs/imagens/painel-noite.jpg" alt="O Painel no celular, tema noite: a seção Sessões com seis sessões de dois projetos, cada uma com código, selo de estado, título e a esteira planejamento → execução → revisão → PR → entregue; uma esperando você, uma em revisão, uma com PR aberto, uma planejando e duas paradas" width="300">
   <img src="docs/imagens/painel-dia.jpg" alt="A mesma seção Sessões do Painel no celular, tema dia, com céu azul e nuvens" width="300">
 </p>
-<p align="center"><sub>As sessões de cada projeto no Painel: quem está planejando, executando, em revisão ou com PR aberto, quem espera você e quem está parado.</sub></p>
-
-<p align="center">
-  <img src="docs/imagens/perguntas-noite.jpg" alt="O Painel no celular, tema noite: uma pergunta aberta com o caso, o que acontece se ninguém decidir, a recomendação e os botões Aceitar recomendação, Enviar resposta e Abrir sessão" width="300">
-  <img src="docs/imagens/perguntas-dia.jpg" alt="A mesma pergunta no Painel, tema dia" width="300">
-</p>
-<p align="center"><sub>E o que espera você: a pergunta completa, respondida com um clique. O Painel (<code>http://127.0.0.1:4747</code>) nos dois céus, noite e dia; o botão no canto troca o tema, e a escolha vale para a barra e para o painel de contas. Dados de exemplo.</sub></p>
+<p align="center"><sub>As sessões de cada projeto no Painel: quem está planejando, executando, em revisão ou com PR aberto, quem espera você e quem está parado. O Painel (<code>http://127.0.0.1:4747</code>) nos dois céus, noite e dia; o botão no canto troca o tema, e a escolha vale para a barra e para o painel de contas. Dados de exemplo.</sub></p>
 
 ---
 
