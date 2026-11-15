@@ -219,7 +219,7 @@ test('o topo avisa se o modo ausente está ligado ou desligado', () => {
 });
 
 test('o céu segue só o tema.json: escuro sem escolha (com ausente ligado ou não), claro quando gravado', () => {
-  assert.match(html(), /^<!doctype html><html lang="pt-BR" data-ceu="noite">/);
+  assert.match(html(), /^<!doctype html><html lang="pt-BR" data-ceu="noite" data-tema-do-app="ligado">/);
   writeFileSync(join(process.env.ICHIKAWA_HOME, 'ausente.json'), '{"ligado":false}');
   assert.match(html(), /data-ceu="noite"/, 'o ausente desligado não traz mais o dia');
   writeFileSync(join(process.env.ICHIKAWA_HOME, 'tema.json'), 'não é json');
@@ -241,13 +241,36 @@ test('tema.json: lê e grava o contrato; valor desconhecido não grava', () => {
 
 test('o topo traz o botão de tema e a página serve o tema.js', async () => {
   assert.match(topoDe(html()), /<button type="button" class="botao-tema" id="b-tema"[\s\S]*icone-sol[\s\S]*icone-lua/);
-  assert.match(html(), /import \{ ligarBotaoDeTema \} from '\/tema\.js'/);
+  assert.match(html(), /import \{ ligarBotaoDeTema, ligarBotaoDoTemaDoApp \} from '\/tema\.js'/);
   const porta = 4800 + Math.floor(Math.random() * 500);
   const servidor = await servir(porta);
   try {
     const r = await fetch(`http://127.0.0.1:${porta}/tema.js`);
     assert.equal(r.status, 200);
     assert.match(await r.text(), /export function ligarBotaoDeTema/);
+  } finally {
+    servidor.close();
+  }
+});
+
+test('tema do app: o botão fica no canto esquerdo do topo e POST /tema-do-app grava só da própria origem', async () => {
+  assert.equal(estado.lerTemaDoApp(), true, 'sem arquivo, ligado');
+  assert.match(html(), /data-tema-do-app="ligado"/);
+  assert.match(topoDe(html()), /^<button type="button" class="botao-tema botao-tema-do-app" id="b-tema-do-app"/, 'o primeiro do topo, antes do de claro/escuro');
+  const porta = 4800 + Math.floor(Math.random() * 500);
+  const servidor = await servir(porta);
+  try {
+    const url = `http://127.0.0.1:${porta}`;
+    const enviar = (corpo, origin = url) => fetch(`${url}/tema-do-app`, { method: 'POST', headers: { origin, 'content-type': 'application/x-www-form-urlencoded' }, body: corpo });
+    assert.equal((await enviar('ligado=false', 'http://evil.test')).status, 403);
+    assert.equal(estado.lerTemaDoApp(), true);
+    assert.equal((await enviar('ligado=talvez')).status, 400);
+    assert.equal((await enviar('ligado=false')).status, 204);
+    assert.equal(estado.lerTemaDoApp(), false);
+    assert.equal(JSON.parse(readFileSync(join(process.env.ICHIKAWA_HOME, 'tema-do-app.json'), 'utf8')).por, 'painel');
+    assert.match(await (await fetch(url)).text(), /data-tema-do-app="desligado"/);
+    assert.equal((await enviar('ligado=true')).status, 204);
+    assert.equal(estado.lerTemaDoApp(), true);
   } finally {
     servidor.close();
   }

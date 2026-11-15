@@ -30,3 +30,22 @@ export async function gravarTema(env, tema, agora = new Date()) {
   await rename(temp, destino);
   return tema;
 }
+
+/** O tema do app (`tema-do-app.json`): só `"ligado": false` desliga; sem arquivo, ilegível ou outro valor, ligado. */
+export async function lerTemaDoApp(env) {
+  try {
+    return JSON.parse(await readFile(join(pastaDoKit(env), 'tema-do-app.json'), 'utf8'))?.ligado !== false;
+  } catch { return true; }
+}
+
+/** Grava o liga/desliga do tema do app (a barra relê a cada 2 s). Valor que não é booleano lança e nada se grava. */
+export async function gravarTemaDoApp(env, ligado, agora = new Date()) {
+  if (typeof ligado !== 'boolean') throw new Error(`tema do app: ${ligado}`);
+  const pasta = pastaDoKit(env);
+  await mkdir(pasta, { recursive: true });
+  const destino = join(pasta, 'tema-do-app.json');
+  const temp = `${destino}.${process.pid}.tmp`;
+  await writeFile(temp, `${JSON.stringify({ ligado, em: agora.toISOString(), por: 'cotas' }, null, 2)}\n`);
+  await rename(temp, destino);
+  return ligado;
+}

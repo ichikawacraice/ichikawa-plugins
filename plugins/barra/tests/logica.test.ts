@@ -20,7 +20,6 @@ import {
   temaOposto,
   textoDoAusente,
   textoDoTema,
-  textoDoTemaDoApp,
   trocarRaiz,
 } from '../hooks/logica.js'
 
@@ -197,7 +196,5 @@ test('tema-do-app.json: só `"ligado": false` desliga; sem arquivo, ilegível ou
   expect(lerTemaDoApp('{"ligado":"false"}')).toBe(true)
   expect(lerTemaDoApp('lixo')).toBe(true)
   expect(lerTemaDoApp('null')).toBe(true)
-  const texto = textoDoTemaDoApp(false, Date.UTC(2026, 10, 14, 0, 15))
-  expect(JSON.parse(texto)).toEqual({ ligado: false, em: '2026-11-13T21:15:00-03:00', por: 'barra' })
-  expect(lerTemaDoApp(texto)).toBe(false)
+  expect(lerTemaDoApp('{"ligado":false,"em":"2026-11-13T21:15:00-03:00","por":"painel"}')).toBe(false)
 })

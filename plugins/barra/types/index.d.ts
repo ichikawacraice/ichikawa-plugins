@@ -41,10 +41,8 @@ declare module 'claude-code' {
       tema: EscolhaDeTema
       /** O clique do tema está gravando: outro clique é ignorado. */
       trocandoTema: boolean
-      /** O tema do app (céu atrás da conversa e paleta) ligado, como o `tema-do-app.json` diz. */
+      /** O tema do app (céu atrás da conversa e paleta) ligado, como o `tema-do-app.json` diz (gravado pelas páginas do kit). */
       temaDoApp: boolean
-      /** O clique do liga/desliga do tema do app está gravando: outro clique é ignorado. */
-      trocandoTemaDoApp: boolean
       botoes: Botao[]
       /** O selo de cada botão, pela chave; `null` = sem selo. */
       selos: Record<string, number | null>

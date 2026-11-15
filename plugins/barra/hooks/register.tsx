@@ -27,7 +27,6 @@ import {
   temaOposto,
   textoDoAusente,
   textoDoTema,
-  textoDoTemaDoApp,
 } from './logica'
 import {
   CICLO_CINTILA,
@@ -66,7 +65,6 @@ export const trocando = atom({ plugin: 'barra', key: 'trocando' } as const, fals
 export const temaEscolhido = atom({ plugin: 'barra', key: 'tema' } as const, TEMA_PADRAO as EscolhaDeTema)
 export const trocandoTema = atom({ plugin: 'barra', key: 'trocandoTema' } as const, false)
 export const temaDoApp = atom({ plugin: 'barra', key: 'temaDoApp' } as const, true)
-export const trocandoTemaDoApp = atom({ plugin: 'barra', key: 'trocandoTemaDoApp' } as const, false)
 export const botoes = atom({ plugin: 'barra', key: 'botoes' } as const, [] as Botao[])
 export const selos = atom({ plugin: 'barra', key: 'selos' } as const, {} as Record<string, number | null>)
 /** O quadro da cintilação do terminal; `null` = parado (menos movimento pedido). */
@@ -86,7 +84,6 @@ let erroDasSessoes = ''
 let atendendo = false
 let geracaoAusente = 0
 let geracaoTema = 0
-let geracaoTemaDoApp = 0
 let lendoTema = false
 let errosVistos = ''
 let semMovimento = false
@@ -240,15 +237,15 @@ async function aplicarTema($: EngineInterface): Promise<void> {
   }
 }
 
+/** O liga/desliga do tema do app fica nas páginas do kit (Painel e contas), que gravam o `tema-do-app.json`. */
 async function lerTemaDoAppGravado($: EngineInterface): Promise<void> {
-  const geracao = geracaoTemaDoApp
   let valor = true
   try {
     valor = lerTemaDoApp(await lerSeExiste($, `${await pastaIchikawa($)}/tema-do-app.json`))
   } catch (err) {
     logar($, `tema-do-app.json: ${mensagem(err)}`)
   }
-  if (geracao === geracaoTemaDoApp && !(await read($, trocandoTemaDoApp))) await update($, temaDoApp, () => valor)
+  await update($, temaDoApp, () => valor)
 }
 
 /** A leitura de 2 s: as duas escolhas gravadas e o tema do app que elas pedem. */
@@ -261,23 +258,6 @@ export async function lerTemas($: EngineInterface): Promise<void> {
     await aplicarTema($)
   } finally {
     lendoTema = false
-  }
-}
-
-export async function alternarTemaDoApp($: EngineInterface): Promise<void> {
-  if (await read($, trocandoTemaDoApp)) return
-  const ligando = !(await read($, temaDoApp))
-  await update($, trocandoTemaDoApp, () => true)
-  geracaoTemaDoApp++
-  try {
-    await $.fs.write(`${await pastaIchikawa($)}/tema-do-app.json`, textoDoTemaDoApp(ligando, await $.clock.now()))
-    await update($, temaDoApp, () => ligando)
-    await aplicarTema($)
-  } catch (err) {
-    $.ui.toast(`Não consegui ${ligando ? 'ligar' : 'desligar'} o tema do app (${mensagem(err)}).`)
-  } finally {
-    geracaoTemaDoApp++
-    await update($, trocandoTemaDoApp, () => false)
   }
 }
 
@@ -509,9 +489,6 @@ export const register: Register = on => {
     // O botão de tema mostra só o ícone de para onde vai: o sol leva ao claro, a lua ao escuro.
     const rotuloTema = (await read($, trocandoTema)) ? ICONES.gravando : escolha === 'claro' ? ICONES.paraEscuro : ICONES.paraClaro
     const rotulos = lista.map(b => rotuloDoBotao(b, s[b.chave]))
-    const rotuloTemaDoApp = (await read($, trocandoTemaDoApp))
-      ? `${ICONES.gravando} Gravando…`
-      : `${ICONES.temaDoApp} ${(await read($, temaDoApp)) ? 'Desligar tema' : 'Ligar tema'}`
     const relogioDoCache =
       nivel === 'alerta' || nivel === 'venceu' ? (
         <Text key="cache" inverse bold color="error">{` ${texto} `}</Text>
@@ -540,14 +517,10 @@ export const register: Register = on => {
     // ponta direita e 50 px de céu antes dos botões, e os botões encostados à direita. Sem `overflow`/`flexWrap`: com
     // eles o app deixava de pintar a cena.
     if (Svg) {
-      const largura = larguraDaCena(e.props.bodyColumns, texto, [rotuloTemaDoApp, rotuloTema, rotuloAusente, ...rotulos])
+      const largura = larguraDaCena(e.props.bodyColumns, texto, [rotuloTema, rotuloAusente, ...rotulos])
 
       return (
         <Box key={`barra-${modo}`} flexDirection="row" alignItems="center" columnGap={1} paddingX={1} paddingY="xs" backgroundColor={tema.fundo}>
-          {/* O tema do app só se desenha onde há Svg: no terminal, o botão não aparece. */}
-          <Button key="tema-do-app" variant={variante} onPress={() => void alternarTemaDoApp($)}>
-            {rotuloTemaDoApp}
-          </Button>
           {relogioDoCache}
           <Box key="ceu" flexGrow={1} flexDirection="row" justifyContent="flex-end">
             {largura ? <Svg source={svgDaCena(modo, largura, semMovimento)} alt={modo === 'noite' ? 'Céu estrelado com a lua' : 'Céu com o sol'} width={largura} height={SVG_ALTURA} /> : null}

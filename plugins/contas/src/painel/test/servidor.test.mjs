@@ -50,14 +50,14 @@ test('o céu segue só o tema.json: escuro sem escolha (o ausente não muda nada
   const m = montar();
   const s = await subir(m.env);
   try {
-    assert.match((await pedir(s.porta, '/')).texto, /<html lang="pt-BR" data-ceu="noite">/);
+    assert.match((await pedir(s.porta, '/')).texto, /<html lang="pt-BR" data-ceu="noite" data-tema-do-app="ligado">/);
     assert.deepEqual((await pedir(s.porta, '/api/ceu')).json, { ceu: 'noite' });
     const pasta = join(m.home, '.claude', 'ichikawa');
     mkdirSync(pasta, { recursive: true });
     writeFileSync(join(pasta, 'ausente.json'), '{"ligado":false}');
     assert.deepEqual((await pedir(s.porta, '/api/ceu')).json, { ceu: 'noite' }, 'o ausente desligado não traz mais o dia');
     writeFileSync(join(pasta, 'tema.json'), '{"tema":"claro"}');
-    assert.match((await pedir(s.porta, '/')).texto, /<html lang="pt-BR" data-ceu="dia">/);
+    assert.match((await pedir(s.porta, '/')).texto, /<html lang="pt-BR" data-ceu="dia" data-tema-do-app="ligado">/);
     writeFileSync(join(pasta, 'ausente.json'), '{"ligado":true}');
     const r = await pedir(s.porta, '/api/ceu');
     assert.deepEqual(r.json, { ceu: 'dia' }, 'o ausente ligado não traz mais a noite');
@@ -71,7 +71,7 @@ test('o topo sai com o botão de tema e o tema.js é servido', async () => {
   const m = montar();
   const s = await subir(m.env);
   try {
-    assert.match((await pedir(s.porta, '/')).texto, /<header class="topo"><button type="button" class="botao-tema" id="b-tema"/);
+    assert.match((await pedir(s.porta, '/')).texto, /<header class="topo"><button type="button" class="botao-tema botao-tema-do-app" id="b-tema-do-app"[^]*?<\/button><button type="button" class="botao-tema" id="b-tema"/);
     const r = await pedir(s.porta, '/tema.js');
     assert.equal(r.status, 200);
     assert.match(r.headers['content-type'], /javascript/);
@@ -97,6 +97,27 @@ test('POST /api/tema grava a escolha com a guarda das ações; valor desconhecid
     assert.deepEqual((await pedir(s.porta, '/api/ceu')).json, { ceu: 'dia' });
     assert.equal((await postar({ tema: 'escuro' })).status, 202);
     assert.deepEqual((await pedir(s.porta, '/api/ceu')).json, { ceu: 'noite' });
+  } finally { await s.fechar(); }
+});
+
+test('POST /api/tema-do-app grava o liga/desliga com a guarda das ações; o que não é booleano é recusado', async () => {
+  const m = montar();
+  const s = await subir(m.env);
+  const postar = (corpo, cabecalhos = { 'x-painel-de-contas': '1' }) =>
+    fetch(`http://127.0.0.1:${s.porta}/api/tema-do-app`, { method: 'POST', headers: { 'content-type': 'application/json', ...cabecalhos }, body: JSON.stringify(corpo) });
+  const arquivo = join(m.home, '.claude', 'ichikawa', 'tema-do-app.json');
+  try {
+    assert.match((await pedir(s.porta, '/')).texto, /data-tema-do-app="ligado"/, 'sem arquivo, ligado');
+    assert.equal((await postar({ ligado: false }, {})).status, 403, 'sem o cabeçalho do painel');
+    assert.equal(existsSync(arquivo), false);
+    assert.equal((await postar({ ligado: 'false' })).status, 400);
+    const r = await postar({ ligado: false });
+    assert.equal(r.status, 202);
+    assert.deepEqual(await r.json(), { ok: true, ligado: false });
+    const gravado = JSON.parse(readFileSync(arquivo, 'utf8'));
+    assert.equal(gravado.ligado, false);
+    assert.equal(gravado.por, 'cotas');
+    assert.match((await pedir(s.porta, '/')).texto, /data-tema-do-app="desligado"/);
   } finally { await s.fechar(); }
 });
 

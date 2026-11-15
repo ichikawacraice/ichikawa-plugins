@@ -82,10 +82,6 @@ export function lerTemaDoApp(texto: string | null): boolean {
   }
 }
 
-/** O que a barra grava ao ligar ou desligar o tema do app: `em` é o momento do clique. */
-export const textoDoTemaDoApp = (ligado: boolean, agora: number): string =>
-  `${JSON.stringify({ ligado, em: isoSaoPaulo(agora), por: 'barra' }, null, 2)}\n`
-
 // ---- quais plugins estão instalados e ligados ----
 
 /** As fontes de settings, da menor para a maior precedência (a ordem do Claude Code). */

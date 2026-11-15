@@ -587,21 +587,19 @@ test('tema do app: ligado por padrão no escuro — a noite ao abrir, o dia no c
   await ui.unmount()
 })
 
-test('tema do app: o botão à esquerda desliga (limpa e grava) e liga de novo', async ($, on) => {
+test('tema do app: a barra não tem o botão; desligado por uma página, limpa em 2 s; religado, volta', async ($, on) => {
   const m = await iniciar($, on)
   const ui = await montar($, 'desktop')
-  const primeiro = (await ui.findAll({ type: 'Button' }))[0]
-  expect(primeiro?.text, 'o primeiro botão da barra').toMatch(/◐ Desligar tema/)
-  await ui.press({ key: 'tema-do-app' })
-  await m.relogio.settle()
+  expect(await ui.find({ key: 'tema-do-app' }), 'o liga/desliga fica nas páginas').toBeUndefined()
+  expect(await ui.find({ type: 'Svg' }), 'a cena da barra segue').toBeDefined()
+  m.arquivos.set(`${ICH}/tema-do-app.json`, '{"ligado": false, "por": "painel"}')
+  await m.relogio.advance(2_000)
   expect(m.temas).toEqual(['noite-do-kit', 'limpo'])
-  expect(JSON.parse(m.arquivos.get(`${ICH}/tema-do-app.json`) as string)).toEqual({ ligado: false, em: '2026-11-13T21:15:00-03:00', por: 'barra' })
-  expect(await ui.find({ type: 'Button', text: /◐ Ligar tema/ })).toBeDefined()
   await ui.press({ key: 'tema' })
   await m.relogio.settle()
   expect(m.temas, 'desligado, o clique do tema não aplica nada').toEqual(['noite-do-kit', 'limpo'])
-  await ui.press({ key: 'tema-do-app' })
-  await m.relogio.settle()
+  m.arquivos.set(`${ICH}/tema-do-app.json`, '{"ligado": true, "por": "cotas"}')
+  await m.relogio.advance(2_000)
   expect(m.temas).toEqual(['noite-do-kit', 'limpo', 'dia-do-kit'])
   await ui.unmount()
 })
@@ -612,13 +610,6 @@ test('tema do app: desligado no arquivo, abre sem aplicar nem limpar; ligado por
   m.arquivos.set(`${ICH}/tema-do-app.json`, '{"ligado": true}')
   await m.relogio.advance(2_000)
   expect(m.temas).toEqual(['noite-do-kit'])
-})
-
-test('tema do app: no terminal não há o botão', async ($, on) => {
-  await iniciar($, on)
-  const ui = await montar($, 'terminal')
-  expect(await ui.find({ type: 'Button', text: /◐/ })).toBeUndefined()
-  await ui.unmount()
 })
 
 test('tema do app: o fundo desenha só as cenas da barra', async ($, on) => {

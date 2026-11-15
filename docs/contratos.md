@@ -10,7 +10,7 @@ Tudo o que é de máquina (não de projeto) mora em `~/.claude/ichikawa/` (`$ICH
 |---|---|---|
 | `ausente.json` | `barra` | `orquestracao` |
 | `tema.json` | `barra`, Painel do `orquestracao`, painel do `contas` (o botão de tema) | os três |
-| `tema-do-app.json` | `barra` (o botão de ligar e desligar o tema do app) | `barra` |
+| `tema-do-app.json` | Painel do `orquestracao`, painel do `contas` (o botão do canto esquerdo do topo) | `barra` e as duas páginas |
 | `perguntas/<projeto>/Q<n>.json` | `orquestracao` | `orquestracao` (página) |
 | `itens/<projeto>/F<n>.json` | `orquestracao` | `orquestracao` (página) |
 | `siglas.json` | `orquestracao` (`perguntas sigla`) | `orquestracao` |
@@ -40,10 +40,10 @@ A escolha do botão de tema, uma só para a barra, o Painel e o painel de contas
 ### `tema-do-app.json`
 
 ```json
-{ "ligado": false, "em": "2026-11-14T00:30:00-03:00", "por": "barra" }
+{ "ligado": false, "em": "2026-11-14T03:30:00.000Z", "por": "painel" }
 ```
 
-O tema do app (o céu atrás da conversa no Claude desktop e no mobile, com a paleta puxada para ele): só `ligado` igual a `false` desliga; sem arquivo, ilegível ou qualquer outro valor, ligado (o padrão, que vem com o kit). Um para a máquina. A barra relê este arquivo e o `tema.json` a cada 2 s e aplica `$.theme.set` com a cena da noite (`noite-do-kit`, escuro) ou do dia (`dia-do-kit`, claro), só quando muda; desligado pelo botão, `$.theme.clear`. Uma sessão que abre com o tema desligado não limpa nada (não apaga o tema de outro plugin).
+O tema do app (o céu atrás da conversa no Claude desktop e no mobile, com a paleta puxada para ele): só `ligado` igual a `false` desliga; sem arquivo, ilegível ou qualquer outro valor, ligado (o padrão, que vem com o kit). Um para a máquina. Grava quem tem o botão: o Painel (`POST /tema-do-app`, formulário `ligado=true|false`, só da própria origem) e o painel de contas (`POST /api/tema-do-app`, JSON `{ "ligado": boolean }` com a guarda das ações); `por` é `painel` ou `cotas`. As páginas saem com `data-tema-do-app="ligado|desligado"` no `<html>` (o botão desligado fica apagado). A barra não tem o botão (a largura dele tirava a cena de estrelas da barra); ela relê este arquivo e o `tema.json` a cada 2 s e aplica `$.theme.set` com a cena da noite (`noite-do-kit`, escuro) ou do dia (`dia-do-kit`, claro), só quando muda; desligado depois de ter aplicado, `$.theme.clear`. Uma sessão que abre com o tema desligado não limpa nada (não apaga o tema de outro plugin).
 
 ### `perguntas/<projeto>/Q<n>.json`
 

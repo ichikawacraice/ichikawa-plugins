@@ -142,6 +142,21 @@ export function gravarTema(tema, por, agora = new Date()) {
   return tema;
 }
 
+// ---- tema-do-app.json: o céu atrás da conversa no Claude ligado ou não (a barra aplica; o Painel e o de cotas gravam) ----
+
+const arquivoDoTemaDoApp = () => join(raiz(), 'tema-do-app.json');
+
+/** Só `"ligado": false` desliga; sem arquivo, ilegível ou outro valor, ligado. */
+export function lerTemaDoApp() {
+  return lerJson(arquivoDoTemaDoApp())?.ligado !== false;
+}
+
+export function gravarTemaDoApp(ligado, por, agora = new Date()) {
+  if (typeof ligado !== 'boolean') throw new Error(`tema do app: ${ligado}`);
+  gravarJson(arquivoDoTemaDoApp(), { ligado, em: agora.toISOString(), por });
+  return ligado;
+}
+
 const TAMANHO_DA_SIGLA = 3;
 const SIGLA_VALIDA = /^[A-Z0-9]{3}$/;
 const ID_COM_SIGLA = /^(?:([A-Za-z0-9]{3})-)?([QFqf]\d+)$/;

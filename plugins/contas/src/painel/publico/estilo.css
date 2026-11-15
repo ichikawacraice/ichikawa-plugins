@@ -172,6 +172,9 @@ h1 {
 .botao-tema .icone-lua { display: none; }
 :root[data-ceu="dia"] .botao-tema .icone-sol { display: none; }
 :root[data-ceu="dia"] .botao-tema .icone-lua { display: block; }
+/* O do tema do app (o céu atrás da conversa no Claude), no canto oposto; desligado, apagado. */
+.topo .botao-tema-do-app { right: auto; left: var(--gutter); }
+:root[data-tema-do-app="desligado"] .botao-tema-do-app { opacity: 0.5; }
 
 h2, h3 { font-family: var(--titulo); font-weight: 500; }
 h2 { margin: 0; font-size: var(--t-h2); line-height: var(--t-h2-linha); letter-spacing: -0.01em; }

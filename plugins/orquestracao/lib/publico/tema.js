@@ -42,3 +42,42 @@ export function ligarBotaoDeTema(botao, gravar) {
     }
   });
 }
+
+// ---- o tema do app: o céu atrás da conversa no Claude, ligado ou desligado (`tema-do-app.json`, que a barra relê a cada 2 s) ----
+
+const ROTULO_DO_APP = { ligado: 'Desligar o tema do Claude (o céu atrás da conversa)', desligado: 'Ligar o tema do Claude (o céu atrás da conversa)' };
+const ERRO_DO_APP = 'Não consegui gravar o tema do Claude; tente de novo.';
+
+const appLigado = () => document.documentElement.dataset.temaDoApp !== 'desligado';
+
+/** O HTML do botão do canto esquerdo: um céu (meia-lua sobre o horizonte). Desligado, fica apagado (estilo.css). */
+export const BOTAO_DO_TEMA_DO_APP = '<button type="button" class="botao-tema botao-tema-do-app" id="b-tema-do-app" aria-label="Tema do Claude">'
+  + '<svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">'
+  + '<rect x="3" y="4" width="18" height="14" rx="3"/><path d="M3 15.5h18"/><path d="M14.5 7.2a3.2 3.2 0 1 0 2.6 4.8 2.6 2.6 0 0 1-2.6-4.8z" fill="currentColor" stroke="none"/>'
+  + '<path d="M7 8.5v.01M9.5 11v.01M6.5 12.5v.01"/></svg></button>';
+
+function rotularApp(botao, texto = ROTULO_DO_APP[appLigado() ? 'ligado' : 'desligado']) {
+  botao.setAttribute('aria-label', texto);
+  botao.setAttribute('aria-pressed', String(appLigado()));
+  botao.title = texto;
+}
+
+/** Liga o botão do tema do app. `gravar(ligado)` recebe `true` ou `false` e rejeita se não gravou; aí o botão volta. */
+export function ligarBotaoDoTemaDoApp(botao, gravar) {
+  if (!botao) return;
+  rotularApp(botao);
+  new MutationObserver(() => rotularApp(botao)).observe(document.documentElement, { attributes: true, attributeFilter: ['data-tema-do-app'] });
+  botao.addEventListener('click', async () => {
+    const antes = appLigado();
+    document.documentElement.dataset.temaDoApp = antes ? 'desligado' : 'ligado';
+    botao.disabled = true;
+    try {
+      await gravar(!antes);
+    } catch {
+      document.documentElement.dataset.temaDoApp = antes ? 'ligado' : 'desligado';
+      rotularApp(botao, ERRO_DO_APP);
+    } finally {
+      botao.disabled = false;
+    }
+  });
+}

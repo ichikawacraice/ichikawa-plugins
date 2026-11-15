@@ -9,7 +9,7 @@ import { join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import * as estado from './estado.mjs';
 import { ROTULO_DO_ESTADO, lerSessoesDoApp, sessoesDaPagina } from './sessoes.mjs';
-import { BOTAO_DE_TEMA } from './publico/tema.js';
+import { BOTAO_DE_TEMA, BOTAO_DO_TEMA_DO_APP } from './publico/tema.js';
 
 export const PORTA_PADRAO = 4747;
 const HOST = '127.0.0.1';
@@ -206,17 +206,21 @@ export function html(agora = Date.now()) {
     + (sessoes.total ? secao('h-sessoes', 'Sessões', esc(frescor(sessoes, agora)), grupos(sessoes, agora), '') : '');
   const direita = secao('h-entregas', 'Entregues', `últimos ${estado.DIAS_DE_ENTREGAS} dias`, entregas.map(({ projeto, i }) => cartaoDeEntrega(projeto, i)), 'Nenhuma entrega ainda.', verMais(maisEntregas));
   // O céu segue só o botão de tema (`tema.json`): claro é o dia; escuro, e o padrão, a noite (estilo.css e ceu.js leem o `data-ceu`).
-  return `<!doctype html><html lang="pt-BR" data-ceu="${estado.lerTema() === 'claro' ? 'dia' : 'noite'}"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+  return `<!doctype html><html lang="pt-BR" data-ceu="${estado.lerTema() === 'claro' ? 'dia' : 'noite'}" data-tema-do-app="${estado.lerTemaDoApp() ? 'ligado' : 'desligado'}"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
 <title>${esc(NOME_DA_PAGINA)}</title><link rel="preload" href="/fontes/geist-medium.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="stylesheet" href="/estilo.css"><link rel="stylesheet" href="/perguntas.css"></head>
-<body><canvas id="ceu" class="ceu" aria-hidden="true"></canvas><header class="topo">${BOTAO_DE_TEMA}<h1>${esc(NOME_DA_PAGINA)}</h1>${selosDoTopo(perguntas.length, andamento.length, entregas.length + maisEntregas.length)}${avisoDeAusente(ausente)}</header>
+<body><canvas id="ceu" class="ceu" aria-hidden="true"></canvas><header class="topo">${BOTAO_DO_TEMA_DO_APP}${BOTAO_DE_TEMA}<h1>${esc(NOME_DA_PAGINA)}</h1>${selosDoTopo(perguntas.length, andamento.length, entregas.length + maisEntregas.length)}${avisoDeAusente(ausente)}</header>
 <main><div>${esquerda}</div><div>${direita}</div></main>
 <footer class="pe"><p>Lido às ${esc(horaSP(new Date(agora).toISOString()))}. A página se atualiza sozinha enquanto você não está escrevendo.</p><p class="assinatura">made by Ichikawa</p></footer>
 <script type="module">
 import { iniciarCeu } from '/ceu.js';
-import { ligarBotaoDeTema } from '/tema.js';
+import { ligarBotaoDeTema, ligarBotaoDoTemaDoApp } from '/tema.js';
 ligarBotaoDeTema(document.getElementById('b-tema'), async (tema) => {
   const r = await fetch('/tema', { method: 'POST', headers: { 'Content-Type': 'application/x-www-form-urlencoded' }, body: new URLSearchParams({ tema }) });
+  if (!r.ok) throw new Error('a página respondeu ' + r.status);
+});
+ligarBotaoDoTemaDoApp(document.getElementById('b-tema-do-app'), async (ligado) => {
+  const r = await fetch('/tema-do-app', { method: 'POST', headers: { 'Content-Type': 'application/x-www-form-urlencoded' }, body: new URLSearchParams({ ligado: String(ligado) }) });
   if (!r.ok) throw new Error('a página respondeu ' + r.status);
 });
 const escrevendo = () => [...document.querySelectorAll('textarea')].some((t) => t.value.trim() || t === document.activeElement);
@@ -293,6 +297,15 @@ async function trocarTema(req, res, porta) {
   res.writeHead(204).end();
 }
 
+/** O botão do tema do app: grava `ligado` (`true` ou `false`) no `tema-do-app.json`, que a barra relê. */
+async function trocarTemaDoApp(req, res, porta) {
+  if (!origemLocal(req, porta)) { res.writeHead(403).end('origem recusada'); return; }
+  const ligado = new URLSearchParams(await lerCorpo(req)).get('ligado');
+  if (ligado !== 'true' && ligado !== 'false') { res.writeHead(400).end('ligado: true ou false'); return; }
+  estado.gravarTemaDoApp(ligado === 'true', 'painel');
+  res.writeHead(204).end();
+}
+
 async function abrir(req, res, porta) {
   const lido = await lerPergunta(req, res, porta);
   if (!lido) return;
@@ -333,6 +346,7 @@ export function criarServidor(porta = PORTA_PADRAO) {
       if (req.method === 'POST' && caminho === '/responder') { await responder(req, res, porta); return; }
       if (req.method === 'POST' && caminho === '/abrir') { await abrir(req, res, porta); return; }
       if (req.method === 'POST' && caminho === '/tema') { await trocarTema(req, res, porta); return; }
+      if (req.method === 'POST' && caminho === '/tema-do-app') { await trocarTemaDoApp(req, res, porta); return; }
       res.writeHead(404).end('não existe');
     } catch (err) {
       process.stderr.write(`pagina: ${err.message}\n`);

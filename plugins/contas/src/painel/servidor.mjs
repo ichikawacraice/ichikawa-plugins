@@ -8,8 +8,8 @@ import { tratarAcao } from './acoes.mjs';
 import { lerContas } from './contas.mjs';
 import { estadoDoUso, releituraSePreciso } from './uso.mjs';
 import { lerSessoes } from './sessoes.mjs';
-import { ceuDoTema, lerTema } from './tema.mjs';
-import { BOTAO_DE_TEMA } from './publico/tema.js';
+import { ceuDoTema, lerTema, lerTemaDoApp } from './tema.mjs';
+import { BOTAO_DE_TEMA, BOTAO_DO_TEMA_DO_APP } from './publico/tema.js';
 import { criarApp, pastaDeDados } from '../troca/app-do-claude.mjs';
 import { haParaImportar, pastaDoKit } from '../troca/importar.mjs';
 
@@ -61,8 +61,8 @@ export function criarServidor({ publico, versao = '0.0.0', pasta = null, contas 
         // confere o céu depois por /api/ceu.
         if (caminho === '/') {
           const tela = corpo.toString('utf8')
-            .replace('<html lang="pt-BR">', `<html lang="pt-BR" data-ceu="${await ceuDoPainel(env)}">`)
-            .replace('<header class="topo">', `<header class="topo">${BOTAO_DE_TEMA}`);
+            .replace('<html lang="pt-BR">', `<html lang="pt-BR" data-ceu="${await ceuDoPainel(env)}" data-tema-do-app="${(await lerTemaDoApp(env)) ? 'ligado' : 'desligado'}">`)
+            .replace('<header class="topo">', `<header class="topo">${BOTAO_DO_TEMA_DO_APP}${BOTAO_DE_TEMA}`);
           return enviar(200, tipo, tela, NO_STORE);
         }
         return enviar(200, tipo, corpo, { 'Cache-Control': 'no-cache' });

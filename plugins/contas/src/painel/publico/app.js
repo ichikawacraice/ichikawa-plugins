@@ -1,6 +1,6 @@
 // A tela do painel: lê `/api/contas` e `/api/sessoes`, desenha e manda as ações. Texto da tela nunca vem cru do servidor
 // como HTML: tudo entra por `textContent`.
-import { ligarBotaoDeTema } from './tema.js';
+import { ligarBotaoDeTema, ligarBotaoDoTemaDoApp } from './tema.js';
 import { avisoDaCota, desfecho, erroDoUso, fraseDaChave, fraseDoAndamento, haQuanto, identidade, janelas, ordenarContas, validarNome } from './regras.js';
 
 const CABECALHO = { 'X-Painel-De-Contas': '1', 'Content-Type': 'application/json' };
@@ -302,6 +302,10 @@ function agendar() {
 })();
 ligarBotaoDeTema($('b-tema'), async (tema) => {
   const r = await postar('/api/tema', { tema });
+  if (!r.ok) throw new Error(r.motivo);
+});
+ligarBotaoDoTemaDoApp($('b-tema-do-app'), async (ligado) => {
+  const r = await postar('/api/tema-do-app', { ligado });
   if (!r.ok) throw new Error(r.motivo);
 });
 $('b-adicionar').addEventListener('click', adicionar);
