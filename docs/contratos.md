@@ -52,7 +52,7 @@ O tema do app (o céu atrás da conversa no Claude desktop e no mobile, com a pa
 { "ligado": false, "em": "2026-11-15T21:00:00.000Z", "por": "painel" }
 ```
 
-O tema das duas páginas (Painel e contas): ligado, o céu e o vidro; desligado, o layout do kit antigo (fundo chapado, topo fixo, cartões com borda, sem céu). Só `ligado` igual a `false` desliga; sem arquivo ou ilegível, ligado. Grava a gaveta de temas: o Painel (`POST /tema-do-painel`, formulário `ligado=true|false`, só da própria origem, 204) e o painel de contas (`POST /api/tema-do-painel`, JSON `{ "ligado": boolean }` com a guarda das ações); `por` é `painel` ou `cotas`. As páginas saem com `data-tema-do-painel="ligado|desligado"` no `<html>`; `ceu.js` não desenha céu com ele desligado. O `GET /api/ceu` do painel de contas devolve `{ ceu, temaDoApp, temaDoPainel }`.
+O tema das duas páginas (Painel e contas): ligado, o céu e o vidro; desligado, o layout do kit antigo (fundo chapado, cartões com borda, sem céu; o topo tem a mesma anatomia do ligado). Só `ligado` igual a `false` desliga; sem arquivo ou ilegível, ligado. Grava a gaveta de temas: o Painel (`POST /tema-do-painel`, formulário `ligado=true|false`, só da própria origem, 204) e o painel de contas (`POST /api/tema-do-painel`, JSON `{ "ligado": boolean }` com a guarda das ações); `por` é `painel` ou `cotas`. As páginas saem com `data-tema-do-painel="ligado|desligado"` no `<html>`; `ceu.js` não desenha céu com ele desligado. O `GET /api/ceu` do painel de contas devolve `{ ceu, temaDoApp, temaDoPainel }`.
 
 **Gaveta de temas** (`BOTAO_DE_TEMAS`, `GAVETA_DE_TEMAS` e `ligarGavetaDeTemas` de `tema.js`): o botão do canto esquerdo do topo abre um `<dialog>` com três chaves — tema do Claude, tema do painel e os dois (indeterminada quando só um está ligado; com os dois ligados desliga os dois, senão liga os dois). A chave muda o atributo na hora e volta atrás, com o erro na gaveta, se a gravação falhar. Fecha pelo X, pelo fundo e por Esc; com ela aberta o Painel não recarrega.
 
@@ -128,7 +128,7 @@ O navegador não alcança as ferramentas do app; o mod da `barra` alcança. A p�
 { "tipo": "abrir-sessao", "sessao": "local_…", "texto": null, "criadoEm": "ISO-8601" }
 ```
 
-`tipo`: `abrir-sessao` (foca a sessão da pergunta) · `responder` (manda `texto` à sessão como mensagem). O mod toma o pedido renomeando-o para `pedidos/tomados/` (só um mod ganha), executa e apaga; falha vai a `pedidos/falhos/` com o motivo. Pedido de mais de 30 min é descartado.
+`tipo`: `responder` (manda `texto` à sessão como mensagem) · `abrir-sessao` (foca a sessão da pergunta; a página não grava mais esse pedido desde a ICH-F34, porque o app só foca a própria sessão — a barra ainda o aceita). O mod toma o pedido renomeando-o para `pedidos/tomados/` (só um mod ganha), executa e apaga; falha vai a `pedidos/falhos/` com o motivo. Pedido de mais de 30 min é descartado.
 
 Pedido vencido ou inválido também vai a `falhos/` com o motivo (fica o rastro). O nome do arquivo segue `[A-Za-z0-9_-]+.json` e `sessao` segue `local_[A-Za-z0-9-]+`. **Limite do app:** `abrir-sessao` usa `open_session_in` com `target: "focus"`, que só mostra a própria sessão (`self`) ou uma que a sessão que tomou o pedido abriu, e só age com essa sessão na tela; fora disso o app diz que não mudou nada e o mod registra o texto no log.
 

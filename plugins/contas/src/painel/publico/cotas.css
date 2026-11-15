@@ -152,7 +152,6 @@ code { font: 12px var(--mono); background: var(--vidro-forte); padding: 1px 5px;
 :root[data-ceu="dia"] .ponto.respondendo { box-shadow: none; animation: none; }
 
 /* ---- tema do painel desligado: o layout do kit antigo (base em estilo.css): chapado, sem brilho nem borda em degradê ---- */
-:root[data-tema-do-painel="desligado"] .subtitulo { margin: 0; }
 :root[data-tema-do-painel="desligado"] .cartoes > li,
 :root[data-tema-do-painel="desligado"] .lista-sessoes { background: var(--vidro); border-color: var(--fio); box-shadow: var(--sombra-cartao); }
 :root[data-tema-do-painel="desligado"] .cartoes > li.vazio { background: none; box-shadow: none; }

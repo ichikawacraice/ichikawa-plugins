@@ -37,7 +37,7 @@
 .recomendacao-rotulo { color: var(--lilas); font-size: var(--t-meta); line-height: 16px; font-weight: 500; }
 .recomendacao .recomendacao-texto { margin-top: 2px; color: var(--texto); font-size: var(--t-corpo); line-height: 20px; overflow-wrap: anywhere; }
 
-/* Responder: campo largo e um botão só (vazio aceita, com texto envia), à direita; "Abrir sessão" ao lado, secundário. */
+/* Responder: campo largo e um botão só (vazio aceita, com texto envia), à direita. */
 .responder { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 14px; padding-top: 14px; border-top: 1px solid var(--fio); }
 .responder textarea {
   font: inherit; flex: 1 1 100%; min-width: 0; min-height: 44px; padding: 10px 12px; resize: vertical;

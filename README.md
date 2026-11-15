@@ -84,7 +84,7 @@ Os plugins não importam código uns dos outros. Eles se encontram só por arqui
 
 | Seção | O que mostra |
 |---|---|
-| **Perguntas** | As abertas de todos os projetos: o caso, o que acontece se ninguém decidir e a recomendação. Um botão só para responder: com o campo vazio ele **aceita a recomendação**, com texto **envia a resposta** (⌘/Ctrl+Enter também envia); ao lado, **Abrir sessão**. A resposta chega à sessão que perguntou, pela barra. |
+| **Perguntas** | As abertas de todos os projetos: o caso, o que acontece se ninguém decidir e a recomendação. Um botão só para responder: com o campo vazio ele **aceita a recomendação**, com texto **envia a resposta** (⌘/Ctrl+Enter também envia). A resposta chega à sessão que perguntou, pela barra. |
 | **Sessões** | Um grupo por projeto, com a etapa de cada item (planejamento → execução → revisão → PR → entregue), quem espera você e quem está rodando agora. Cada estado tem um selo de cor própria: esperando você em âmbar, trabalhando em azul, em revisão em ciano, no PR em lilás, parada em vermelho. |
 | **Entregues** | As entregas dos últimos 30 dias: resultado, o que foi medido, o que ficou sem medir, próximos passos e o PR. |
 

@@ -271,7 +271,7 @@ ul { list-style: none; margin: 14px 0 0; padding: 0; display: grid; gap: 10px; }
 .gaveta-erro { margin: 0; color: var(--critico); font-size: var(--t-apoio); line-height: 18px; }
 
 /* ---- o tema do painel desligado (`data-tema-do-painel="desligado"`): o layout do kit antigo, "plantão" ----
-   Sem céu, sem vidro e sem Geist: superfícies chapadas, a fonte do sistema, o topo fixo com o nome à esquerda e as
+   Sem céu, sem vidro e sem Geist: superfícies chapadas, a fonte do sistema, o topo como o do ligado e as
    cores de status de antes. O escuro e o claro seguem o botão de tema (`data-ceu`), como no lado ligado. */
 :root[data-tema-do-painel="desligado"] {
   --espaco: #0b0e14;
@@ -308,8 +308,6 @@ ul { list-style: none; margin: 14px 0 0; padding: 0; display: grid; gap: 10px; }
   --primario-sombra: none;
   --sombra-cartao: 0 0 0 1px rgba(255, 255, 255, 0.03), 0 8px 24px -12px rgba(0, 0, 0, 0.6);
   --titulo: var(--fonte);
-  --t-h1: 15px;
-  --t-h1-linha: 20px;
   --t-h2: 18px;
   --t-h2-linha: 24px;
   --raio: 14px;
@@ -355,21 +353,14 @@ ul { list-style: none; margin: 14px 0 0; padding: 0; display: grid; gap: 10px; }
 :root[data-tema-do-painel="desligado"] .ceu { display: none; }
 :root[data-tema-do-painel="desligado"] * { -webkit-backdrop-filter: none; backdrop-filter: none; }
 :root[data-tema-do-painel="desligado"] body { font-size: 13px; }
-/* O topo: uma faixa fixa, nome à esquerda, selos e aviso ao lado, os dois botões no fim. */
-:root[data-tema-do-painel="desligado"] .topo {
-  position: sticky; top: 0; z-index: 20; max-width: none; margin: 0;
-  display: flex; flex-wrap: wrap; align-items: center; gap: 8px 16px; text-align: left;
-  padding: 10px max(var(--gutter), calc((100% - var(--largura)) / 2 + var(--gutter)));
-  background: var(--espaco); border-bottom: 1px solid var(--fio);
-}
-:root[data-tema-do-painel="desligado"] h1 { font-weight: 700; color: var(--texto); background: none; padding: 0; white-space: nowrap; }
-:root[data-tema-do-painel="desligado"] .topo .contagens,
-:root[data-tema-do-painel="desligado"] .aviso-ausente { margin: 0; }
-:root[data-tema-do-painel="desligado"] .aviso-ausente { padding: 3px 10px; }
-:root[data-tema-do-painel="desligado"] .topo .botao-tema { position: static; order: 3; width: 32px; height: 32px; min-height: 32px; border-radius: var(--raio-botao); }
-:root[data-tema-do-painel="desligado"] .topo .botao-temas { margin-left: auto; }
-:root[data-tema-do-painel="desligado"] .contagem { border-radius: 999px; font: 700 var(--t-apoio)/20px var(--fonte); }
+/* O topo tem a mesma anatomia do ligado (gaveta à esquerda, nome no centro, selos e aviso embaixo, sol à direita),
+   só chapado: o nome sem degradê e na fonte do sistema. A largura segue a do conteúdo, para os botões alinharem com ele. */
+:root[data-tema-do-painel="desligado"] h1 { font-weight: 700; color: var(--texto); background: none; }
+:root[data-tema-do-painel="desligado"] .contagem { font: 700 var(--t-apoio)/20px var(--fonte); }
+/* O botão de ícone fica fora da regra geral de botão (padding de texto tirava o ícone do centro). */
+:root[data-tema-do-painel="desligado"] .topo .botao-tema { padding: 0; min-height: 36px; }
 /* A página: a coluna principal larga e a lateral estreita, como no kit antigo. */
+:root[data-tema-do-painel="desligado"] .topo,
 :root[data-tema-do-painel="desligado"] main,
 :root[data-tema-do-painel="desligado"] .pe { max-width: var(--largura); }
 :root[data-tema-do-painel="desligado"] main { display: block; padding-top: 8px; }

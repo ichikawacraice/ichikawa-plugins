@@ -497,8 +497,10 @@ export const register: Register = on => {
           {texto}
         </Text>
       )
-    // De dia o botão primário (claro e sólido) se destaca do céu claro; de noite o secundário (escuro) combina.
-    const variante = modo === 'dia' ? 'primary' : 'secondary'
+    // Sempre o secundário: o primário do desktop pinta com o tom do texto mais forte do tema (no dia, o azul-marinho
+    // #1f3a5f), e o mod não escolhe a cor do botão. O secundário é translúcido e deixa o céu aparecer: de dia, azul
+    // bebê com o texto marinho, como o primário das páginas; de noite, escuro.
+    const variante = 'secondary'
     const botoesDaBarra = [
       <Button key="tema" variant={variante} onPress={() => void alternarTema($)}>
         {rotulo('r-tema', rotuloTema)}

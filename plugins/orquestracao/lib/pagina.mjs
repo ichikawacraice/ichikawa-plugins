@@ -73,14 +73,13 @@ const ancora = (projeto, id) => `pergunta-${String(projeto).replace(/[^\w-]/g, '
 
 function cartaoDePergunta(projeto, p) {
   const oculto = `<input type="hidden" name="projeto" value="${esc(projeto)}"><input type="hidden" name="id" value="${esc(p.id)}">`;
-  const abrir = ehSessaoDoApp(p.sessao) ? `<button type="submit" formaction="/abrir">Abrir sessão</button>` : '';
   // A recomendação sai do meio dos campos e ganha caixa própria: é ela que o botão aceita com o campo vazio.
   const recomendacao = p.recomendacao ? `<div class="recomendacao"><p class="recomendacao-rotulo">Recomendação</p><p class="recomendacao-texto">${esc(p.recomendacao)}</p></div>` : '';
   return `<li class="pergunta" id="${esc(ancora(projeto, p.id))}"><div class="cartao-cab"><span class="id">${idLido(projeto, p.id)}</span>${cabecaDoProjeto(projeto)}<span class="cartao-titulo">${esc(p.titulo)}</span>${p.item ? `<span class="projeto">${idLido(projeto, p.item)}</span>` : ''}</div>
 ${campos([['O caso', esc(p.caso)], ['Se ninguém decidir', esc(p.seNaoDecidir)]])}${recomendacao}
 <form class="responder" method="post" action="/responder">${oculto}
 <textarea name="resposta" rows="2" aria-label="Resposta para ${esc(p.id)}" placeholder="Escreva outra resposta, ou deixe vazio para aceitar a recomendação"></textarea>
-<div class="responder-acoes"><button type="submit" class="primario botao-responder" ${ROTULOS_DO_RESPONDER}>${esc(ROTULO_VAZIO)}</button>${abrir}</div></form>
+<div class="responder-acoes"><button type="submit" class="primario botao-responder" ${ROTULOS_DO_RESPONDER}>${esc(ROTULO_VAZIO)}</button></div></form>
 <p class="quando">${esc(horaSP(p.criadoEm))}${p.item ? ` · no app, a sessão é a <b>${idLido(projeto, p.item)} · …</b> na barra lateral` : ''}</p></li>`;
 }
 
@@ -330,14 +329,6 @@ const trocarLigado = (gravar) => async (req, res, porta) => {
 const trocarTemaDoApp = trocarLigado((ligado, por) => estado.gravarTemaDoApp(ligado, por));
 const trocarTemaDoPainel = trocarLigado((ligado, por) => estado.gravarTemaDoPainel(ligado, por));
 
-async function abrir(req, res, porta) {
-  const lido = await lerPergunta(req, res, porta);
-  if (!lido) return;
-  if (!ehSessaoDoApp(lido.p.sessao)) { res.writeHead(400).end('a pergunta não tem sessão do app'); return; }
-  gravarPedido('abrir-sessao', lido.p.sessao);
-  res.writeHead(303, { Location: '/' }).end();
-}
-
 /** Arquiva em todos os projetos o que já saiu da página; devolve os ids lidos (`IZA-F3`). */
 export function arquivarTudo(agora = Date.now()) {
   return estado.projetos().flatMap((projeto) => estado.arquivar(projeto, agora).map((id) => estado.rotulo(projeto, id)));
@@ -368,7 +359,6 @@ export function criarServidor(porta = PORTA_PADRAO) {
         return;
       }
       if (req.method === 'POST' && caminho === '/responder') { await responder(req, res, porta); return; }
-      if (req.method === 'POST' && caminho === '/abrir') { await abrir(req, res, porta); return; }
       if (req.method === 'POST' && caminho === '/tema') { await trocarTema(req, res, porta); return; }
       if (req.method === 'POST' && caminho === '/tema-do-app') { await trocarTemaDoApp(req, res, porta); return; }
       if (req.method === 'POST' && caminho === '/tema-do-painel') { await trocarTemaDoPainel(req, res, porta); return; }

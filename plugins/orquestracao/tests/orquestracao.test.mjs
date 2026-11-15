@@ -139,7 +139,7 @@ test('a página escapa o texto e separa perguntas, sessões e entregas', () => {
   const h = html();
   assert.ok(!h.includes('<script>x'));
   assert.match(h, /&lt;script&gt;x/);
-  assert.match(h, /Abrir sessão/);
+  assert.doesNotMatch(h, /Abrir sessão|formaction="\/abrir"/);
   assert.match(h, /id="h-sessoes">Sessões</);
   assert.doesNotMatch(h, /Em andamento/);
   assert.match(h, /selo-entregue/);
