@@ -296,9 +296,10 @@ ul { list-style: none; margin: 14px 0 0; padding: 0; display: grid; gap: 10px; }
   --botao-fundo: #222836;
   --botao-borda-hover: #6b7486;
   --botao-fundo-hover: #2d3444;
-  --primario-texto: #0b0e14;
-  --primario-fundo: #a5b4fc;
-  --primario-fundo-hover: #bcc6fd;
+  /* Sem tema, os botões são os do app: cinzas. O principal é um cinza um passo mais claro que o secundário, em negrito. */
+  --primario-texto: #f3f5f8;
+  --primario-fundo: #3a4252;
+  --primario-fundo-hover: #465062;
   --primario-sombra: none;
   --sombra-cartao: 0 0 0 1px rgba(255, 255, 255, 0.03), 0 8px 24px -12px rgba(0, 0, 0, 0.6);
   --titulo: var(--fonte);
@@ -337,9 +338,9 @@ ul { list-style: none; margin: 14px 0 0; padding: 0; display: grid; gap: 10px; }
   --botao-fundo: #e9ecf1;
   --botao-borda-hover: #8a93a3;
   --botao-fundo-hover: #dde1e8;
-  --primario-texto: #ffffff;
-  --primario-fundo: #4338ca;
-  --primario-fundo-hover: #3730a3;
+  --primario-texto: #0f172a;
+  --primario-fundo: #d9dee6;
+  --primario-fundo-hover: #cdd3dd;
   --sombra-cartao: 0 1px 2px rgba(15, 23, 42, 0.06), 0 8px 24px -12px rgba(15, 23, 42, 0.18);
 }
 :root[data-tema-do-painel="desligado"] .ceu { display: none; }
