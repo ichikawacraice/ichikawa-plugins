@@ -10,7 +10,8 @@ Tudo o que é de máquina (não de projeto) mora em `~/.claude/ichikawa/` (`$ICH
 |---|---|---|
 | `ausente.json` | `barra` | `orquestracao` |
 | `tema.json` | `barra`, Painel do `orquestracao`, painel do `contas` (o botão de tema) | os três |
-| `tema-do-app.json` | Painel do `orquestracao`, painel do `contas` (o botão do canto esquerdo do topo) | `barra` e as duas páginas |
+| `tema-do-app.json` | Painel do `orquestracao`, painel do `contas` (a gaveta de temas, botão do canto esquerdo do topo) | `barra` e as duas páginas |
+| `tema-do-painel.json` | Painel do `orquestracao`, painel do `contas` (a gaveta de temas) | as duas páginas |
 | `perguntas/<projeto>/Q<n>.json` | `orquestracao` | `orquestracao` (página) |
 | `itens/<projeto>/F<n>.json` | `orquestracao` | `orquestracao` (página) |
 | `siglas.json` | `orquestracao` (`perguntas sigla`) | `orquestracao` |
@@ -43,7 +44,17 @@ A escolha do botão de tema, uma só para a barra, o Painel e o painel de contas
 { "ligado": false, "em": "2026-11-14T03:30:00.000Z", "por": "painel" }
 ```
 
-O tema do app (o céu atrás da conversa no Claude desktop e no mobile, com a paleta puxada para ele): só `ligado` igual a `false` desliga; sem arquivo, ilegível ou qualquer outro valor, ligado (o padrão, que vem com o kit). Um para a máquina. Grava quem tem o botão: o Painel (`POST /tema-do-app`, formulário `ligado=true|false`, só da própria origem) e o painel de contas (`POST /api/tema-do-app`, JSON `{ "ligado": boolean }` com a guarda das ações); `por` é `painel` ou `cotas`. As páginas saem com `data-tema-do-app="ligado|desligado"` no `<html>` (o botão desligado fica apagado). A barra não tem o botão (a largura dele tirava a cena de estrelas da barra); ela relê este arquivo e o `tema.json` a cada 2 s e aplica `$.theme.set` com a cena da noite (`noite-do-kit`, escuro) ou do dia (`dia-do-kit`, claro), só quando muda; desligado depois de ter aplicado, `$.theme.clear`. Uma sessão que abre com o tema desligado não limpa nada (não apaga o tema de outro plugin).
+O tema do app (o céu atrás da conversa no Claude desktop e no mobile, com a paleta puxada para ele): só `ligado` igual a `false` desliga; sem arquivo, ilegível ou qualquer outro valor, ligado (o padrão, que vem com o kit). Um para a máquina. Grava quem tem a gaveta de temas: o Painel (`POST /tema-do-app`, formulário `ligado=true|false`, só da própria origem) e o painel de contas (`POST /api/tema-do-app`, JSON `{ "ligado": boolean }` com a guarda das ações); `por` é `painel` ou `cotas`. As páginas saem com `data-tema-do-app="ligado|desligado"` no `<html>` (a chave do tema do Claude, na gaveta, fica desligada). A barra não tem o botão (a largura dele tirava a cena de estrelas da barra); ela relê este arquivo e o `tema.json` a cada 2 s e aplica `$.theme.set` com a cena da noite (`noite-do-kit`, escuro) ou do dia (`dia-do-kit`, claro), só quando muda; desligado depois de ter aplicado, `$.theme.clear`. Uma sessão que abre com o tema desligado não limpa nada (não apaga o tema de outro plugin).
+
+### `tema-do-painel.json`
+
+```json
+{ "ligado": false, "em": "2026-11-15T21:00:00.000Z", "por": "painel" }
+```
+
+O tema das duas páginas (Painel e contas): ligado, o céu e o vidro; desligado, o layout do kit antigo (fundo chapado, topo fixo, cartões com borda, sem céu). Só `ligado` igual a `false` desliga; sem arquivo ou ilegível, ligado. Grava a gaveta de temas: o Painel (`POST /tema-do-painel`, formulário `ligado=true|false`, só da própria origem, 204) e o painel de contas (`POST /api/tema-do-painel`, JSON `{ "ligado": boolean }` com a guarda das ações); `por` é `painel` ou `cotas`. As páginas saem com `data-tema-do-painel="ligado|desligado"` no `<html>`; `ceu.js` não desenha céu com ele desligado. O `GET /api/ceu` do painel de contas devolve `{ ceu, temaDoApp, temaDoPainel }`.
+
+**Gaveta de temas** (`BOTAO_DE_TEMAS`, `GAVETA_DE_TEMAS` e `ligarGavetaDeTemas` de `tema.js`): o botão do canto esquerdo do topo abre um `<dialog>` com três chaves — tema do Claude, tema do painel e os dois (indeterminada quando só um está ligado; com os dois ligados desliga os dois, senão liga os dois). A chave muda o atributo na hora e volta atrás, com o erro na gaveta, se a gravação falhar. Fecha pelo X, pelo fundo e por Esc; com ela aberta o Painel não recarrega.
 
 ### `perguntas/<projeto>/Q<n>.json`
 
@@ -160,7 +171,7 @@ Toda página local dos plugins (perguntas, contas e as que vierem) usa o mesmo v
 
 - **A fonte é a página de perguntas**, `plugins/orquestracao/lib/publico/`: `estilo.css` (tokens, tipografia, topo, seções, botões, pé), `ceu.js`, `ceu-dia.js`, `planeta.js`, `tema.js` (o botão de tema) e `fontes/` (`geist-medium.woff2` com a licença `OFL-geist.txt`).
 - As outras páginas levam **cópia idêntica** desses arquivos (o painel de contas, em `plugins/contas/src/painel/publico/`) e acrescentam só classes próprias num arquivo à parte (`perguntas.css`, `cotas.css`).
-- O arquivo próprio usa só os tokens da base (`var(--…)`; tom translúcido por `color-mix`), sem cor solta: o tema troca os tokens em `estilo.css` e todas as páginas acompanham.
+- O arquivo próprio usa só os tokens da base (`var(--…)`; tom translúcido por `color-mix`), sem cor solta: o tema troca os tokens em `estilo.css` e todas as páginas acompanham. Exceção: o preenchimento das barras de cota do painel de contas vai do verde ao vermelho pelo uso (`--matiz`, de 140 a 0, posto por `matizDoUso` de `regras.js` via `style.setProperty`), não pelo tema.
 - **Dois céus, pelo botão de tema** (`tema.json` em `ICHIKAWA_HOME`, padrão `~/.claude/ichikawa`): escuro, sem arquivo ou ilegível, a noite (via láctea e planeta, os tokens de `:root`); claro, o dia (céu azul, nuvens e sol, os tokens de `:root[data-ceu="dia"]`). O servidor grava `data-ceu="noite|dia"` no `<html>` e põe o botão (`BOTAO_DE_TEMA` de `tema.js`) no canto do topo; `ligarBotaoDeTema` troca o atributo na hora e grava pela rota da página (Painel: `POST /tema`, formulário; contas: `POST /api/tema`, JSON com a guarda das ações). `ceu.js` desenha o céu pedido e troca sozinho quando o atributo muda. A escolha feita em outro lugar chega ao Painel no recarregamento de 30 s e ao painel de contas pelo `GET /api/ceu` de 10 s; a barra relê a cada 2 s e leva o tema do app junto (`tema-do-app.json`). A hora e o modo ausente não mudam o céu; o aviso de ausente do Painel continua.
 - O arquivo próprio pode trazer ajustes só do dia sob `:root[data-ceu="dia"]` (ex.: tirar brilhos), nunca cor que valha só para um céu fora desse bloco.
 - Mudar o visual é mudar a fonte e copiar nas outras no mesmo PR. `plugins/contas/src/painel/test/layout-comum.test.mjs` falha se as cópias divergirem.

@@ -157,6 +157,21 @@ export function gravarTemaDoApp(ligado, por, agora = new Date()) {
   return ligado;
 }
 
+// ---- tema-do-painel.json: as páginas locais com o céu (ligado) ou no layout do kit antigo (desligado) ----
+
+const arquivoDoTemaDoPainel = () => join(raiz(), 'tema-do-painel.json');
+
+/** Só `"ligado": false` desliga; sem arquivo, ilegível ou outro valor, ligado. */
+export function lerTemaDoPainel() {
+  return lerJson(arquivoDoTemaDoPainel())?.ligado !== false;
+}
+
+export function gravarTemaDoPainel(ligado, por, agora = new Date()) {
+  if (typeof ligado !== 'boolean') throw new Error(`tema do painel: ${ligado}`);
+  gravarJson(arquivoDoTemaDoPainel(), { ligado, em: agora.toISOString(), por });
+  return ligado;
+}
+
 const TAMANHO_DA_SIGLA = 3;
 const SIGLA_VALIDA = /^[A-Z0-9]{3}$/;
 const ID_COM_SIGLA = /^(?:([A-Za-z0-9]{3})-)?([QFqf]\d+)$/;

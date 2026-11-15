@@ -92,8 +92,26 @@ export function identidade(conta, emails = {}) {
   return { nome: temNome ? conta.nome : email || padrao, apoio: temNome ? email || padrao : email ? padrao : '' };
 }
 
-/** A ativa primeiro; depois por nome. */
-export const ordenarContas = (contas) => [...contas].sort((a, b) => Number(b.ativa) - Number(a.ativa) || String(a.nome).localeCompare(String(b.nome), 'pt-BR'));
+/** Quanto da semana está livre (0 a 100); `-1` sem cota lida, para ficar no fim. Semana que já zerou está 100% livre. */
+function livreNaSemana(uso, agoraMs) {
+  const semana = janelas(uso, agoraMs).find((j) => j.chave === 'semana');
+  return semana ? 100 - semana.pct : -1;
+}
+
+/** A ativa sempre primeiro; depois quem tem mais % livre na semana (sem cota lida, no fim); empate, por nome. */
+export const ordenarContas = (contas, uso = {}, agoraMs = Date.now()) => [...contas].sort((a, b) => Number(b.ativa) - Number(a.ativa)
+  || livreNaSemana(uso?.[b.uuid], agoraMs) - livreNaSemana(uso?.[a.uuid], agoraMs)
+  || String(a.nome).localeCompare(String(b.nome), 'pt-BR'));
+
+const MATIZ_LIVRE = 140;
+// A curva segura o verde até a metade e corre para o vermelho perto do limite: 50% ≈ 90 (verde-amarelo), 70% ≈ 58, 90% ≈ 20.
+const CURVA_DO_MATIZ = 1.5;
+
+/** O matiz (HSL) da barra de cota: 140 (verde) livre, 0 (vermelho) no limite. */
+export function matizDoUso(pct) {
+  const fracao = Math.min(1, Math.max(0, Number(pct) / 100 || 0));
+  return Math.round(MATIZ_LIVRE * (1 - fracao ** CURVA_DO_MATIZ));
+}
 
 /** O nome que a pessoa digitou: `{ ok, nome }` ou `{ ok: false, motivo }`. Mesmo nome de outra conta (sem caixa) recusa. */
 export function validarNome(nome, uuid, contas) {

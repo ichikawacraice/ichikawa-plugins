@@ -9,8 +9,9 @@
 }
 .cartoes > li.vazio { background: none; border: 0; padding: 4px 0; -webkit-backdrop-filter: none; backdrop-filter: none; }
 
-/* Projeto, acima do título: pequeno e apagado, para o título mandar. */
-.cartao-projeto { margin: 0 0 6px; color: var(--texto-3); font-size: var(--t-meta); line-height: 16px; font-weight: 500; overflow-wrap: anywhere; }
+/* Projeto, na linha do código: pequeno e apagado, para o título mandar. */
+.cartao-projeto { color: var(--texto-3); font-size: var(--t-meta); line-height: 16px; font-weight: 500; overflow-wrap: anywhere; min-width: 0; }
+.cartao-projeto::before { content: "·"; margin-right: 8px; color: var(--texto-3); }
 .cartao-cab { display: flex; gap: 4px 8px; align-items: baseline; flex-wrap: wrap; }
 .id { font: 500 var(--t-meta)/16px var(--mono); color: var(--lilas); flex: none; }
 /* Código, marcador e selo numa linha em cima; o título desce e ganha a largura inteira (mais espaço no celular). */
@@ -27,7 +28,16 @@
 .proximos li { margin-top: 2px; }
 .proximos li::marker { color: var(--texto-3); }
 
-/* Responder: campo largo, dois botões lado a lado, o de abrir sessão embaixo se couber. */
+/* Recomendação: caixa própria no tom do acento, porque é ela que o botão aceita com o campo vazio. */
+.recomendacao {
+  margin-top: 12px; padding: 10px 12px; border-radius: 12px;
+  background: var(--violeta-fundo); border: 1px solid color-mix(in srgb, var(--lilas) 28%, transparent);
+}
+.recomendacao p { margin: 0; }
+.recomendacao-rotulo { color: var(--lilas); font-size: var(--t-meta); line-height: 16px; font-weight: 500; }
+.recomendacao .recomendacao-texto { margin-top: 2px; color: var(--texto); font-size: var(--t-corpo); line-height: 20px; overflow-wrap: anywhere; }
+
+/* Responder: campo largo e um botão só (vazio aceita, com texto envia), à direita; "Abrir sessão" ao lado, secundário. */
 .responder { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 14px; padding-top: 14px; border-top: 1px solid var(--fio); }
 .responder textarea {
   font: inherit; flex: 1 1 100%; min-width: 0; min-height: 44px; padding: 10px 12px; resize: vertical;
@@ -36,7 +46,10 @@
 }
 .responder textarea::placeholder { color: var(--texto-3); }
 .responder textarea:focus-visible { outline: 2px solid var(--foco); outline-offset: 2px; border-color: transparent; }
-.responder button { flex: 1 1 auto; padding-inline: 12px; }
+.responder-acoes { flex: 1 1 100%; display: flex; flex-direction: row-reverse; flex-wrap: wrap; gap: 8px; }
+/* Largura mínima: o rótulo troca de "Aceitar recomendação" para "Enviar resposta" sem o botão pular. */
+.botao-responder { min-width: 190px; }
+@media (max-width: 420px) { .responder-acoes > button { flex: 1 1 auto; } }
 
 /* Selos: pílula pequena, cor suave, sem caixa-alta. */
 .selo {
@@ -90,8 +103,9 @@
 .marcador-parada { color: var(--critico); }
 .marcador-no-pr, .marcador-revisando { color: var(--lilas); }
 .marcador-trabalhando { color: var(--ok); }
-/* Rodando: o anel gira (aberto num lado), parado com "reduzir movimento". */
-.marcador.girando { border-right-color: transparent; background: none; animation: gira 1.2s linear infinite; }
+/* Rodando: o arco de três quartos com pontas redondas (o do kit antigo) gira; parado com "reduzir movimento". */
+.marcador.girando { width: 14px; height: 14px; border: 0; background: none; display: grid; place-items: center; animation: gira 1.2s linear infinite; }
+.marcador.girando svg { display: block; width: 14px; height: 14px; }
 @keyframes gira { to { transform: rotate(360deg); } }
 
 .selo-sessao-esperando { color: var(--alto); background: color-mix(in srgb, var(--alto) 8%, transparent); border-color: color-mix(in srgb, var(--alto) 35%, transparent); }
@@ -127,3 +141,38 @@
   .entrega > summary .cartao-cab::after { transition: none; }
   .marcador.girando { animation: none; }
 }
+
+/* ---- tema do painel desligado: os cartões do kit antigo (base em estilo.css) ---- */
+:root[data-tema-do-painel="desligado"] .cartoes > li { background: var(--vidro); border-color: var(--fio); box-shadow: var(--sombra-cartao); }
+:root[data-tema-do-painel="desligado"] .cartoes > li.vazio,
+:root[data-tema-do-painel="desligado"] .cartoes > li.grupo-de-projeto { box-shadow: none; background: none; }
+/* Pergunta: o traço âmbar à esquerda, o código grande, o título forte e os rótulos em caixa-alta. */
+:root[data-tema-do-painel="desligado"] .cartoes > li.pergunta { position: relative; overflow: hidden; padding: 20px 24px; }
+:root[data-tema-do-painel="desligado"] li.pergunta::before { content: ""; position: absolute; inset: 0 auto 0 0; width: 4px; background: var(--aguarda); }
+:root[data-tema-do-painel="desligado"] li.pergunta .id { font: 700 18px/24px var(--mono); color: var(--texto); }
+:root[data-tema-do-painel="desligado"] li.pergunta .cartao-titulo { font: 600 17px/24px var(--fonte); }
+:root[data-tema-do-painel="desligado"] .cartao-titulo { font-family: var(--fonte); font-weight: 600; }
+:root[data-tema-do-painel="desligado"] .campos dt,
+:root[data-tema-do-painel="desligado"] .recomendacao-rotulo { font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em; }
+:root[data-tema-do-painel="desligado"] li.pergunta .campos dd,
+:root[data-tema-do-painel="desligado"] .recomendacao-texto { font-size: 15px; line-height: 22px; }
+:root[data-tema-do-painel="desligado"] .recomendacao { background: var(--vidro-forte); border-color: transparent; border-radius: 10px; padding: 12px 16px; }
+:root[data-tema-do-painel="desligado"] .recomendacao-rotulo { color: var(--texto-2); }
+:root[data-tema-do-painel="desligado"] .recomendacao-texto { font-weight: 500; }
+:root[data-tema-do-painel="desligado"] .selo { border-radius: 6px; font-size: 12px; line-height: 16px; padding: 1px 8px; }
+/* Sessões e entregas: uma lista só por grupo, linhas separadas por fio (o painel-lista do kit antigo). */
+:root[data-tema-do-painel="desligado"] .grupo-de-projeto > .cartoes,
+:root[data-tema-do-painel="desligado"] [aria-labelledby="h-entregas"] > .cartoes,
+:root[data-tema-do-painel="desligado"] .ver-mais > .cartoes {
+  gap: 0; overflow: hidden; background: var(--vidro); border: 1px solid var(--fio); border-radius: var(--raio); box-shadow: var(--sombra-cartao);
+}
+:root[data-tema-do-painel="desligado"] .grupo-de-projeto > .cartoes > li,
+:root[data-tema-do-painel="desligado"] [aria-labelledby="h-entregas"] > .cartoes > li,
+:root[data-tema-do-painel="desligado"] .ver-mais > .cartoes > li { border: 0; border-radius: 0; box-shadow: none; background: none; }
+:root[data-tema-do-painel="desligado"] .grupo-de-projeto > .cartoes > li + li,
+:root[data-tema-do-painel="desligado"] [aria-labelledby="h-entregas"] > .cartoes > li + li,
+:root[data-tema-do-painel="desligado"] .ver-mais > .cartoes > li + li { border-top: 1px solid var(--fio); }
+:root[data-tema-do-painel="desligado"] [aria-labelledby="h-entregas"] > .cartoes > li.vazio { padding: 14px 16px; }
+:root[data-tema-do-painel="desligado"] .cartoes > li.sem-item { border-style: solid; border-radius: 0; }
+:root[data-tema-do-painel="desligado"] .grupo { font-weight: 600; }
+:root[data-tema-do-painel="desligado"] .entrega > summary:hover .cartao-titulo { color: var(--texto); text-decoration: underline; }

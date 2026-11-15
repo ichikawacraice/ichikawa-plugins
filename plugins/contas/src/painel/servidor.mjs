@@ -8,8 +8,8 @@ import { tratarAcao } from './acoes.mjs';
 import { lerContas } from './contas.mjs';
 import { estadoDoUso, releituraSePreciso } from './uso.mjs';
 import { lerSessoes } from './sessoes.mjs';
-import { ceuDoTema, lerTema, lerTemaDoApp } from './tema.mjs';
-import { BOTAO_DE_TEMA, BOTAO_DO_TEMA_DO_APP } from './publico/tema.js';
+import { ceuDoTema, lerTema, lerTemaDoApp, lerTemaDoPainel } from './tema.mjs';
+import { BOTAO_DE_TEMA, BOTAO_DE_TEMAS, GAVETA_DE_TEMAS } from './publico/tema.js';
 import { criarApp, pastaDeDados } from '../troca/app-do-claude.mjs';
 import { haParaImportar, pastaDoKit } from '../troca/importar.mjs';
 
@@ -34,6 +34,9 @@ const NO_STORE = { 'Cache-Control': 'no-store' };
 
 /** O céu do painel: só a escolha do botão de tema (`tema.json`); sem escolha, a noite. */
 export const ceuDoPainel = async (env) => ceuDoTema(await lerTema(env));
+const ligadoOuNao = (v) => (v ? 'ligado' : 'desligado');
+/** O que o `<html>` leva e o `/api/ceu` devolve: o céu e as duas chaves da gaveta de temas. */
+const temas = async (env) => ({ ceu: await ceuDoPainel(env), temaDoApp: ligadoOuNao(await lerTemaDoApp(env)), temaDoPainel: ligadoOuNao(await lerTemaDoPainel(env)) });
 
 /** `pasta`: a do plugin (uma por versão no cache), que `/api/saude` diz para quem abre trocar o servidor de outra versão. `contas`: `{ env, app, spawn, cli, kill, comandoDoPid, uso: { fetch, agora, lerSenha } }`, tudo opcional (os testes injetam). */
 export function criarServidor({ publico, versao = '0.0.0', pasta = null, contas = {} }) {
@@ -60,15 +63,17 @@ export function criarServidor({ publico, versao = '0.0.0', pasta = null, contas 
         // A tela já sai com o céu certo (sem piscar um céu antes do outro) e com o botão de tema no topo; o app.js
         // confere o céu depois por /api/ceu.
         if (caminho === '/') {
+          const t = await temas(env);
           const tela = corpo.toString('utf8')
-            .replace('<html lang="pt-BR">', `<html lang="pt-BR" data-ceu="${await ceuDoPainel(env)}" data-tema-do-app="${(await lerTemaDoApp(env)) ? 'ligado' : 'desligado'}">`)
-            .replace('<header class="topo">', `<header class="topo">${BOTAO_DO_TEMA_DO_APP}${BOTAO_DE_TEMA}`);
+            .replace('<html lang="pt-BR">', `<html lang="pt-BR" data-ceu="${t.ceu}" data-tema-do-app="${t.temaDoApp}" data-tema-do-painel="${t.temaDoPainel}">`)
+            .replace('<header class="topo">', `<header class="topo">${BOTAO_DE_TEMAS}${BOTAO_DE_TEMA}`)
+            .replace('</body>', `${GAVETA_DE_TEMAS}\n</body>`);
           return enviar(200, tipo, tela, NO_STORE);
         }
         return enviar(200, tipo, corpo, { 'Cache-Control': 'no-cache' });
       }
       if (caminho === '/api/saude') return json(200, { painel: 'contas', versao, pasta, pid: process.pid }, NO_STORE);
-      if (caminho === '/api/ceu') return json(200, { ceu: await ceuDoPainel(env) }, NO_STORE);
+      if (caminho === '/api/ceu') return json(200, await temas(env), NO_STORE);
       if (caminho === '/api/contas') {
         if (req.method === 'HEAD') return json(200, {}, NO_STORE);
         const lido = lerContas({ env, app: contas.app });

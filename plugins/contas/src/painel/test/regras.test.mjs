@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { desfecho, erroDoUso, fraseDoAndamento, haQuanto, identidade, janelas, ordenarContas, percentual, quando, validarNome } from '../publico/regras.js';
+import { desfecho, erroDoUso, fraseDoAndamento, haQuanto, identidade, janelas, matizDoUso, ordenarContas, percentual, quando, validarNome } from '../publico/regras.js';
 
 // 12/11/2026 12:00 em São Paulo (UTC−3).
 const AGORA = Date.parse('2026-11-12T15:00:00.000Z');
@@ -85,4 +85,29 @@ test('avisoDaCota: velha, falhou, esperar a Anthropic e nada a dizer', async () 
   const rede = avisoDaCota({ contas, uso: { a: { ...lido(60_000), erro: 'rede' }, b: lido(60_000) } }, AGORA);
   assert.equal(rede.tom, 'erro');
   assert.match(rede.texto, /sem rede/);
+});
+
+test('ordem das contas: a ativa sempre primeiro; depois quem tem mais % livre na semana; sem cota lida, no fim', () => {
+  const c = (uuid, nome, ativa = false) => ({ uuid, nome, ativa });
+  const contas = [c('a', 'Ana'), c('b', 'Bia', true), c('c', 'Caio'), c('d', 'Davi'), c('e', 'Eva')];
+  const uso = {
+    a: { semana: 80 },
+    b: { semana: 95 },
+    c: { semana: 10 },
+    // A semana da Davi já zerou: 100% livre, mesmo com o número velho de 99.
+    d: { semana: 99, semanaReinicia: '2026-11-12T10:00:00.000Z' },
+  };
+  assert.deepEqual(ordenarContas(contas, uso, AGORA).map((x) => x.uuid), ['b', 'd', 'c', 'a', 'e']);
+  assert.deepEqual(ordenarContas([c('x', 'Zé'), c('y', 'Alu')], {}, AGORA).map((x) => x.uuid), ['y', 'x'], 'sem cota, por nome');
+  assert.deepEqual(ordenarContas([c('x', 'Zé'), c('y', 'Alu')], { x: { semana: 50 }, y: { semana: 50 } }, AGORA).map((x) => x.uuid), ['y', 'x'], 'empate, por nome');
+});
+
+test('a cor da barra vai do verde (livre) ao vermelho (no limite), pelo matiz', () => {
+  assert.equal(matizDoUso(0), 140);
+  assert.equal(matizDoUso(100), 0);
+  assert.ok(matizDoUso(50) > matizDoUso(70) && matizDoUso(70) > matizDoUso(90), 'quanto mais usado, mais vermelho');
+  assert.ok(matizDoUso(90) <= 25, '90% já é vermelho-alaranjado');
+  assert.ok(matizDoUso(30) >= 110, '30% ainda é verde');
+  assert.equal(matizDoUso(150), 0);
+  assert.equal(matizDoUso(-5), 140);
 });

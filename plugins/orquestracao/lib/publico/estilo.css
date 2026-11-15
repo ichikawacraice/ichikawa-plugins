@@ -172,9 +172,8 @@ h1 {
 .botao-tema .icone-lua { display: none; }
 :root[data-ceu="dia"] .botao-tema .icone-sol { display: none; }
 :root[data-ceu="dia"] .botao-tema .icone-lua { display: block; }
-/* O do tema do app (o céu atrás da conversa no Claude), no canto oposto; desligado, apagado. */
-.topo .botao-tema-do-app { right: auto; left: var(--gutter); }
-:root[data-tema-do-app="desligado"] .botao-tema-do-app { opacity: 0.5; }
+/* O que abre a gaveta de temas (o do Claude e o do painel), no canto oposto. */
+.topo .botao-temas { right: auto; left: var(--gutter); }
 
 h2, h3 { font-family: var(--titulo); font-weight: 500; }
 h2 { margin: 0; font-size: var(--t-h2); line-height: var(--t-h2-linha); letter-spacing: -0.01em; }
@@ -226,6 +225,164 @@ ul { list-style: none; margin: 14px 0 0; padding: 0; display: grid; gap: 10px; }
   .pe { padding-top: 40px; padding-bottom: calc(var(--planeta) + 24px); }
 }
 
+/* ---- a gaveta de temas: entra pela esquerda, do lado do botão que a abre (tema.js) ---- */
+.gaveta {
+  margin: 0; padding: 0; inset: 0 auto 0 0;
+  width: min(360px, calc(100vw - 48px)); max-width: none; height: 100dvh; max-height: none;
+  color: var(--texto); background: var(--vidro-forte);
+  border: 0; border-right: 1px solid var(--fio-forte);
+  -webkit-backdrop-filter: blur(18px); backdrop-filter: blur(18px);
+  box-shadow: 24px 0 60px -30px rgba(0, 0, 0, 0.6);
+}
+.gaveta[open] { animation: gaveta-entra 0.22s cubic-bezier(0.2, 0.8, 0.2, 1); }
+@keyframes gaveta-entra { from { transform: translateX(-100%); } }
+.gaveta::backdrop { background: rgba(6, 4, 18, 0.45); }
+:root[data-ceu="dia"] .gaveta::backdrop { background: rgba(13, 36, 67, 0.22); }
+/* O conteúdo enche a gaveta: clique que cai na própria <dialog> é no fundo escurecido, e fecha. */
+.gaveta-dentro { height: 100%; display: flex; flex-direction: column; gap: 12px; padding: 20px var(--gutter); overflow-y: auto; }
+.gaveta-cab { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 4px; }
+.gaveta-fechar { width: 32px; height: 32px; min-height: 32px; padding: 0; display: grid; place-items: center; border-radius: 50%; }
+.gaveta-chaves { display: grid; gap: 8px; padding-bottom: 12px; border-bottom: 1px solid var(--fio); }
+.chave {
+  display: flex; align-items: center; gap: 14px; padding: 12px 14px; cursor: pointer;
+  background: var(--botao-fundo); border: 1px solid var(--fio); border-radius: 12px;
+  transition: border-color 0.15s;
+}
+.chave:hover { border-color: var(--botao-borda-hover); }
+.chave-texto { flex: 1; min-width: 0; display: grid; gap: 2px; }
+.chave-titulo { font: 500 var(--t-corpo)/20px var(--titulo); }
+.chave-apoio { color: var(--texto-2); font-size: var(--t-meta); line-height: 16px; }
+/* A chave (role="switch"): trilho e bolinha; ligada à direita na cor do acento, misturada ("Os dois" com um só ligado) no meio. */
+.chave-botao {
+  -webkit-appearance: none; appearance: none; position: relative; flex: none; margin: 0; cursor: pointer;
+  width: 40px; height: 24px; border-radius: 999px; background: var(--fio-forte); transition: background-color 0.15s;
+}
+.chave-botao::after {
+  content: ""; position: absolute; top: 3px; left: 3px; width: 18px; height: 18px; border-radius: 50%;
+  background: var(--texto); box-shadow: 0 1px 2px rgba(0, 0, 0, 0.25); transition: transform 0.15s;
+}
+.chave-botao:checked { background: var(--violeta); }
+.chave-botao:checked::after { transform: translateX(16px); background: #ffffff; }
+.chave-botao:indeterminate { background: color-mix(in srgb, var(--violeta) 45%, var(--fio-forte)); }
+.chave-botao:indeterminate::after { transform: translateX(8px); }
+.chave-botao:focus-visible { outline: 2px solid var(--foco); outline-offset: 2px; }
+.gaveta-erro { margin: 0; color: var(--critico); font-size: var(--t-apoio); line-height: 18px; }
+
+/* ---- o tema do painel desligado (`data-tema-do-painel="desligado"`): o layout do kit antigo, "plantão" ----
+   Sem céu, sem vidro e sem Geist: superfícies chapadas, a fonte do sistema, o topo fixo com o nome à esquerda e as
+   cores de status de antes. O escuro e o claro seguem o botão de tema (`data-ceu`), como no lado ligado. */
+:root[data-tema-do-painel="desligado"] {
+  --espaco: #0b0e14;
+  --texto: #e7eaf0;
+  --texto-2: #aab2c0;
+  --texto-3: #8b94a5;
+  --fio: #262c38;
+  --fio-forte: #3a4252;
+  --vidro: #131720;
+  --vidro-forte: #1a1f2a;
+  --lilas: #a5b4fc;
+  --violeta: #818cf8;
+  --violeta-fundo: rgba(99, 102, 241, 0.14);
+  --botao-texto: #e7eaf0;
+  --ok: #6ee7b7;
+  --alto: #fbbf24;
+  --critico: #fca5a5;
+  --foco: #a5b4fc;
+  --aguarda: #fbbf24;
+  --trabalhando: #93c5fd;
+  --texto-campo: #e7eaf0;
+  --campo-fundo: #0b0e14;
+  --h1-degrade: none;
+  --contagem-fundo: #131720;
+  --botao-fundo: #1a1f2a;
+  --botao-borda-hover: #6b7486;
+  --botao-fundo-hover: #262c38;
+  --primario-texto: #0b0e14;
+  --primario-fundo: #a5b4fc;
+  --primario-fundo-hover: #bcc6fd;
+  --primario-borda: #a5b4fc;
+  --primario-borda-hover: #bcc6fd;
+  --primario-sombra: none;
+  --sombra-cartao: 0 0 0 1px rgba(255, 255, 255, 0.03), 0 8px 24px -12px rgba(0, 0, 0, 0.6);
+  --titulo: var(--fonte);
+  --t-h1: 15px;
+  --t-h1-linha: 20px;
+  --t-h2: 18px;
+  --t-h2-linha: 24px;
+  --raio: 14px;
+  --raio-botao: 6px;
+  --gutter: 20px;
+  --planeta: 0px;
+  /* A largura do conteúdo: uma coluna de 800 px; a partir de 1100 px, as duas colunas até 1560 px. O topo alinha por ela. */
+  --largura: 800px;
+}
+:root[data-tema-do-painel="desligado"][data-ceu="dia"] {
+  --espaco: #f5f6f8;
+  --texto: #0f172a;
+  --texto-2: #475569;
+  --texto-3: #5f6b7e;
+  --fio: #e2e5ea;
+  --fio-forte: #c3c9d2;
+  --vidro: #ffffff;
+  --vidro-forte: #f0f2f5;
+  --lilas: #4338ca;
+  --violeta: #4f46e5;
+  --violeta-fundo: rgba(99, 102, 241, 0.08);
+  --botao-texto: #0f172a;
+  --ok: #047857;
+  --alto: #92400e;
+  --critico: #b91c1c;
+  --foco: #4338ca;
+  --aguarda: #b45309;
+  --trabalhando: #1d4ed8;
+  --texto-campo: #0f172a;
+  --campo-fundo: #ffffff;
+  --contagem-fundo: #ffffff;
+  --botao-fundo: #f0f2f5;
+  --botao-borda-hover: #8a93a3;
+  --botao-fundo-hover: #e2e5ea;
+  --primario-texto: #ffffff;
+  --primario-fundo: #4338ca;
+  --primario-fundo-hover: #3730a3;
+  --primario-borda: #4338ca;
+  --primario-borda-hover: #3730a3;
+  --sombra-cartao: 0 1px 2px rgba(15, 23, 42, 0.06), 0 8px 24px -12px rgba(15, 23, 42, 0.18);
+}
+:root[data-tema-do-painel="desligado"] .ceu { display: none; }
+:root[data-tema-do-painel="desligado"] * { -webkit-backdrop-filter: none; backdrop-filter: none; }
+:root[data-tema-do-painel="desligado"] body { font-size: 13px; }
+/* O topo: uma faixa fixa, nome à esquerda, selos e aviso ao lado, os dois botões no fim. */
+:root[data-tema-do-painel="desligado"] .topo {
+  position: sticky; top: 0; z-index: 20; max-width: none; margin: 0;
+  display: flex; flex-wrap: wrap; align-items: center; gap: 8px 16px; text-align: left;
+  padding: 10px max(var(--gutter), calc((100% - var(--largura)) / 2 + var(--gutter)));
+  background: var(--espaco); border-bottom: 1px solid var(--fio);
+}
+:root[data-tema-do-painel="desligado"] h1 { font-weight: 700; color: var(--texto); background: none; padding: 0; white-space: nowrap; }
+:root[data-tema-do-painel="desligado"] .topo .contagens,
+:root[data-tema-do-painel="desligado"] .aviso-ausente { margin: 0; }
+:root[data-tema-do-painel="desligado"] .aviso-ausente { padding: 3px 10px; }
+:root[data-tema-do-painel="desligado"] .topo .botao-tema { position: static; order: 3; width: 32px; height: 32px; min-height: 32px; border-radius: var(--raio-botao); }
+:root[data-tema-do-painel="desligado"] .topo .botao-temas { margin-left: auto; }
+:root[data-tema-do-painel="desligado"] .contagem { border-radius: 999px; font: 700 var(--t-apoio)/20px var(--fonte); }
+/* A página: a coluna principal larga e a lateral estreita, como no kit antigo. */
+:root[data-tema-do-painel="desligado"] main,
+:root[data-tema-do-painel="desligado"] .pe { max-width: var(--largura); }
+:root[data-tema-do-painel="desligado"] main { display: block; padding-top: 8px; }
+:root[data-tema-do-painel="desligado"] .secao { margin-top: 24px; padding-top: 0; border-top: 0; }
+:root[data-tema-do-painel="desligado"] h2 { font-weight: 600; letter-spacing: 0; }
+:root[data-tema-do-painel="desligado"] h3 { font-weight: 600; }
+:root[data-tema-do-painel="desligado"] button { min-height: 32px; padding: 6px 12px; }
+:root[data-tema-do-painel="desligado"] button.primario { font-weight: 600; }
+:root[data-tema-do-painel="desligado"] .pe .assinatura { letter-spacing: 0.04em; }
+:root[data-tema-do-painel="desligado"] .gaveta { background: var(--vidro); }
+@media (min-width: 1100px) {
+  :root[data-tema-do-painel="desligado"] { --gutter: 32px; --largura: 1560px; }
+  :root[data-tema-do-painel="desligado"] main { display: grid; grid-template-columns: minmax(0, 1fr) clamp(340px, 28vw, 420px); gap: 0 32px; align-items: start; padding-top: 8px; }
+  :root[data-tema-do-painel="desligado"] main > div > .secao:first-child { border-top: 0; padding-top: 0; }
+}
+
 @media (prefers-reduced-motion: reduce) {
-  button { transition: none; }
+  button, .chave, .chave-botao, .chave-botao::after { transition: none; }
+  .gaveta[open] { animation: none; }
 }

@@ -49,3 +49,22 @@ export async function gravarTemaDoApp(env, ligado, agora = new Date()) {
   await rename(temp, destino);
   return ligado;
 }
+
+/** O tema do painel (`tema-do-painel.json`): só `"ligado": false` desliga (o layout do kit antigo); sem arquivo, ligado. */
+export async function lerTemaDoPainel(env) {
+  try {
+    return JSON.parse(await readFile(join(pastaDoKit(env), 'tema-do-painel.json'), 'utf8'))?.ligado !== false;
+  } catch { return true; }
+}
+
+/** Grava o liga/desliga do tema do painel (as duas páginas locais). Valor que não é booleano lança e nada se grava. */
+export async function gravarTemaDoPainel(env, ligado, agora = new Date()) {
+  if (typeof ligado !== 'boolean') throw new Error(`tema do painel: ${ligado}`);
+  const pasta = pastaDoKit(env);
+  await mkdir(pasta, { recursive: true });
+  const destino = join(pasta, 'tema-do-painel.json');
+  const temp = `${destino}.${process.pid}.tmp`;
+  await writeFile(temp, `${JSON.stringify({ ligado, em: agora.toISOString(), por: 'cotas' }, null, 2)}\n`);
+  await rename(temp, destino);
+  return ligado;
+}

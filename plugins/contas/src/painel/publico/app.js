@@ -1,7 +1,7 @@
 // A tela do painel: lê `/api/contas` e `/api/sessoes`, desenha e manda as ações. Texto da tela nunca vem cru do servidor
 // como HTML: tudo entra por `textContent`.
-import { ligarBotaoDeTema, ligarBotaoDoTemaDoApp } from './tema.js';
-import { avisoDaCota, desfecho, erroDoUso, fraseDaChave, fraseDoAndamento, haQuanto, identidade, janelas, ordenarContas, validarNome } from './regras.js';
+import { ligarBotaoDeTema, ligarGavetaDeTemas } from './tema.js';
+import { avisoDaCota, desfecho, erroDoUso, fraseDaChave, fraseDoAndamento, haQuanto, identidade, janelas, matizDoUso, ordenarContas, validarNome } from './regras.js';
 
 const CABECALHO = { 'X-Painel-De-Contas': '1', 'Content-Type': 'application/json' };
 const INTERVALO_CALMO_MS = 15_000;
@@ -98,9 +98,12 @@ function desenharFaixas() {
 function barra(j) {
   const preenchido = el('span', { class: 'barra-cheia' });
   preenchido.style.width = `${j.pct}%`;
-  return el('div', { class: `barra ${j.tom}`, role: 'meter', 'aria-valuemin': '0', 'aria-valuemax': '100', 'aria-valuenow': String(j.pct), 'aria-label': `${j.nome}: ${j.texto}` },
+  // Verde livre, vermelho perto do limite (cotas.css monta a cor pelo matiz, com a luz de cada céu).
+  const caixa = el('div', { class: `barra ${j.tom}`, role: 'meter', 'aria-valuemin': '0', 'aria-valuemax': '100', 'aria-valuenow': String(j.pct), 'aria-label': `${j.nome}: ${j.texto}` },
     preenchido,
     el('span', { class: 'barra-texto', 'aria-hidden': 'true' }, el('span', { class: 'barra-rot' }, j.curto), el('span', { class: 'barra-dado' }, j.texto)));
+  caixa.style.setProperty('--matiz', String(matizDoUso(j.pct)));
+  return caixa;
 }
 
 function formularioDeNome(c) {
@@ -155,7 +158,7 @@ function desenharContas() {
   const lista = $('lista-contas');
   lista.setAttribute('aria-busy', d ? 'false' : 'true');
   if (!d) return;
-  const contas = ordenarContas(d.contas ?? []);
+  const contas = ordenarContas(d.contas ?? [], d.uso, Date.now());
   lista.replaceChildren(...(contas.length ? contas.map(linhaDeConta) : [el('li', { class: 'vazio' }, 'Nenhuma conta guardada ainda. Use Adicionar conta: o painel guarda a conta aberta no app e abre a tela de entrada para a outra.')]));
   $('b-adicionar').disabled = ocupado() || !d.ativa;
   $('b-sincronizar').disabled = ocupado() || !d.ativa;
@@ -277,11 +280,17 @@ async function carregarSessoes() {
   desenharSessoes();
 }
 
-/** O céu segue o botão de tema (`tema.json`, o mesmo da barra e do Painel): o ceu.js e o estilo.css trocam pelo `data-ceu`. */
+/**
+ * O céu segue o botão de tema (`tema.json`, o mesmo da barra e do Painel) e as chaves da gaveta de temas: o ceu.js e o
+ * estilo.css trocam pelo `data-ceu` e pelo `data-tema-do-painel`.
+ */
 async function conferirCeu() {
   try {
-    const { ceu } = await lerJson('/api/ceu');
-    if (ceu === 'dia' || ceu === 'noite') document.documentElement.dataset.ceu = ceu;
+    const { ceu, temaDoApp, temaDoPainel } = await lerJson('/api/ceu');
+    const raiz = document.documentElement.dataset;
+    if (ceu === 'dia' || ceu === 'noite') raiz.ceu = ceu;
+    if (temaDoApp === 'ligado' || temaDoApp === 'desligado') raiz.temaDoApp = temaDoApp;
+    if (temaDoPainel === 'ligado' || temaDoPainel === 'desligado') raiz.temaDoPainel = temaDoPainel;
   } catch { /* fica o céu que está */ }
 }
 
@@ -304,8 +313,8 @@ ligarBotaoDeTema($('b-tema'), async (tema) => {
   const r = await postar('/api/tema', { tema });
   if (!r.ok) throw new Error(r.motivo);
 });
-ligarBotaoDoTemaDoApp($('b-tema-do-app'), async (ligado) => {
-  const r = await postar('/api/tema-do-app', { ligado });
+ligarGavetaDeTemas($('b-temas'), $('gaveta-temas'), async (qual, ligado) => {
+  const r = await postar(qual === 'app' ? '/api/tema-do-app' : '/api/tema-do-painel', { ligado });
   if (!r.ok) throw new Error(r.motivo);
 });
 $('b-adicionar').addEventListener('click', adicionar);

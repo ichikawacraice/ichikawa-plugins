@@ -9,7 +9,7 @@ import { join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import * as estado from './estado.mjs';
 import { ROTULO_DO_ESTADO, lerSessoesDoApp, sessoesDaPagina } from './sessoes.mjs';
-import { BOTAO_DE_TEMA, BOTAO_DO_TEMA_DO_APP } from './publico/tema.js';
+import { BOTAO_DE_TEMA, BOTAO_DE_TEMAS, GAVETA_DE_TEMAS } from './publico/tema.js';
 
 export const PORTA_PADRAO = 4747;
 const HOST = '127.0.0.1';
@@ -21,6 +21,11 @@ const ENTREGAS_A_MOSTRAR = 10;
 // O nome da página (topo e aba). Já não é só perguntas: perguntas, sessões e entregas.
 export const NOME_DA_PAGINA = 'Painel';
 const RESPOSTA_PADRAO = 'Sim, siga a recomendação.';
+// Um botão só por pergunta: campo vazio aceita a recomendação, com texto envia o texto. O rótulo acompanha o campo
+// (script da página); sem script, o servidor decide pelo conteúdo do campo, e o botão diz o caso vazio.
+const ROTULO_VAZIO = 'Aceitar recomendação';
+const ROTULO_CHEIO = 'Enviar resposta';
+const ROTULOS_DO_RESPONDER = `data-vazio="${ROTULO_VAZIO}" data-cheio="${ROTULO_CHEIO}"`;
 const SESSAO_DO_APP = /^local_[0-9a-f-]{36}$/;
 const NOME_DO_KIT = 'orquestracao';
 /** A pasta deste plugin (no cache, uma por versão): é o que distingue o servidor desta versão do de outra. */
@@ -60,7 +65,8 @@ function campos(pares) {
   return linhas ? `<dl class="campos">${linhas}</dl>` : '';
 }
 
-const cabecaDoProjeto = (projeto) => `<p class="cartao-projeto">${esc(projeto)}</p>`;
+// O projeto vai na linha do código (`IZA-Q45 · Izanagi`), pequeno e apagado: o título manda e o cartão ganha uma linha.
+const cabecaDoProjeto = (projeto) => `<span class="cartao-projeto">${esc(projeto)}</span>`;
 const idLido = (projeto, id) => esc(estado.rotulo(projeto, id));
 
 const ancora = (projeto, id) => `pergunta-${String(projeto).replace(/[^\w-]/g, '-')}-${id}`;
@@ -68,12 +74,13 @@ const ancora = (projeto, id) => `pergunta-${String(projeto).replace(/[^\w-]/g, '
 function cartaoDePergunta(projeto, p) {
   const oculto = `<input type="hidden" name="projeto" value="${esc(projeto)}"><input type="hidden" name="id" value="${esc(p.id)}">`;
   const abrir = ehSessaoDoApp(p.sessao) ? `<button type="submit" formaction="/abrir">Abrir sessão</button>` : '';
-  return `<li id="${esc(ancora(projeto, p.id))}">${cabecaDoProjeto(projeto)}<div class="cartao-cab"><span class="id">${idLido(projeto, p.id)}</span><span class="cartao-titulo">${esc(p.titulo)}</span>${p.item ? `<span class="projeto">${idLido(projeto, p.item)}</span>` : ''}</div>
-${campos([['O caso', esc(p.caso)], ['Se ninguém decidir', esc(p.seNaoDecidir)], ['Recomendação', esc(p.recomendacao)]])}
+  // A recomendação sai do meio dos campos e ganha caixa própria: é ela que o botão aceita com o campo vazio.
+  const recomendacao = p.recomendacao ? `<div class="recomendacao"><p class="recomendacao-rotulo">Recomendação</p><p class="recomendacao-texto">${esc(p.recomendacao)}</p></div>` : '';
+  return `<li class="pergunta" id="${esc(ancora(projeto, p.id))}"><div class="cartao-cab"><span class="id">${idLido(projeto, p.id)}</span>${cabecaDoProjeto(projeto)}<span class="cartao-titulo">${esc(p.titulo)}</span>${p.item ? `<span class="projeto">${idLido(projeto, p.item)}</span>` : ''}</div>
+${campos([['O caso', esc(p.caso)], ['Se ninguém decidir', esc(p.seNaoDecidir)]])}${recomendacao}
 <form class="responder" method="post" action="/responder">${oculto}
-<textarea name="resposta" rows="2" required aria-label="Resposta para ${esc(p.id)}" placeholder="Escreva a resposta, ou aceite a recomendação"></textarea>
-<button type="submit" name="acao" value="aceitar" formnovalidate class="primario" title="Grava “${esc(RESPOSTA_PADRAO)}”">Aceitar recomendação</button>
-<button type="submit" name="acao" value="enviar">Enviar resposta</button>${abrir}</form>
+<textarea name="resposta" rows="2" aria-label="Resposta para ${esc(p.id)}" placeholder="Escreva outra resposta, ou deixe vazio para aceitar a recomendação"></textarea>
+<div class="responder-acoes"><button type="submit" class="primario botao-responder" ${ROTULOS_DO_RESPONDER}>${esc(ROTULO_VAZIO)}</button>${abrir}</div></form>
 <p class="quando">${esc(horaSP(p.criadoEm))}${p.item ? ` · no app, a sessão é a <b>${idLido(projeto, p.item)} · …</b> na barra lateral` : ''}</p></li>`;
 }
 
@@ -82,7 +89,7 @@ function cartaoDeEntrega(projeto, i) {
   const e = i.entrega;
   const proximos = Array.isArray(e.proximos) && e.proximos.length
     ? `<ul class="proximos">${e.proximos.map((x) => `<li>${esc(x)}</li>`).join('')}</ul>` : '';
-  return `<li><details class="entrega" id="entrega-${esc(projeto)}-${esc(i.id)}"><summary>${cabecaDoProjeto(projeto)}<div class="cartao-cab"><span class="id">${idLido(projeto, i.id)}</span><span class="cartao-titulo">${esc(i.titulo)}</span><span class="selo selo-${esc(e.desfecho)}">${esc(e.desfecho)}</span></div></summary>
+  return `<li><details class="entrega" id="entrega-${esc(projeto)}-${esc(i.id)}"><summary><div class="cartao-cab"><span class="id">${idLido(projeto, i.id)}</span>${cabecaDoProjeto(projeto)}<span class="cartao-titulo">${esc(i.titulo)}</span><span class="selo selo-${esc(e.desfecho)}">${esc(e.desfecho)}</span></div></summary>
 ${campos([['O que mudou', esc(e.resultado)], ['Medido', esc(e.medido)], ['Sem medir', esc(e.naoMedido)], ['Próximos', proximos], ['PR', i.pr ? `#${esc(i.pr)}` : '']])}
 <p class="quando">${esc(horaSP(e.em ?? i.atualizadoEm))}</p></details></li>`;
 }
@@ -101,7 +108,9 @@ export function haQuanto(ms, agora) {
 const ROTULO_DO_PR = { OPEN: 'aberto', MERGED: 'mergeado', CLOSED: 'fechado' };
 const textoDoPr = (s) => (s.pr ? `PR #${s.pr}${ROTULO_DO_PR[s.prEstado] ? ` ${ROTULO_DO_PR[s.prEstado]}` : ''}` : '');
 const abrirNoApp = (link) => (link ? `<a class="abrir-app" href="${esc(link)}">Abrir no app</a>` : '');
-const marcador = (estadoDaSessao, rodando) => `<span class="marcador marcador-${esc(estadoDaSessao)}${rodando ? ' girando' : ''}" aria-hidden="true"></span>`;
+// Rodando: o arco de três quartos com as pontas redondas, girando (o do painel do kit antigo); parado, o ponto do estado.
+const ARCO_GIRANDO = '<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 2a6 6 0 1 1-6 6" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg>';
+const marcador = (estadoDaSessao, rodando) => `<span class="marcador marcador-${esc(estadoDaSessao)}${rodando ? ' girando' : ''}" aria-hidden="true">${rodando ? ARCO_GIRANDO : ''}</span>`;
 const atividade = (s, agora) => {
   if (s.rodando) return 'rodando agora';
   const ha = haQuanto(Date.parse(s.ultimaAtividade ?? ''), agora);
@@ -206,24 +215,39 @@ export function html(agora = Date.now()) {
     + (sessoes.total ? secao('h-sessoes', 'Sessões', esc(frescor(sessoes, agora)), grupos(sessoes, agora), '') : '');
   const direita = secao('h-entregas', 'Entregues', `últimos ${estado.DIAS_DE_ENTREGAS} dias`, entregas.map(({ projeto, i }) => cartaoDeEntrega(projeto, i)), 'Nenhuma entrega ainda.', verMais(maisEntregas));
   // O céu segue só o botão de tema (`tema.json`): claro é o dia; escuro, e o padrão, a noite (estilo.css e ceu.js leem o `data-ceu`).
-  return `<!doctype html><html lang="pt-BR" data-ceu="${estado.lerTema() === 'claro' ? 'dia' : 'noite'}" data-tema-do-app="${estado.lerTemaDoApp() ? 'ligado' : 'desligado'}"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+  // O tema do painel desligado (`tema-do-painel.json`) tira o céu e o vidro: o layout do kit antigo, no claro ou no escuro.
+  const ligadoOuNao = (v) => (v ? 'ligado' : 'desligado');
+  return `<!doctype html><html lang="pt-BR" data-ceu="${estado.lerTema() === 'claro' ? 'dia' : 'noite'}" data-tema-do-app="${ligadoOuNao(estado.lerTemaDoApp())}" data-tema-do-painel="${ligadoOuNao(estado.lerTemaDoPainel())}"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
 <title>${esc(NOME_DA_PAGINA)}</title><link rel="preload" href="/fontes/geist-medium.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="stylesheet" href="/estilo.css"><link rel="stylesheet" href="/perguntas.css"></head>
-<body><canvas id="ceu" class="ceu" aria-hidden="true"></canvas><header class="topo">${BOTAO_DO_TEMA_DO_APP}${BOTAO_DE_TEMA}<h1>${esc(NOME_DA_PAGINA)}</h1>${selosDoTopo(perguntas.length, andamento.length, entregas.length + maisEntregas.length)}${avisoDeAusente(ausente)}</header>
+<body><canvas id="ceu" class="ceu" aria-hidden="true"></canvas><header class="topo">${BOTAO_DE_TEMAS}${BOTAO_DE_TEMA}<h1>${esc(NOME_DA_PAGINA)}</h1>${selosDoTopo(perguntas.length, andamento.length, entregas.length + maisEntregas.length)}${avisoDeAusente(ausente)}</header>
 <main><div>${esquerda}</div><div>${direita}</div></main>
 <footer class="pe"><p>Lido às ${esc(horaSP(new Date(agora).toISOString()))}. A página se atualiza sozinha enquanto você não está escrevendo.</p><p class="assinatura">made by Ichikawa</p></footer>
+${GAVETA_DE_TEMAS}
 <script type="module">
 import { iniciarCeu } from '/ceu.js';
-import { ligarBotaoDeTema, ligarBotaoDoTemaDoApp } from '/tema.js';
+import { ligarBotaoDeTema, ligarGavetaDeTemas } from '/tema.js';
 ligarBotaoDeTema(document.getElementById('b-tema'), async (tema) => {
   const r = await fetch('/tema', { method: 'POST', headers: { 'Content-Type': 'application/x-www-form-urlencoded' }, body: new URLSearchParams({ tema }) });
   if (!r.ok) throw new Error('a página respondeu ' + r.status);
 });
-ligarBotaoDoTemaDoApp(document.getElementById('b-tema-do-app'), async (ligado) => {
-  const r = await fetch('/tema-do-app', { method: 'POST', headers: { 'Content-Type': 'application/x-www-form-urlencoded' }, body: new URLSearchParams({ ligado: String(ligado) }) });
+ligarGavetaDeTemas(document.getElementById('b-temas'), document.getElementById('gaveta-temas'), async (qual, ligado) => {
+  const r = await fetch(qual === 'app' ? '/tema-do-app' : '/tema-do-painel', { method: 'POST', headers: { 'Content-Type': 'application/x-www-form-urlencoded' }, body: new URLSearchParams({ ligado: String(ligado) }) });
   if (!r.ok) throw new Error('a página respondeu ' + r.status);
 });
-const escrevendo = () => [...document.querySelectorAll('textarea')].some((t) => t.value.trim() || t === document.activeElement);
+// O botão de responder diz o que vai fazer: vazio, aceitar a recomendação; com texto, enviar a resposta.
+const rotularResposta = (campo) => {
+  const botao = campo.form?.querySelector('.botao-responder');
+  if (botao) botao.textContent = campo.value.trim() ? botao.dataset.cheio : botao.dataset.vazio;
+};
+for (const campo of document.querySelectorAll('.responder textarea')) {
+  rotularResposta(campo);
+  campo.addEventListener('input', () => rotularResposta(campo));
+  // ⌘/Ctrl+Enter responde do próprio campo.
+  campo.addEventListener('keydown', (ev) => { if (ev.key === 'Enter' && (ev.metaKey || ev.ctrlKey)) { ev.preventDefault(); campo.form.requestSubmit(); } });
+}
+const escrevendo = () => [...document.querySelectorAll('textarea')].some((t) => t.value.trim() || t === document.activeElement)
+  || document.getElementById('gaveta-temas')?.open;
 // O recarregamento fecharia os cartões abertos: guarda quais estavam abertos e reabre.
 const ABERTOS = 'entregas-abertas';
 const lerAbertos = () => { try { return JSON.parse(sessionStorage.getItem(ABERTOS) ?? '[]'); } catch { return []; } };
@@ -279,9 +303,9 @@ async function responder(req, res, porta) {
   const lido = await lerPergunta(req, res, porta);
   if (!lido) return;
   const { f, projeto, p } = lido;
-  // "Aceitar recomendação" grava a resposta padrão; "Enviar resposta" exige texto (vazio não envia).
-  const resposta = f.get('acao') === 'aceitar' ? RESPOSTA_PADRAO : f.get('resposta')?.trim();
-  if (!resposta) { res.writeHead(400, { 'Content-Type': 'text/plain; charset=utf-8' }).end('resposta vazia: escreva a resposta ou use "Aceitar recomendação"'); return; }
+  // Campo vazio é aceitar a recomendação; com texto, o texto. O `acao` (da página de antes, com dois botões) não manda:
+  // era clicar em "Aceitar" com a resposta escrita que jogava fora o que o operador digitou.
+  const resposta = f.get('resposta')?.trim() || RESPOSTA_PADRAO;
   estado.atualizar('perguntas', projeto, p.id, { estado: 'respondida', resposta, respondidaEm: new Date().toISOString(), lida: false });
   // A sessão pode ter se limpado depois de perguntar: o texto diz que a pergunta é dela e traz o título.
   if (ehSessaoDoApp(p.sessao)) gravarPedido('responder', p.sessao, `${p.id} · pergunta aberta por esta sessão («${p.titulo}»), resposta do operador pela página: ${resposta}`);
@@ -297,14 +321,16 @@ async function trocarTema(req, res, porta) {
   res.writeHead(204).end();
 }
 
-/** O botão do tema do app: grava `ligado` (`true` ou `false`) no `tema-do-app.json`, que a barra relê. */
-async function trocarTemaDoApp(req, res, porta) {
+/** As chaves da gaveta de temas: grava `ligado` (`true` ou `false`) no `tema-do-app.json` (que a barra relê) ou no `tema-do-painel.json`. */
+const trocarLigado = (gravar) => async (req, res, porta) => {
   if (!origemLocal(req, porta)) { res.writeHead(403).end('origem recusada'); return; }
   const ligado = new URLSearchParams(await lerCorpo(req)).get('ligado');
   if (ligado !== 'true' && ligado !== 'false') { res.writeHead(400).end('ligado: true ou false'); return; }
-  estado.gravarTemaDoApp(ligado === 'true', 'painel');
+  gravar(ligado === 'true', 'painel');
   res.writeHead(204).end();
-}
+};
+const trocarTemaDoApp = trocarLigado((ligado, por) => estado.gravarTemaDoApp(ligado, por));
+const trocarTemaDoPainel = trocarLigado((ligado, por) => estado.gravarTemaDoPainel(ligado, por));
 
 async function abrir(req, res, porta) {
   const lido = await lerPergunta(req, res, porta);
@@ -347,6 +373,7 @@ export function criarServidor(porta = PORTA_PADRAO) {
       if (req.method === 'POST' && caminho === '/abrir') { await abrir(req, res, porta); return; }
       if (req.method === 'POST' && caminho === '/tema') { await trocarTema(req, res, porta); return; }
       if (req.method === 'POST' && caminho === '/tema-do-app') { await trocarTemaDoApp(req, res, porta); return; }
+      if (req.method === 'POST' && caminho === '/tema-do-painel') { await trocarTemaDoPainel(req, res, porta); return; }
       res.writeHead(404).end('não existe');
     } catch (err) {
       process.stderr.write(`pagina: ${err.message}\n`);

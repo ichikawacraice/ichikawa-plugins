@@ -219,7 +219,7 @@ test('o topo avisa se o modo ausente está ligado ou desligado', () => {
 });
 
 test('o céu segue só o tema.json: escuro sem escolha (com ausente ligado ou não), claro quando gravado', () => {
-  assert.match(html(), /^<!doctype html><html lang="pt-BR" data-ceu="noite" data-tema-do-app="ligado">/);
+  assert.match(html(), /^<!doctype html><html lang="pt-BR" data-ceu="noite" data-tema-do-app="ligado" data-tema-do-painel="ligado">/);
   writeFileSync(join(process.env.ICHIKAWA_HOME, 'ausente.json'), '{"ligado":false}');
   assert.match(html(), /data-ceu="noite"/, 'o ausente desligado não traz mais o dia');
   writeFileSync(join(process.env.ICHIKAWA_HOME, 'tema.json'), 'não é json');
@@ -241,7 +241,7 @@ test('tema.json: lê e grava o contrato; valor desconhecido não grava', () => {
 
 test('o topo traz o botão de tema e a página serve o tema.js', async () => {
   assert.match(topoDe(html()), /<button type="button" class="botao-tema" id="b-tema"[\s\S]*icone-sol[\s\S]*icone-lua/);
-  assert.match(html(), /import \{ ligarBotaoDeTema, ligarBotaoDoTemaDoApp \} from '\/tema\.js'/);
+  assert.match(html(), /import \{ ligarBotaoDeTema, ligarGavetaDeTemas \} from '\/tema\.js'/);
   const porta = 4800 + Math.floor(Math.random() * 500);
   const servidor = await servir(porta);
   try {
@@ -253,10 +253,39 @@ test('o topo traz o botão de tema e a página serve o tema.js', async () => {
   }
 });
 
-test('tema do app: o botão fica no canto esquerdo do topo e POST /tema-do-app grava só da própria origem', async () => {
+test('gaveta de temas: o botão fica no canto esquerdo do topo e abre a gaveta com as três chaves', () => {
+  assert.match(topoDe(html()), /^<button type="button" class="botao-tema botao-temas" id="b-temas" aria-haspopup="dialog" aria-controls="gaveta-temas"/, 'o primeiro do topo, antes do de claro/escuro');
+  const gaveta = /<dialog class="gaveta" id="gaveta-temas"[\s\S]*?<\/dialog>/.exec(html())?.[0] ?? '';
+  assert.deepEqual([...gaveta.matchAll(/data-chave="([\w-]+)"/g)].map((m) => m[1]), ['app', 'painel', 'os-dois']);
+  assert.match(gaveta, /Tema do Claude[\s\S]*Tema do painel[\s\S]*Os dois/);
+});
+
+test('tema do painel: desligado vai no <html> e POST /tema-do-painel grava só da própria origem', async () => {
+  assert.equal(estado.lerTemaDoPainel(), true, 'sem arquivo, ligado');
+  writeFileSync(join(process.env.ICHIKAWA_HOME, 'tema-do-painel.json'), 'não é json');
+  assert.equal(estado.lerTemaDoPainel(), true, 'ilegível, ligado');
+  const porta = 4800 + Math.floor(Math.random() * 500);
+  const servidor = await servir(porta);
+  try {
+    const url = `http://127.0.0.1:${porta}`;
+    const enviar = (corpo, origin = url) => fetch(`${url}/tema-do-painel`, { method: 'POST', headers: { origin, 'content-type': 'application/x-www-form-urlencoded' }, body: corpo });
+    assert.equal((await enviar('ligado=false', 'http://evil.test')).status, 403);
+    assert.equal(estado.lerTemaDoPainel(), true);
+    assert.equal((await enviar('ligado=nao')).status, 400);
+    assert.equal((await enviar('ligado=false')).status, 204);
+    assert.equal(estado.lerTemaDoPainel(), false);
+    assert.equal(JSON.parse(readFileSync(join(process.env.ICHIKAWA_HOME, 'tema-do-painel.json'), 'utf8')).por, 'painel');
+    assert.match(await (await fetch(url)).text(), /data-tema-do-painel="desligado"/);
+    assert.equal((await enviar('ligado=true')).status, 204);
+    assert.equal(estado.lerTemaDoPainel(), true);
+  } finally {
+    servidor.close();
+  }
+});
+
+test('tema do app: POST /tema-do-app grava só da própria origem', async () => {
   assert.equal(estado.lerTemaDoApp(), true, 'sem arquivo, ligado');
   assert.match(html(), /data-tema-do-app="ligado"/);
-  assert.match(topoDe(html()), /^<button type="button" class="botao-tema botao-tema-do-app" id="b-tema-do-app"/, 'o primeiro do topo, antes do de claro/escuro');
   const porta = 4800 + Math.floor(Math.random() * 500);
   const servidor = await servir(porta);
   try {
@@ -342,29 +371,40 @@ test('a página lista perguntas da mais antiga para a mais nova e os itens em or
   assert.deepEqual(d.entregas.map(({ i }) => i.id), ['F2', 'F4', 'F6', 'F8', 'F10']);
 });
 
-test('cada pergunta tem "Aceitar recomendação" e "Enviar resposta"; enviar vazio não grava', async () => {
+test('cada pergunta tem um botão só: vazio aceita a recomendação, com texto envia o texto (o "acao" de página velha não manda)', async () => {
   estado.criar('perguntas', 'p', { titulo: 'A', estado: 'aberta' });
   estado.criar('perguntas', 'p', { titulo: 'B', estado: 'aberta' });
   estado.criar('perguntas', 'p', { titulo: 'C', estado: 'aberta' });
+  estado.criar('perguntas', 'p', { titulo: 'D', estado: 'aberta' });
   const h = html();
-  assert.equal(h.match(/name="acao" value="aceitar"/g)?.length, 3);
-  assert.equal(h.match(/name="acao" value="enviar"/g)?.length, 3);
-  assert.match(h, />Aceitar recomendação</);
-  assert.match(h, />Enviar resposta</);
+  assert.equal(h.match(/<button type="submit" class="primario botao-responder"/g)?.length, 4, 'um botão de responder por pergunta');
+  assert.doesNotMatch(h, /value="aceitar"|value="enviar"|>Enviar resposta</, 'sem o segundo botão');
+  assert.match(h, /data-vazio="Aceitar recomendação" data-cheio="Enviar resposta">Aceitar recomendação</);
+  assert.doesNotMatch(h, /<textarea[^>]*required/, 'o campo vazio pode ir: é o aceitar');
   const porta = 5400 + Math.floor(Math.random() * 500);
   const servidor = await servir(porta);
   try {
     const url = `http://127.0.0.1:${porta}`;
     const post = (corpo) => fetch(`${url}/responder`, { method: 'POST', redirect: 'manual', headers: { origin: url, 'content-type': 'application/x-www-form-urlencoded' }, body: corpo });
-    assert.equal((await post('projeto=p&id=Q1&acao=aceitar&resposta=')).status, 303);
+    assert.equal((await post('projeto=p&id=Q1&resposta=')).status, 303);
     assert.equal(estado.ler('perguntas', 'p', 'Q1').resposta, 'Sim, siga a recomendação.');
-    assert.equal((await post('projeto=p&id=Q2&acao=enviar&resposta=%20%20')).status, 400);
-    assert.equal(estado.ler('perguntas', 'p', 'Q2').estado, 'aberta');
-    assert.equal((await post('projeto=p&id=Q3&acao=enviar&resposta=n%C3%A3o')).status, 303);
+    assert.equal((await post('projeto=p&id=Q2&resposta=%20%20')).status, 303);
+    assert.equal(estado.ler('perguntas', 'p', 'Q2').resposta, 'Sim, siga a recomendação.', 'só espaço é vazio');
+    assert.equal((await post('projeto=p&id=Q3&resposta=n%C3%A3o')).status, 303);
     assert.equal(estado.ler('perguntas', 'p', 'Q3').resposta, 'não');
+    // A página aberta antes do release ainda manda acao=aceitar: o texto escrito vale mais que o botão.
+    assert.equal((await post('projeto=p&id=Q4&acao=aceitar&resposta=prefiro%20B')).status, 303);
+    assert.equal(estado.ler('perguntas', 'p', 'Q4').resposta, 'prefiro B');
   } finally {
     servidor.close();
   }
+});
+
+test('a recomendação tem caixa própria, depois do caso e do "se ninguém decidir"', () => {
+  estado.criar('perguntas', 'p', { titulo: 'A', estado: 'aberta', caso: 'o caso', seNaoDecidir: 'fica parado', recomendacao: 'faça B' });
+  const h = html();
+  assert.match(h, /<dt>O caso<\/dt>[\s\S]*<dt>Se ninguém decidir<\/dt>[\s\S]*<\/dl><div class="recomendacao"><p class="recomendacao-rotulo">Recomendação<\/p><p class="recomendacao-texto">faça B<\/p><\/div>/);
+  assert.doesNotMatch(h, /<dt>Recomendação<\/dt>/);
 });
 
 const bash = (command) => ({ tool_name: 'Bash', tool_input: { command } });
@@ -559,7 +599,7 @@ test('o CLI aceita F3 e IZA-F3; a sigla escolhe o projeto e não deixa mexer no 
   assert.deepEqual(saida, ['IZA-F1 · Login — execucao']);
 });
 
-test('a página separa Sessões por projeto e põe o projeto na primeira linha de Perguntas e Entregues', () => {
+test('a página separa Sessões por projeto e põe o projeto na linha do código em Perguntas e Entregues', () => {
   const agora = new Date().toISOString();
   estado.criar('itens', 'WiControl', { titulo: 'painel', etapa: 'execucao' });
   estado.criar('itens', 'Izanagi', { titulo: 'login', etapa: 'execucao' });
@@ -572,11 +612,11 @@ test('a página separa Sessões por projeto e põe o projeto na primeira linha d
   assert.deepEqual(grupos, ['WiControl', 'Izanagi'], 'o projeto com sessão esperando você sobe');
   assert.ok(andamento.indexOf('WIC-F1') < andamento.indexOf('Izanagi') && andamento.indexOf('Izanagi') < andamento.indexOf('IZA-F2'), 'os itens ficam sob o próprio projeto');
   assert.doesNotMatch(andamento, /cartao-projeto/, 'sessões não repete o projeto no cartão');
-  const pergunta = /<li id="[^"]+"><p class="cartao-projeto">([^<]+)<\/p><div class="cartao-cab"><span class="id">([^<]+)<\/span>/.exec(h);
-  assert.deepEqual([pergunta[1], pergunta[2]], ['WiControl', 'WIC-Q1']);
+  const pergunta = /<li class="pergunta" id="[^"]+"><div class="cartao-cab"><span class="id">([^<]+)<\/span><span class="cartao-projeto">([^<]+)<\/span>/.exec(h);
+  assert.deepEqual([pergunta[1], pergunta[2]], ['WIC-Q1', 'WiControl']);
   assert.match(h, /WIC-F1/);
   const entregues = h.slice(h.indexOf('id="h-entregas"'));
-  assert.match(entregues, /<summary><p class="cartao-projeto">Izanagi<\/p><div class="cartao-cab"><span class="id">IZA-F3<\/span>/);
+  assert.match(entregues, /<summary><div class="cartao-cab"><span class="id">IZA-F3<\/span><span class="cartao-projeto">Izanagi<\/span>/);
 });
 
 test('o início diz a sigla do projeto', () => {

@@ -43,41 +43,80 @@ export function ligarBotaoDeTema(botao, gravar) {
   });
 }
 
-// ---- o tema do app: o céu atrás da conversa no Claude, ligado ou desligado (`tema-do-app.json`, que a barra relê a cada 2 s) ----
+// ---- a gaveta de temas: o tema do Claude (`tema-do-app.json`, o céu atrás da conversa, que a barra relê a cada 2 s)
+// e o tema do painel (`tema-do-painel.json`: ligado, o céu e o vidro; desligado, o layout do kit antigo), um a um ou os dois ----
 
-const ROTULO_DO_APP = { ligado: 'Desligar o tema do Claude (o céu atrás da conversa)', desligado: 'Ligar o tema do Claude (o céu atrás da conversa)' };
-const ERRO_DO_APP = 'Não consegui gravar o tema do Claude; tente de novo.';
+const CHAVES = {
+  app: { atributo: 'temaDoApp', nome: 'o tema do Claude' },
+  painel: { atributo: 'temaDoPainel', nome: 'o tema do painel' },
+};
+const ligadoEm = (qual) => document.documentElement.dataset[CHAVES[qual].atributo] !== 'desligado';
+const marcar = (qual, ligado) => { document.documentElement.dataset[CHAVES[qual].atributo] = ligado ? 'ligado' : 'desligado'; };
 
-const appLigado = () => document.documentElement.dataset.temaDoApp !== 'desligado';
-
-/** O HTML do botão do canto esquerdo: um céu (meia-lua sobre o horizonte). Desligado, fica apagado (estilo.css). */
-export const BOTAO_DO_TEMA_DO_APP = '<button type="button" class="botao-tema botao-tema-do-app" id="b-tema-do-app" aria-label="Tema do Claude">'
+/** O botão do canto esquerdo do topo: abre a gaveta. O ícone é um céu (meia-lua sobre o horizonte). */
+export const BOTAO_DE_TEMAS = '<button type="button" class="botao-tema botao-temas" id="b-temas" aria-haspopup="dialog" aria-controls="gaveta-temas" aria-label="Temas do Claude e do painel" title="Temas do Claude e do painel">'
   + '<svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">'
   + '<rect x="3" y="4" width="18" height="14" rx="3"/><path d="M3 15.5h18"/><path d="M14.5 7.2a3.2 3.2 0 1 0 2.6 4.8 2.6 2.6 0 0 1-2.6-4.8z" fill="currentColor" stroke="none"/>'
   + '<path d="M7 8.5v.01M9.5 11v.01M6.5 12.5v.01"/></svg></button>';
 
-function rotularApp(botao, texto = ROTULO_DO_APP[appLigado() ? 'ligado' : 'desligado']) {
-  botao.setAttribute('aria-label', texto);
-  botao.setAttribute('aria-pressed', String(appLigado()));
-  botao.title = texto;
-}
+const chave = (qual, titulo, apoio) => `<label class="chave"><span class="chave-texto"><span class="chave-titulo">${titulo}</span><span class="chave-apoio">${apoio}</span></span>`
+  + `<input type="checkbox" role="switch" class="chave-botao" data-chave="${qual}"></label>`;
 
-/** Liga o botão do tema do app. `gravar(ligado)` recebe `true` ou `false` e rejeita se não gravou; aí o botão volta. */
-export function ligarBotaoDoTemaDoApp(botao, gravar) {
-  if (!botao) return;
-  rotularApp(botao);
-  new MutationObserver(() => rotularApp(botao)).observe(document.documentElement, { attributes: true, attributeFilter: ['data-tema-do-app'] });
-  botao.addEventListener('click', async () => {
-    const antes = appLigado();
-    document.documentElement.dataset.temaDoApp = antes ? 'desligado' : 'ligado';
-    botao.disabled = true;
-    try {
-      await gravar(!antes);
-    } catch {
-      document.documentElement.dataset.temaDoApp = antes ? 'ligado' : 'desligado';
-      rotularApp(botao, ERRO_DO_APP);
-    } finally {
-      botao.disabled = false;
+/** A gaveta (um `<dialog>` que entra pela esquerda). Os servidores a põem logo depois do botão. */
+export const GAVETA_DE_TEMAS = '<dialog class="gaveta" id="gaveta-temas" aria-labelledby="gaveta-temas-titulo"><div class="gaveta-dentro">'
+  + '<div class="gaveta-cab"><h2 id="gaveta-temas-titulo">Temas</h2>'
+  + '<button type="button" class="gaveta-fechar" aria-label="Fechar"><svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6 6 18"/></svg></button></div>'
+  + '<div class="gaveta-chaves">'
+  + chave('app', 'Tema do Claude', 'O céu atrás da conversa no app.')
+  + chave('painel', 'Tema do painel', 'Céu, vidro e Geist no Painel e nas Contas. Desligado, o layout do kit antigo.')
+  + '</div>'
+  + chave('os-dois', 'Os dois', 'Liga ou desliga o do Claude e o do painel juntos.')
+  + '<p class="gaveta-erro" role="alert" hidden></p></div></dialog>';
+
+/**
+ * Liga o botão e a gaveta. `gravar(qual, ligado)` recebe `'app'` ou `'painel'` e rejeita se não gravou; aí a chave volta
+ * e a gaveta diz o que falhou. Troca vinda de fora (outra página, o recarregamento) só redesenha as chaves.
+ */
+export function ligarGavetaDeTemas(botao, gaveta, gravar) {
+  if (!botao || !gaveta) return;
+  const erro = gaveta.querySelector('.gaveta-erro');
+  const entrada = (qual) => gaveta.querySelector(`[data-chave="${qual}"]`);
+  const desenhar = () => {
+    entrada('app').checked = ligadoEm('app');
+    entrada('painel').checked = ligadoEm('painel');
+    const dois = entrada('os-dois');
+    dois.checked = ligadoEm('app') && ligadoEm('painel');
+    dois.indeterminate = ligadoEm('app') !== ligadoEm('painel');
+    botao.setAttribute('aria-expanded', String(gaveta.open));
+  };
+  const avisar = (texto) => { erro.textContent = texto; erro.hidden = !texto; };
+
+  /** Troca as chaves pedidas na hora e grava; o que falhou volta. */
+  const trocar = async (pedidos) => {
+    const antes = Object.fromEntries(pedidos.map(([qual]) => [qual, ligadoEm(qual)]));
+    for (const [qual, ligado] of pedidos) marcar(qual, ligado);
+    avisar('');
+    desenhar();
+    const falhas = [];
+    for (const [qual, ligado] of pedidos) {
+      if (antes[qual] === ligado) continue;
+      try { await gravar(qual, ligado); } catch { marcar(qual, antes[qual]); falhas.push(CHAVES[qual].nome); }
     }
+    if (falhas.length) avisar(`Não consegui gravar ${falhas.join(' nem ')}; tente de novo.`);
+    desenhar();
+  };
+
+  for (const qual of ['app', 'painel']) entrada(qual).addEventListener('change', (ev) => trocar([[qual, ev.target.checked]]));
+  // "Os dois": misturado ou desligado, liga os dois; os dois ligados, desliga os dois.
+  entrada('os-dois').addEventListener('change', () => {
+    const ligar = !(ligadoEm('app') && ligadoEm('painel'));
+    trocar([['app', ligar], ['painel', ligar]]);
   });
+  botao.addEventListener('click', () => { desenhar(); gaveta.showModal(); desenhar(); });
+  gaveta.querySelector('.gaveta-fechar').addEventListener('click', () => gaveta.close());
+  // Clique fora do conteúdo (no fundo escurecido) fecha; Esc o navegador já fecha.
+  gaveta.addEventListener('click', (ev) => { if (ev.target === gaveta) gaveta.close(); });
+  gaveta.addEventListener('close', desenhar);
+  new MutationObserver(desenhar).observe(document.documentElement, { attributes: true, attributeFilter: ['data-tema-do-app', 'data-tema-do-painel'] });
+  desenhar();
 }

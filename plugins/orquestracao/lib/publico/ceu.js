@@ -181,11 +181,24 @@ function iniciarNoite(canvas) {
   };
 }
 
-/** Qual céu o `<html>` pede: `data-ceu="dia"` (o tema claro) ou a noite (o escuro, e o padrão). */
-const ceuPedido = () => (document.documentElement.dataset.ceu === 'dia' ? 'dia' : 'noite');
+/**
+ * Qual céu o `<html>` pede: nenhum com o tema do painel desligado (`data-tema-do-painel="desligado"`, o layout do kit
+ * antigo); senão `data-ceu="dia"` (o tema claro) ou a noite (o escuro, e o padrão).
+ */
+const ceuPedido = () => {
+  const raiz = document.documentElement.dataset;
+  if (raiz.temaDoPainel === 'desligado') return 'nenhum';
+  return raiz.ceu === 'dia' ? 'dia' : 'noite';
+};
+
+/** Sem céu: o laço para e o canvas fica limpo (o estilo.css também o esconde). */
+function semCeu(canvas) {
+  canvas.getContext('2d')?.clearRect(0, 0, canvas.width, canvas.height);
+  return () => {};
+}
 
 /**
- * Liga o céu num `<canvas>`: a noite ou o dia, pelo `data-ceu` do `<html>`, e troca sozinho quando o atributo muda
+ * Liga o céu num `<canvas>`: a noite, o dia ou nenhum, pelo `<html>` (ceuPedido), e troca sozinho quando o atributo muda
  * (o botão de tema e o painel de cotas mudam sem recarregar). Devolve uma função que o desliga.
  */
 export function iniciarCeu(canvas) {
@@ -196,10 +209,10 @@ export function iniciarCeu(canvas) {
     if (pedido === atual) return;
     desligar();
     atual = pedido;
-    desligar = pedido === 'dia' ? iniciarCeuDia(canvas) : iniciarNoite(canvas);
+    desligar = pedido === 'nenhum' ? semCeu(canvas) : pedido === 'dia' ? iniciarCeuDia(canvas) : iniciarNoite(canvas);
   };
   const observador = new MutationObserver(ligar);
-  observador.observe(document.documentElement, { attributes: true, attributeFilter: ['data-ceu'] });
+  observador.observe(document.documentElement, { attributes: true, attributeFilter: ['data-ceu', 'data-tema-do-painel'] });
   ligar();
   return () => { observador.disconnect(); desligar(); };
 }

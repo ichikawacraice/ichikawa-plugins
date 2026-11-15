@@ -736,7 +736,7 @@ test('lerSenhaDoKeychain: sem o comando security (ENOENT) o motivo é semSecurit
 test('toda rota de ação do painel tem tratador, inclusive a do uso', async () => {
   const { TRATADORES } = await import('../acoes.mjs');
   const rotas = Object.keys(TRATADORES).sort();
-  assert.deepEqual(rotas, ['/api/contas/adicionar', '/api/contas/cancelar', '/api/contas/nomear', '/api/contas/sincronizar', '/api/contas/trocar', '/api/contas/uso', '/api/tema', '/api/tema-do-app']);
+  assert.deepEqual(rotas, ['/api/contas/adicionar', '/api/contas/cancelar', '/api/contas/nomear', '/api/contas/sincronizar', '/api/contas/trocar', '/api/contas/uso', '/api/tema', '/api/tema-do-app', '/api/tema-do-painel']);
 });
 
 // ---- o e-mail de cada conta (fatia 5) ----

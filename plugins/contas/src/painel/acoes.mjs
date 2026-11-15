@@ -3,7 +3,7 @@
 // Falhou a guarda: 403 e nada se grava.
 import { lancar, nomear as nomearConta, cancelarAdicionar } from './contas.mjs';
 import { iniciarUso } from './uso.mjs';
-import { TEMAS, gravarTema, gravarTemaDoApp } from './tema.mjs';
+import { TEMAS, gravarTema, gravarTemaDoApp, gravarTemaDoPainel } from './tema.mjs';
 
 export const CABECALHO = 'x-painel-de-contas';
 export const LIMITE_DO_CORPO = 16 * 1024;
@@ -86,6 +86,11 @@ export const TRATADORES = {
   '/api/tema-do-app': async (corpo, ctx) => {
     if (typeof corpo.ligado !== 'boolean') return recusa('invalida');
     return { ok: true, ligado: await gravarTemaDoApp(dosContas(ctx).env, corpo.ligado) };
+  },
+  // A chave do tema do painel: grava `ligado` no `tema-do-painel.json` (desligado, as páginas no layout do kit antigo).
+  '/api/tema-do-painel': async (corpo, ctx) => {
+    if (typeof corpo.ligado !== 'boolean') return recusa('invalida');
+    return { ok: true, ligado: await gravarTemaDoPainel(dosContas(ctx).env, corpo.ligado) };
   },
 };
 

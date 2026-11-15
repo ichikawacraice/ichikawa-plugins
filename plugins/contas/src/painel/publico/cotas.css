@@ -104,13 +104,13 @@ code { font: 12px var(--mono); background: var(--vidro-forte); padding: 1px 5px;
   background: color-mix(in srgb, var(--espaco) 70%, transparent); border: 1px solid var(--fio); border-radius: 8px;
 }
 .barra-cheia {
+  /* A cor diz o quanto falta: verde livre, amarelo no meio, vermelho perto do limite (o matiz vem do app.js, regras.matizDoUso). */
   position: absolute; inset: 0 auto 0 0; display: block;
-  background: linear-gradient(90deg, color-mix(in srgb, var(--violeta) 55%, var(--espaco)), var(--violeta));
-  box-shadow: 4px 0 12px -2px color-mix(in srgb, var(--violeta) 70%, transparent);
+  background: linear-gradient(90deg, hsl(var(--matiz) 55% 20%), hsl(var(--matiz) 68% 34%));
+  box-shadow: inset -2px 0 0 hsl(var(--matiz) 80% 58%), 4px 0 14px -2px hsl(var(--matiz) 80% 45% / 0.55);
   border-radius: 0 6px 6px 0;
 }
-.barra.alto .barra-cheia { background: linear-gradient(90deg, var(--violeta), color-mix(in srgb, var(--alto) 70%, var(--violeta))); box-shadow: 4px 0 12px -2px color-mix(in srgb, var(--alto) 70%, transparent); }
-.barra.critico .barra-cheia { background: linear-gradient(90deg, color-mix(in srgb, var(--critico) 45%, var(--violeta)), color-mix(in srgb, var(--critico) 80%, var(--espaco))); box-shadow: 4px 0 12px -2px color-mix(in srgb, var(--critico) 75%, transparent); }
+.barra { --matiz: 140; }
 .barra-texto {
   position: relative; display: flex; align-items: center; gap: 8px; height: 100%; padding: 0 10px;
   font: 500 var(--t-meta)/1 var(--fonte); font-variant-numeric: tabular-nums;
@@ -151,11 +151,29 @@ code { font: 12px var(--mono); background: var(--vidro-forte); padding: 1px 5px;
 :root[data-ceu="dia"] .aviso-cota.erro,
 :root[data-ceu="dia"] .lista-contas > li.conta-ativa { box-shadow: none; }
 :root[data-ceu="dia"] .barra { background: rgba(255, 255, 255, 0.55); }
-:root[data-ceu="dia"] .barra-cheia { background: linear-gradient(90deg, #c9dbf8, #93b5ef); box-shadow: none; }
-:root[data-ceu="dia"] .barra.alto .barra-cheia { background: linear-gradient(90deg, #f6e2b8, #efc77c); box-shadow: none; }
-:root[data-ceu="dia"] .barra.critico .barra-cheia { background: linear-gradient(90deg, #f8d0d7, #f0a2b0); box-shadow: none; }
+:root[data-ceu="dia"] .barra-cheia { background: linear-gradient(90deg, hsl(var(--matiz) 60% 84%), hsl(var(--matiz) 62% 70%)); box-shadow: inset -2px 0 0 hsl(var(--matiz) 60% 42%); }
 :root[data-ceu="dia"] .barra-texto { text-shadow: none; }
 :root[data-ceu="dia"] .ponto.respondendo { box-shadow: none; animation: none; }
+
+/* ---- tema do painel desligado: o layout do kit antigo (base em estilo.css): chapado, sem brilho nem borda em degradê ---- */
+:root[data-tema-do-painel="desligado"] .subtitulo { margin: 0; }
+:root[data-tema-do-painel="desligado"] .cartoes > li,
+:root[data-tema-do-painel="desligado"] .lista-sessoes { background: var(--vidro); border-color: var(--fio); box-shadow: var(--sombra-cartao); }
+:root[data-tema-do-painel="desligado"] .cartoes > li.vazio { background: none; box-shadow: none; }
+:root[data-tema-do-painel="desligado"] .lista-contas > li.conta-ativa { background: var(--vidro); border: 1px solid var(--lilas); box-shadow: var(--sombra-cartao), 0 0 0 1px var(--lilas); }
+:root[data-tema-do-painel="desligado"] .conta-nome { font-family: var(--fonte); font-weight: 600; }
+:root[data-tema-do-painel="desligado"] .selo { border-radius: 6px; font-size: 12px; line-height: 16px; padding: 1px 8px; }
+:root[data-tema-do-painel="desligado"] .aviso-cota,
+:root[data-tema-do-painel="desligado"] .aviso-cota.erro { background: color-mix(in srgb, var(--alto) 12%, var(--vidro)); border: 1px solid color-mix(in srgb, var(--alto) 45%, transparent); box-shadow: none; }
+:root[data-tema-do-painel="desligado"] .aviso-cota.erro { background: color-mix(in srgb, var(--critico) 12%, var(--vidro)); border-color: color-mix(in srgb, var(--critico) 45%, transparent); }
+:root[data-tema-do-painel="desligado"] .aviso-cota-titulo { font-family: var(--fonte); font-weight: 600; }
+:root[data-tema-do-painel="desligado"] .faixa { background: var(--vidro); }
+:root[data-tema-do-painel="desligado"] .barra { background: var(--vidro-forte); border-color: var(--fio); }
+:root[data-tema-do-painel="desligado"]:not([data-ceu="dia"]) .barra-cheia { background: linear-gradient(90deg, hsl(var(--matiz) 50% 24%), hsl(var(--matiz) 60% 36%)); box-shadow: inset -2px 0 0 hsl(var(--matiz) 75% 55%); }
+:root[data-tema-do-painel="desligado"] .barra-texto { text-shadow: none; }
+:root[data-tema-do-painel="desligado"] .ponto.respondendo { box-shadow: none; }
+:root[data-tema-do-painel="desligado"] .confirmar { background: var(--vidro); border: 1px solid var(--fio-forte); box-shadow: var(--sombra-cartao); }
+:root[data-tema-do-painel="desligado"] .confirmar-titulo { font-family: var(--fonte); font-weight: 600; }
 
 @media (prefers-reduced-motion: reduce) {
   .faixa-andamento::before, .ponto.respondendo, .aviso-cota-titulo::before { animation: none; }
