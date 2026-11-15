@@ -10,6 +10,7 @@ import {
   lerContador,
   lerPedido,
   lerTema,
+  lerTemaDoApp,
   mesclarLigados,
   nivelDoCache,
   ordenarBotoes,
@@ -19,6 +20,7 @@ import {
   temaOposto,
   textoDoAusente,
   textoDoTema,
+  textoDoTemaDoApp,
   trocarRaiz,
 } from '../hooks/logica.js'
 
@@ -186,4 +188,16 @@ test('tema.json: claro só com "claro"; sem arquivo, ilegível ou outro valor, e
   const texto = textoDoTema('claro', Date.UTC(2026, 10, 14, 0, 15))
   expect(JSON.parse(texto)).toEqual({ tema: 'claro', em: '2026-11-13T21:15:00-03:00', por: 'barra' })
   expect(lerTema(texto)).toBe('claro')
+})
+
+test('tema-do-app.json: só `"ligado": false` desliga; sem arquivo, ilegível ou outro valor, ligado', () => {
+  expect(lerTemaDoApp(null)).toBe(true)
+  expect(lerTemaDoApp('{"ligado":false}')).toBe(false)
+  expect(lerTemaDoApp('{"ligado":true}')).toBe(true)
+  expect(lerTemaDoApp('{"ligado":"false"}')).toBe(true)
+  expect(lerTemaDoApp('lixo')).toBe(true)
+  expect(lerTemaDoApp('null')).toBe(true)
+  const texto = textoDoTemaDoApp(false, Date.UTC(2026, 10, 14, 0, 15))
+  expect(JSON.parse(texto)).toEqual({ ligado: false, em: '2026-11-13T21:15:00-03:00', por: 'barra' })
+  expect(lerTemaDoApp(texto)).toBe(false)
 })

@@ -69,6 +69,23 @@ export const temaOposto = (t: EscolhaDeTema): EscolhaDeTema => (t === 'claro' ? 
 export const textoDoTema = (tema: EscolhaDeTema, agora: number): string =>
   `${JSON.stringify({ tema, em: isoSaoPaulo(agora), por: 'barra' }, null, 2)}\n`
 
+// ---- tema-do-app.json ----
+
+/** O contrato: só `"ligado": false` desliga o tema do app; sem arquivo, ilegível ou qualquer outro valor, ligado. */
+export function lerTemaDoApp(texto: string | null): boolean {
+  if (texto === null) return true
+  try {
+    const v = JSON.parse(texto) as unknown
+    return !(v !== null && typeof v === 'object' && (v as Record<string, unknown>).ligado === false)
+  } catch {
+    return true
+  }
+}
+
+/** O que a barra grava ao ligar ou desligar o tema do app: `em` é o momento do clique. */
+export const textoDoTemaDoApp = (ligado: boolean, agora: number): string =>
+  `${JSON.stringify({ ligado, em: isoSaoPaulo(agora), por: 'barra' }, null, 2)}\n`
+
 // ---- quais plugins estão instalados e ligados ----
 
 /** As fontes de settings, da menor para a maior precedência (a ordem do Claude Code). */

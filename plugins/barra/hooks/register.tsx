@@ -1,5 +1,5 @@
 import { atom, read, update } from 'claude-code'
-import type { ElementConstructor, EngineInterface, Register, SvgProps } from 'claude-code'
+import type { ElementConstructor, EngineInterface, Register, SvgProps, ThemeSetArgs } from 'claude-code'
 
 import type { Ausente, Botao, Cache, EscolhaDeTema } from '../types'
 import {
@@ -15,6 +15,7 @@ import {
   lerBarraJson,
   lerContador,
   lerTema,
+  lerTemaDoApp,
   mesclarLigados,
   nivelDoCache,
   ordenarBotoes,
@@ -26,6 +27,7 @@ import {
   temaOposto,
   textoDoAusente,
   textoDoTema,
+  textoDoTemaDoApp,
 } from './logica'
 import {
   CICLO_CINTILA,
@@ -38,6 +40,10 @@ import {
   pedeMenosMovimento,
   svgDaCena,
 } from './ceu'
+import type { Modo } from './ceu'
+import { svgDoDia } from './fundo-dia'
+import { svgDoCeu } from './fundo-noite'
+import { CORES_DIA, CORES_NOITE } from './paleta'
 import { atenderPedidos } from './pedidos'
 import {
   ARQUIVO_SESSOES,
@@ -59,6 +65,8 @@ export const ausente = atom({ plugin: 'barra', key: 'ausente' } as const, null a
 export const trocando = atom({ plugin: 'barra', key: 'trocando' } as const, false)
 export const temaEscolhido = atom({ plugin: 'barra', key: 'tema' } as const, TEMA_PADRAO as EscolhaDeTema)
 export const trocandoTema = atom({ plugin: 'barra', key: 'trocandoTema' } as const, false)
+export const temaDoApp = atom({ plugin: 'barra', key: 'temaDoApp' } as const, true)
+export const trocandoTemaDoApp = atom({ plugin: 'barra', key: 'trocandoTemaDoApp' } as const, false)
 export const botoes = atom({ plugin: 'barra', key: 'botoes' } as const, [] as Botao[])
 export const selos = atom({ plugin: 'barra', key: 'selos' } as const, {} as Record<string, number | null>)
 /** O quadro da cintilação do terminal; `null` = parado (menos movimento pedido). */
@@ -78,6 +86,8 @@ let erroDasSessoes = ''
 let atendendo = false
 let geracaoAusente = 0
 let geracaoTema = 0
+let geracaoTemaDoApp = 0
+let lendoTema = false
 let errosVistos = ''
 let semMovimento = false
 const PRAZO_DEFAULTS_MS = 3000
@@ -170,11 +180,104 @@ export async function alternarTema($: EngineInterface): Promise<void> {
   try {
     await $.fs.write(`${await pastaIchikawa($)}/tema.json`, textoDoTema(novo, await $.clock.now()))
     await update($, temaEscolhido, () => novo)
+    await aplicarTema($)
   } catch (err) {
     $.ui.toast(`Não consegui gravar o tema ${novo} (${mensagem(err)}).`)
   } finally {
     geracaoTema++
     await update($, trocandoTema, () => false)
+  }
+}
+
+// ---- tema do app: o céu atrás da conversa e a paleta, seguindo o botão de tema ----
+
+/** De quanto em quanto tempo o `tema.json` e o `tema-do-app.json` são relidos: a escolha feita numa página chega em até 2 s. */
+export const TEMA_INTERVALO_MS = 2000
+
+/** As cenas que o hook do `Backdrop` desenha. */
+export const CENAS: Record<Modo, string> = { noite: 'noite-do-kit', dia: 'dia-do-kit' }
+
+/** O vidro fosco dos painéis herda a cor da paleta (sem `tint`). */
+const VIDRO = { blur: 14, opacity: 0.55 }
+const LOOKS: Record<Modo, ThemeSetArgs> = {
+  noite: { colors: CORES_NOITE.theme, backdrop: { scene: CENAS.noite, glass: VIDRO } },
+  dia: { colors: CORES_DIA.theme, backdrop: { scene: CENAS.dia, glass: VIDRO } },
+}
+
+// Montados uma vez por carga: as cadentes da noite sorteiam lugar e ritmo a cada carga.
+const FUNDOS: Record<string, { source: string; alt: string }> = {
+  [CENAS.noite]: {
+    source: svgDoCeu(),
+    alt: 'Céu noturno com via láctea, galáxias e estrelas piscando, estrelas cadentes de vez em quando e um planeta violeta nascendo no rodapé',
+  },
+  [CENAS.dia]: { source: svgDoDia(), alt: 'Céu azul de dia com nuvens andando devagar e um sol enorme nascendo no rodapé' },
+}
+
+/** O que esta sessão aplicou: `null` antes da primeira vez (nada a limpar), `desligado` depois de limpar ou de nascer desligada. */
+let aplicado: Modo | 'desligado' | null = null
+let avisouSemDesenho = false
+
+/** Aplica o tema que os átomos pedem, só quando muda. Limpa só depois de ter aplicado: não apaga o tema de outro plugin ao abrir. */
+async function aplicarTema($: EngineInterface): Promise<void> {
+  const pedido: Modo | 'desligado' = (await read($, temaDoApp)) ? modoDoTema(await read($, temaEscolhido)) : 'desligado'
+  if (pedido === aplicado) return
+  const antes = aplicado
+  aplicado = pedido
+  try {
+    if (pedido === 'desligado') {
+      if (antes !== null) await $.theme.clear()
+      return
+    }
+    const r = await $.theme.set(LOOKS[pedido])
+    // No terminal o tema não se desenha: avisa no log uma vez só.
+    if (!r.isDrawn && !avisouSemDesenho) {
+      avisouSemDesenho = true
+      logar($, `tema do app: ${r.reason}`)
+    }
+  } catch (err) {
+    aplicado = antes
+    logar($, `tema do app: ${mensagem(err)}`)
+  }
+}
+
+async function lerTemaDoAppGravado($: EngineInterface): Promise<void> {
+  const geracao = geracaoTemaDoApp
+  let valor = true
+  try {
+    valor = lerTemaDoApp(await lerSeExiste($, `${await pastaIchikawa($)}/tema-do-app.json`))
+  } catch (err) {
+    logar($, `tema-do-app.json: ${mensagem(err)}`)
+  }
+  if (geracao === geracaoTemaDoApp && !(await read($, trocandoTemaDoApp))) await update($, temaDoApp, () => valor)
+}
+
+/** A leitura de 2 s: as duas escolhas gravadas e o tema do app que elas pedem. */
+export async function lerTemas($: EngineInterface): Promise<void> {
+  if (lendoTema) return
+  lendoTema = true
+  try {
+    await lerEscolhaDeTema($)
+    await lerTemaDoAppGravado($)
+    await aplicarTema($)
+  } finally {
+    lendoTema = false
+  }
+}
+
+export async function alternarTemaDoApp($: EngineInterface): Promise<void> {
+  if (await read($, trocandoTemaDoApp)) return
+  const ligando = !(await read($, temaDoApp))
+  await update($, trocandoTemaDoApp, () => true)
+  geracaoTemaDoApp++
+  try {
+    await $.fs.write(`${await pastaIchikawa($)}/tema-do-app.json`, textoDoTemaDoApp(ligando, await $.clock.now()))
+    await update($, temaDoApp, () => ligando)
+    await aplicarTema($)
+  } catch (err) {
+    $.ui.toast(`Não consegui ${ligando ? 'ligar' : 'desligar'} o tema do app (${mensagem(err)}).`)
+  } finally {
+    geracaoTemaDoApp++
+    await update($, trocandoTemaDoApp, () => false)
   }
 }
 
@@ -218,12 +321,11 @@ async function contar($: EngineInterface, b: Botao): Promise<number | null> {
   }
 }
 
-/** A leitura de 30 s: o tema, o ausente, os botões e os contadores. Uma por vez. */
+/** A leitura de 30 s: o ausente, os botões e os contadores. Uma por vez. O tema tem a sua, de 2 s (`lerTemas`). */
 export async function ler($: EngineInterface): Promise<void> {
   if (lendo) return
   lendo = true
   try {
-    await lerEscolhaDeTema($)
     await lerModo($)
     const achado = await descobrir($)
     await update($, botoes, () => achado.botoes)
@@ -339,6 +441,7 @@ function iniciarRelogios($: EngineInterface): void {
   for (const t of timers) t.cancel()
   timers = [
     $.clock.every(1000, () => void tique($).catch(() => undefined)),
+    $.clock.every(TEMA_INTERVALO_MS, () => void lerTemas($).catch(() => undefined)),
     $.clock.every(CONTADOR_INTERVALO_MS, () => void ler($)),
     $.clock.every(PEDIDOS_INTERVALO_MS, () => void vezDosPedidos($)),
     $.clock.every(SESSOES_INTERVALO_MS, () => void gravarSessoes($)),
@@ -358,9 +461,12 @@ export const register: Register = on => {
   on('session.start', async ($, e, next) => {
     const r = await next(e)
     projeto = e.cwd ?? null
+    aplicado = null
+    avisouSemDesenho = false
     semMovimento = await lerMovimento($)
     await update($, fase, f => (semMovimento ? null : (f ?? 0)))
     iniciarRelogios($)
+    await lerTemas($)
     await ler($)
     void vezDosPedidos($)
     void gravarSessoes($)
@@ -403,6 +509,9 @@ export const register: Register = on => {
     // O botão de tema mostra só o ícone de para onde vai: o sol leva ao claro, a lua ao escuro.
     const rotuloTema = (await read($, trocandoTema)) ? ICONES.gravando : escolha === 'claro' ? ICONES.paraEscuro : ICONES.paraClaro
     const rotulos = lista.map(b => rotuloDoBotao(b, s[b.chave]))
+    const rotuloTemaDoApp = (await read($, trocandoTemaDoApp))
+      ? `${ICONES.gravando} Gravando…`
+      : `${ICONES.temaDoApp} ${(await read($, temaDoApp)) ? 'Desligar tema' : 'Ligar tema'}`
     const relogioDoCache =
       nivel === 'alerta' || nivel === 'venceu' ? (
         <Text key="cache" inverse bold color="error">{` ${texto} `}</Text>
@@ -431,10 +540,14 @@ export const register: Register = on => {
     // ponta direita e 50 px de céu antes dos botões, e os botões encostados à direita. Sem `overflow`/`flexWrap`: com
     // eles o app deixava de pintar a cena.
     if (Svg) {
-      const largura = larguraDaCena(e.props.bodyColumns, texto, [rotuloTema, rotuloAusente, ...rotulos])
+      const largura = larguraDaCena(e.props.bodyColumns, texto, [rotuloTemaDoApp, rotuloTema, rotuloAusente, ...rotulos])
 
       return (
         <Box key={`barra-${modo}`} flexDirection="row" alignItems="center" columnGap={1} paddingX={1} paddingY="xs" backgroundColor={tema.fundo}>
+          {/* O tema do app só se desenha onde há Svg: no terminal, o botão não aparece. */}
+          <Button key="tema-do-app" variant={variante} onPress={() => void alternarTemaDoApp($)}>
+            {rotuloTemaDoApp}
+          </Button>
           {relogioDoCache}
           <Box key="ceu" flexGrow={1} flexDirection="row" justifyContent="flex-end">
             {largura ? <Svg source={svgDaCena(modo, largura, semMovimento)} alt={modo === 'noite' ? 'Céu estrelado com a lua' : 'Céu com o sol'} width={largura} height={SVG_ALTURA} /> : null}
@@ -456,5 +569,16 @@ export const register: Register = on => {
         {botoesDaBarra}
       </Box>
     )
+  })
+
+  on('ui.render', { component: 'Backdrop' }, ($, e, next) => {
+    // Só as cenas da barra: o fundo de outro plugin segue para quem o desenha.
+    const fundo = FUNDOS[e.props.scene]
+    if (!fundo) return next(e)
+    // O fundo só se pede no desktop e no mobile, que têm `Svg`; a tabela é a união de todas as superfícies.
+    const Svg = ($.ui.resolve(e) as { Svg?: ElementConstructor<SvgProps> }).Svg
+    if (!Svg) return next(e)
+
+    return <Svg source={fundo.source} alt={fundo.alt} isInteractive />
   })
 }

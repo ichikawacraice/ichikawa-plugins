@@ -47,6 +47,7 @@
   --primario-fundo: linear-gradient(180deg, rgba(139, 92, 246, 0.42), rgba(109, 62, 220, 0.3));
   --primario-fundo-hover: linear-gradient(180deg, rgba(150, 105, 250, 0.55), rgba(118, 72, 230, 0.4));
   --primario-borda: rgba(196, 181, 253, 0.5);
+  --primario-borda-hover: var(--lilas);
   --primario-sombra: 0 0 0 1px rgba(255, 255, 255, 0.04) inset, 0 6px 20px -10px rgba(139, 92, 246, 0.9);
 
   /* Tipo: títulos em Geist, o resto no sistema */
@@ -99,10 +100,12 @@
   --botao-fundo: rgba(255, 255, 255, 0.55);
   --botao-borda-hover: rgba(13, 36, 67, 0.4);
   --botao-fundo-hover: rgba(255, 255, 255, 0.85);
-  --primario-texto: #ffffff;
-  --primario-fundo: linear-gradient(180deg, #2a5bd7, #1f4fc4);
-  --primario-fundo-hover: linear-gradient(180deg, #2450c4, #1a43a8);
-  --primario-borda: rgba(15, 40, 110, 0.3);
+  /* O primário do dia é o azul bebê sólido, com o texto azul-tinta: claro como o céu, sem o peso do azul forte. */
+  --primario-texto: #0d2443;
+  --primario-fundo: #b8dcf7;
+  --primario-fundo-hover: #a6d2f4;
+  --primario-borda: rgba(13, 36, 67, 0.22);
+  --primario-borda-hover: rgba(13, 36, 67, 0.4);
   --primario-sombra: none;
   color-scheme: light;
 }
@@ -196,7 +199,7 @@ button.primario {
   border-color: var(--primario-borda);
   box-shadow: var(--primario-sombra);
 }
-button.primario:hover:not(:disabled) { background: var(--primario-fundo-hover); border-color: var(--lilas); }
+button.primario:hover:not(:disabled) { background: var(--primario-fundo-hover); border-color: var(--primario-borda-hover); }
 button:focus-visible { outline: 2px solid var(--foco); outline-offset: 2px; }
 
 /* ---- listas ---- */

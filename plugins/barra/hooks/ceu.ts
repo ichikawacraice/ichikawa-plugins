@@ -34,6 +34,8 @@ export const ICONES = {
   paraEscuro: '☾',
   ausenteLigado: '↩',
   ausenteDesligado: '◌',
+  /** O botão da esquerda liga e desliga o tema do app (o céu atrás da conversa e a paleta). */
+  temaDoApp: '◐',
   gravando: '⋯',
   padrao: '✦',
 } as const

@@ -99,13 +99,23 @@ function motor(on: On, opc: Opcoes = {}) {
     if (r.deny !== undefined) return { deny: r.deny }
     return r.isError ? { result: {}, text: r.text, isError: true as const } : { result: {}, text: r.text }
   })
+  // O tema do app: cada set guarda a cena (ou `limpo`), e responde como um cliente que desenha.
+  const temas: string[] = []
+  on('theme.set', (_, e) => {
+    temas.push(String((e as unknown as { backdrop?: { scene?: string } }).backdrop?.scene))
+    return { value: { isDrawn: true as const, requestId: `tema-${temas.length}` } }
+  })
+  on('theme.clear', () => {
+    temas.push('limpo')
+    return { value: { isDrawn: false as const, reason: 'limpo' } } as never
+  })
   const prompts: string[] = []
   on('prompt.submit', (_, e) => {
     prompts.push(e.text)
     return { text: e.text }
   })
 
-  return { arquivos, relogio, toasts, logs, rodadas, chamadas, prompts }
+  return { arquivos, relogio, toasts, logs, rodadas, chamadas, prompts, temas }
 }
 
 async function iniciar($: Parameters<TestBody>[0], on: On, opc: Opcoes = {}) {
@@ -503,11 +513,11 @@ test('tema: o clique troca na hora e grava o tema.json; o seguinte volta', async
   await ui.unmount()
 })
 
-test('tema: a escolha feita numa página aparece na leitura de 30 s', async ($, on) => {
+test('tema: a escolha feita numa página aparece na leitura de 2 s', async ($, on) => {
   const m = await iniciar($, on)
   const ui = await montar($, 'desktop')
   m.arquivos.set(`${ICH}/tema.json`, '{"tema": "claro"}')
-  await m.relogio.advance(30_000)
+  await m.relogio.advance(2_000)
   expect((await ui.findAll({ type: 'Box' }))[0]?.props.backgroundColor).toBe('#74b6ef')
   await ui.unmount()
 })
@@ -561,4 +571,63 @@ test('céu: o "Reduzir movimento" do macOS também para', async ($, on) => {
   await m.relogio.advance(2000)
   expect(await estrelas(ui)).toBe(antes)
   await ui.unmount()
+})
+
+// ---- tema do app ----
+
+test('tema do app: ligado por padrão no escuro — a noite ao abrir, o dia no clique do tema, sem repetir', async ($, on) => {
+  const m = await iniciar($, on)
+  expect(m.temas).toEqual(['noite-do-kit'])
+  await m.relogio.advance(10_000)
+  expect(m.temas, 'a leitura de 2 s não reaplica o mesmo').toEqual(['noite-do-kit'])
+  const ui = await montar($, 'desktop')
+  await ui.press({ key: 'tema' })
+  await m.relogio.settle()
+  expect(m.temas).toEqual(['noite-do-kit', 'dia-do-kit'])
+  await ui.unmount()
+})
+
+test('tema do app: o botão à esquerda desliga (limpa e grava) e liga de novo', async ($, on) => {
+  const m = await iniciar($, on)
+  const ui = await montar($, 'desktop')
+  const primeiro = (await ui.findAll({ type: 'Button' }))[0]
+  expect(primeiro?.text, 'o primeiro botão da barra').toMatch(/◐ Desligar tema/)
+  await ui.press({ key: 'tema-do-app' })
+  await m.relogio.settle()
+  expect(m.temas).toEqual(['noite-do-kit', 'limpo'])
+  expect(JSON.parse(m.arquivos.get(`${ICH}/tema-do-app.json`) as string)).toEqual({ ligado: false, em: '2026-11-13T21:15:00-03:00', por: 'barra' })
+  expect(await ui.find({ type: 'Button', text: /◐ Ligar tema/ })).toBeDefined()
+  await ui.press({ key: 'tema' })
+  await m.relogio.settle()
+  expect(m.temas, 'desligado, o clique do tema não aplica nada').toEqual(['noite-do-kit', 'limpo'])
+  await ui.press({ key: 'tema-do-app' })
+  await m.relogio.settle()
+  expect(m.temas).toEqual(['noite-do-kit', 'limpo', 'dia-do-kit'])
+  await ui.unmount()
+})
+
+test('tema do app: desligado no arquivo, abre sem aplicar nem limpar; ligado por outra sessão, aplica em 2 s', async ($, on) => {
+  const m = await iniciar($, on, { arquivos: { [`${ICH}/tema-do-app.json`]: '{"ligado": false}' } })
+  expect(m.temas, 'não apaga o tema de outro plugin ao abrir').toEqual([])
+  m.arquivos.set(`${ICH}/tema-do-app.json`, '{"ligado": true}')
+  await m.relogio.advance(2_000)
+  expect(m.temas).toEqual(['noite-do-kit'])
+})
+
+test('tema do app: no terminal não há o botão', async ($, on) => {
+  await iniciar($, on)
+  const ui = await montar($, 'terminal')
+  expect(await ui.find({ type: 'Button', text: /◐/ })).toBeUndefined()
+  await ui.unmount()
+})
+
+test('tema do app: o fundo desenha só as cenas da barra', async ($, on) => {
+  await iniciar($, on)
+  for (const [cena, marca] of [['noite-do-kit', /id="planeta"|via|galax/i], ['dia-do-kit', /id="sol"/]] as const) {
+    const ui = await $.ui.mount({ plugin: 'barra', component: 'Backdrop', surface: 'desktop', props: { scene: cena, plugin: 'barra', glass: { blur: 14, opacity: 0.55 } } } as never)
+    const svg = await ui.find({ type: 'Svg' })
+    expect(String(svg?.props.source)).toMatch(marca)
+    expect(String(svg?.props.source).length).toBeLessThanOrEqual(131_072)
+    await ui.unmount()
+  }
 })
