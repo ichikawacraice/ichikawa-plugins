@@ -2,7 +2,7 @@ import { makeColors } from './make-colors.js'
 
 /**
  * Uma paleta por céu, cada uma só com o seu modo (`only`): o app deve seguir o botão de tema do kit, não o modo do sistema.
- * Só os cinzas mudam; os papéis (destaque, erro, sucesso) e o git ficam os do app.
+ * Só os cinzas mudam; erro, sucesso e git ficam os do app. No dia, o destaque também muda (ICH-F35).
  */
 
 /** Noite: quase preto, com um fio de roxo. */
@@ -29,6 +29,9 @@ export const CORES_DIA = makeColors({
   label: 'Céu de dia',
   only: 'light',
   light: {
+    // O destaque do dia é o azul bebê das páginas (o primário do Painel, #b8dcf7, hover #a6d2f4), com o texto marinho
+    // por cima: só os controles cheios (fillShade 200); o texto de destaque e os links seguem o tom escuro da rampa.
+    roles: { accent: { seed: '#b8dcf7', stops: { 200: '#b8dcf7', 250: '#a6d2f4' }, fillShade: 200 } },
     gray: {
       anchors: {
         'surface-0': '#edf2f8',
