@@ -56,10 +56,12 @@
   flex: none; padding: 1px 9px;
   font: 500 11px/18px var(--fonte);
   border-radius: 999px; border: 1px solid currentColor;
+  color: var(--cor-selo, var(--texto-2)); background: color-mix(in srgb, var(--cor-selo, var(--texto-2)) 10%, transparent); border-color: color-mix(in srgb, var(--cor-selo, var(--texto-2)) 38%, transparent);
 }
-.selo-entregue { color: var(--ok); background: color-mix(in srgb, var(--ok) 8%, transparent); border-color: color-mix(in srgb, var(--ok) 35%, transparent); }
-.selo-parcial { color: var(--alto); background: color-mix(in srgb, var(--alto) 8%, transparent); border-color: color-mix(in srgb, var(--alto) 35%, transparent); }
-.selo-parado { color: var(--critico); background: color-mix(in srgb, var(--critico) 8%, transparent); border-color: color-mix(in srgb, var(--critico) 35%, transparent); }
+/* Uma cor por sentido: âmbar espera você, azul trabalha, ciano revisa, lilás no PR, verde entregue, vermelho parado. */
+.selo-entregue { --cor-selo: var(--ok); }
+.selo-parcial { --cor-selo: var(--aguarda); }
+.selo-parado { --cor-selo: var(--critico); }
 .selo-etapa { color: var(--texto-2); background: var(--botao-fundo); border-color: var(--fio-forte); }
 
 .quando { margin: 10px 0 0; color: var(--texto-3); font-size: var(--t-meta); line-height: 16px; font-variant-numeric: tabular-nums; }
@@ -99,19 +101,21 @@
   border: 2px solid currentColor; box-sizing: border-box; color: var(--texto-3);
 }
 .cartao-cab > .marcador { align-self: center; }
-.marcador-esperando { color: var(--alto); background: currentColor; }
+.marcador-esperando { color: var(--aguarda); background: currentColor; }
 .marcador-parada { color: var(--critico); }
-.marcador-no-pr, .marcador-revisando { color: var(--lilas); }
-.marcador-trabalhando { color: var(--ok); }
+.marcador-no-pr { color: var(--lilas); }
+.marcador-revisando { color: var(--revisao); }
+.marcador-trabalhando { color: var(--trabalhando); }
 /* Rodando: o arco de três quartos com pontas redondas (o do kit antigo) gira; parado com "reduzir movimento". */
 .marcador.girando { width: 14px; height: 14px; border: 0; background: none; display: grid; place-items: center; animation: gira 1.2s linear infinite; }
 .marcador.girando svg { display: block; width: 14px; height: 14px; }
 @keyframes gira { to { transform: rotate(360deg); } }
 
-.selo-sessao-esperando { color: var(--alto); background: color-mix(in srgb, var(--alto) 8%, transparent); border-color: color-mix(in srgb, var(--alto) 35%, transparent); }
-.selo-sessao-parada { color: var(--critico); background: color-mix(in srgb, var(--critico) 8%, transparent); border-color: color-mix(in srgb, var(--critico) 35%, transparent); }
-.selo-sessao-no-pr, .selo-sessao-revisando { color: var(--lilas); background: var(--violeta-fundo); border-color: color-mix(in srgb, var(--lilas) 35%, transparent); }
-.selo-sessao-trabalhando { color: var(--ok); background: color-mix(in srgb, var(--ok) 8%, transparent); border-color: color-mix(in srgb, var(--ok) 35%, transparent); }
+.selo-sessao-esperando { --cor-selo: var(--aguarda); }
+.selo-sessao-parada { --cor-selo: var(--critico); }
+.selo-sessao-revisando { --cor-selo: var(--revisao); }
+.selo-sessao-no-pr { --cor-selo: var(--lilas); }
+.selo-sessao-trabalhando { --cor-selo: var(--trabalhando); }
 
 .esteira { display: flex; flex-wrap: wrap; gap: 4px 14px; margin: 10px 0 0; padding: 0; list-style: none; font-size: var(--t-meta); line-height: 16px; }
 .passo { display: inline-flex; align-items: center; gap: 5px; color: var(--texto-3); }
@@ -123,9 +127,9 @@
 
 .espera, .motivo { margin: 10px 0 0; font-size: var(--t-apoio); line-height: 18px; }
 .espera { color: var(--alto); }
-.espera a, .abrir-app { color: var(--lilas); text-decoration: none; font-weight: 500; }
-.espera a:hover, .abrir-app:hover { color: var(--texto); text-decoration: underline; }
-.espera a:focus-visible, .abrir-app:focus-visible { outline: 2px solid var(--foco); outline-offset: 2px; border-radius: 4px; }
+.espera a { color: var(--lilas); text-decoration: none; font-weight: 500; }
+.espera a:hover { color: var(--texto); text-decoration: underline; }
+.espera a:focus-visible { outline: 2px solid var(--foco); outline-offset: 2px; border-radius: 4px; }
 .motivo { color: var(--critico); }
 
 /* Sem item: linhas compactas, sem cartão. */

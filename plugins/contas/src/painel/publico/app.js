@@ -98,10 +98,10 @@ function desenharFaixas() {
 function barra(j) {
   const preenchido = el('span', { class: 'barra-cheia' });
   preenchido.style.width = `${j.pct}%`;
-  // Verde livre, vermelho perto do limite (cotas.css monta a cor pelo matiz, com a luz de cada céu).
+  // Texto em cima, trilho fino embaixo; a cor chapada vai do verde (livre) ao vermelho (no limite) pelo matiz (cotas.css).
   const caixa = el('div', { class: `barra ${j.tom}`, role: 'meter', 'aria-valuemin': '0', 'aria-valuemax': '100', 'aria-valuenow': String(j.pct), 'aria-label': `${j.nome}: ${j.texto}` },
-    preenchido,
-    el('span', { class: 'barra-texto', 'aria-hidden': 'true' }, el('span', { class: 'barra-rot' }, j.curto), el('span', { class: 'barra-dado' }, j.texto)));
+    el('span', { class: 'barra-texto', 'aria-hidden': 'true' }, el('span', { class: 'barra-rot' }, j.curto), el('span', { class: 'barra-dado' }, j.texto)),
+    el('span', { class: 'barra-trilho' }, preenchido));
   caixa.style.setProperty('--matiz', String(matizDoUso(j.pct)));
   return caixa;
 }

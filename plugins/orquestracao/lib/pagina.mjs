@@ -107,7 +107,6 @@ export function haQuanto(ms, agora) {
 
 const ROTULO_DO_PR = { OPEN: 'aberto', MERGED: 'mergeado', CLOSED: 'fechado' };
 const textoDoPr = (s) => (s.pr ? `PR #${s.pr}${ROTULO_DO_PR[s.prEstado] ? ` ${ROTULO_DO_PR[s.prEstado]}` : ''}` : '');
-const abrirNoApp = (link) => (link ? `<a class="abrir-app" href="${esc(link)}">Abrir no app</a>` : '');
 // Rodando: o arco de três quartos com as pontas redondas, girando (o do painel do kit antigo); parado, o ponto do estado.
 const ARCO_GIRANDO = '<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 2a6 6 0 1 1-6 6" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg>';
 const marcador = (estadoDaSessao, rodando) => `<span class="marcador marcador-${esc(estadoDaSessao)}${rodando ? ' girando' : ''}" aria-hidden="true">${rodando ? ARCO_GIRANDO : ''}</span>`;
@@ -123,18 +122,17 @@ const esteiraHtml = (passos) => `<ol class="esteira" aria-label="Etapas do item"
 function cartaoDeSessao(projeto, s, agora) {
   const esperas = s.perguntas.map((q) => `<p class="espera">Esperando você na pergunta <a href="#${esc(ancora(projeto, q.id))}">${idLido(projeto, q.id)}</a>${q.titulo ? ` · ${esc(q.titulo)}` : ''}</p>`).join('');
   const meta = [textoDoPr(s), atividade(s, agora)].filter(Boolean).map(esc);
-  if (s.link) meta.push(abrirNoApp(s.link));
   return `<li class="sessao sessao-${esc(s.estado)}"><div class="cartao-cab">${marcador(s.estado, s.rodando)}<span class="id">${idLido(projeto, s.item)}</span><span class="cartao-titulo">${esc(s.titulo)}</span><span class="selo selo-sessao-${esc(s.estado)}">${esc(ROTULO_DO_ESTADO[s.estado])}</span></div>
 ${esteiraHtml(s.esteira)}${esperas}${s.motivo ? `<p class="motivo">${esc(s.motivo)}</p>` : ''}${meta.length ? `<p class="quando">${meta.join(' · ')}</p>` : ''}</li>`;
 }
 
 /** Sessão sem item que está rodando: cartão como as ativas (ativa tem um só desenho), sem id nem esteira, que não tem. */
 const cartaoSemItem = (o, agora) => `<li class="sessao sessao-trabalhando sessao-sem-item"><div class="cartao-cab">${marcador('trabalhando', true)}<span class="cartao-titulo">${esc(o.titulo)}</span><span class="selo selo-sessao-trabalhando">${esc(ROTULO_DO_ESTADO.trabalhando)}</span></div>
-<p class="quando">${[esc(atividade(o, agora)), abrirNoApp(o.link)].filter(Boolean).join(' · ')}</p></li>`;
+<p class="quando">${esc(atividade(o, agora))}</p></li>`;
 
 /** Sessões sem item paradas (a orquestradora quieta, uma dona que entregou e não se arquivou): o pontilhado, uma linha cada. */
 const linhasSemItem = (paradas, agora) => (paradas.length
-  ? `<li class="sem-item"><p class="rotulo-sem-item">Sessões paradas</p><ul>${paradas.map((o) => `<li>${marcador('quieta', false)}<span class="titulo-sem-item">${esc(o.titulo)}</span><span class="quando">${[atividade(o, agora), abrirNoApp(o.link)].filter(Boolean).join(' · ')}</span></li>`).join('')}</ul></li>`
+  ? `<li class="sem-item"><p class="rotulo-sem-item">Sessões paradas</p><ul>${paradas.map((o) => `<li>${marcador('quieta', false)}<span class="titulo-sem-item">${esc(o.titulo)}</span><span class="quando">${esc(atividade(o, agora))}</span></li>`).join('')}</ul></li>`
   : '');
 
 /** Sessões, um grupo por projeto, o mais urgente em cima. */

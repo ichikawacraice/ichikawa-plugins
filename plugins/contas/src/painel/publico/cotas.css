@@ -95,26 +95,25 @@ code { font: 12px var(--mono); background: var(--vidro-forte); padding: 1px 5px;
 .conta-erro { font-size: var(--t-meta); line-height: 16px; color: var(--critico); }
 .conta-acoes { display: flex; gap: 6px; flex-wrap: wrap; }
 .conta-acoes .primario { flex: 1 1 auto; }
-/* Botões do cartão na altura da barra de cota: a coluna é estreita e o cartão fica baixo. */
+/* Botões do cartão baixos: a coluna é estreita e o cartão fica enxuto. */
 .conta-acoes button { min-height: 28px; height: 28px; padding: 0 12px; font-size: var(--t-meta); line-height: 1; border-radius: 8px; }
 
-/* ---- barra de cota: o texto mora dentro ---- */
-.barra {
-  position: relative; height: 28px; overflow: hidden;
-  background: color-mix(in srgb, var(--espaco) 70%, transparent); border: 1px solid var(--fio); border-radius: 8px;
+/* ---- barra de cota: o texto em cima e um trilho fino, chapado ---- */
+.barra { --matiz: 140; display: grid; gap: 5px; }
+.barra-trilho {
+  position: relative; display: block; height: 6px; overflow: hidden;
+  background: var(--fio); border-radius: 3px;
 }
 .barra-cheia {
-  /* A cor diz o quanto falta: verde livre, amarelo no meio, vermelho perto do limite (o matiz vem do app.js, regras.matizDoUso). */
+  /* A cor diz o quanto falta: verde livre, amarelo no meio, vermelho perto do limite (o matiz vem do app.js, regras.matizDoUso).
+     Cor chapada, sem degradê nem brilho; a luz alta deixa o amarelo amarelo, e não mostarda. */
   position: absolute; inset: 0 auto 0 0; display: block;
-  background: linear-gradient(90deg, hsl(var(--matiz) 55% 20%), hsl(var(--matiz) 68% 34%));
-  box-shadow: inset -2px 0 0 hsl(var(--matiz) 80% 58%), 4px 0 14px -2px hsl(var(--matiz) 80% 45% / 0.55);
-  border-radius: 0 6px 6px 0;
+  background: hsl(var(--matiz) 85% 52%);
+  border-radius: 3px;
 }
-.barra { --matiz: 140; }
 .barra-texto {
-  position: relative; display: flex; align-items: center; gap: 8px; height: 100%; padding: 0 10px;
-  font: 500 var(--t-meta)/1 var(--fonte); font-variant-numeric: tabular-nums;
-  text-shadow: 0 1px 2px var(--espaco);
+  display: flex; align-items: baseline; gap: 8px;
+  font: 500 var(--t-meta)/16px var(--fonte); font-variant-numeric: tabular-nums;
   white-space: nowrap;
 }
 .barra-rot { color: var(--texto-2); flex: none; }
@@ -145,14 +144,11 @@ code { font: 12px var(--mono); background: var(--vidro-forte); padding: 1px 5px;
 .sessao-titulo { font-size: var(--t-corpo); line-height: 20px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .sessao-apoio { color: var(--texto-3); font-size: var(--t-meta); line-height: 16px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
-/* ---- o dia (modo ausente desligado, ICH-F21): plano, sem os brilhos da noite; as barras de cota com preenchimento
-   claro, para o texto escuro por cima seguir legível (azul-marinho sobre o cobalto claro: ≥6:1) ---- */
+/* ---- o dia (modo ausente desligado, ICH-F21): plano, sem os brilhos da noite; o trilho das barras um pouco mais escuro ---- */
 :root[data-ceu="dia"] .aviso-cota,
 :root[data-ceu="dia"] .aviso-cota.erro,
 :root[data-ceu="dia"] .lista-contas > li.conta-ativa { box-shadow: none; }
-:root[data-ceu="dia"] .barra { background: rgba(255, 255, 255, 0.55); }
-:root[data-ceu="dia"] .barra-cheia { background: linear-gradient(90deg, hsl(var(--matiz) 60% 84%), hsl(var(--matiz) 62% 70%)); box-shadow: inset -2px 0 0 hsl(var(--matiz) 60% 42%); }
-:root[data-ceu="dia"] .barra-texto { text-shadow: none; }
+:root[data-ceu="dia"] .barra-trilho { background: color-mix(in srgb, var(--texto) 10%, transparent); }
 :root[data-ceu="dia"] .ponto.respondendo { box-shadow: none; animation: none; }
 
 /* ---- tema do painel desligado: o layout do kit antigo (base em estilo.css): chapado, sem brilho nem borda em degradê ---- */
@@ -168,9 +164,6 @@ code { font: 12px var(--mono); background: var(--vidro-forte); padding: 1px 5px;
 :root[data-tema-do-painel="desligado"] .aviso-cota.erro { background: color-mix(in srgb, var(--critico) 12%, var(--vidro)); border-color: color-mix(in srgb, var(--critico) 45%, transparent); }
 :root[data-tema-do-painel="desligado"] .aviso-cota-titulo { font-family: var(--fonte); font-weight: 600; }
 :root[data-tema-do-painel="desligado"] .faixa { background: var(--vidro); }
-:root[data-tema-do-painel="desligado"] .barra { background: var(--vidro-forte); border-color: var(--fio); }
-:root[data-tema-do-painel="desligado"]:not([data-ceu="dia"]) .barra-cheia { background: linear-gradient(90deg, hsl(var(--matiz) 50% 24%), hsl(var(--matiz) 60% 36%)); box-shadow: inset -2px 0 0 hsl(var(--matiz) 75% 55%); }
-:root[data-tema-do-painel="desligado"] .barra-texto { text-shadow: none; }
 :root[data-tema-do-painel="desligado"] .ponto.respondendo { box-shadow: none; }
 :root[data-tema-do-painel="desligado"] .confirmar { background: var(--vidro); border: 1px solid var(--fio-forte); box-shadow: var(--sombra-cartao); }
 :root[data-tema-do-painel="desligado"] .confirmar-titulo { font-family: var(--fonte); font-weight: 600; }

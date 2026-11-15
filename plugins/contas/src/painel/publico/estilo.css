@@ -34,6 +34,7 @@
   /* Status do kit nos selos do topo: 🟡 aguarda, 🔵 trabalhando, 🟢 entregou. */
   --aguarda: #f5d27a;
   --trabalhando: #8ec5ff;
+  --revisao: #67e8f9;
   --entregou: var(--ok);
   /* Literais de antes, agora tokens: o dia troca só estes valores. */
   --texto-campo: rgba(255, 255, 255, 0.9);
@@ -93,6 +94,7 @@
   --foco: #0d2443;
   --aguarda: #744700;
   --trabalhando: #164f8e;
+  --revisao: #0e6378;
   --texto-campo: #12294a;
   --campo-fundo: rgba(255, 255, 255, 0.75);
   --h1-degrade: linear-gradient(180deg, #0b2142 35%, #23548f);
@@ -290,6 +292,7 @@ ul { list-style: none; margin: 14px 0 0; padding: 0; display: grid; gap: 10px; }
   --foco: #a5b4fc;
   --aguarda: #fbbf24;
   --trabalhando: #93c5fd;
+  --revisao: #67e8f9;
   --texto-campo: #e7eaf0;
   --campo-fundo: #0b0e14;
   --h1-degrade: none;
@@ -335,6 +338,7 @@ ul { list-style: none; margin: 14px 0 0; padding: 0; display: grid; gap: 10px; }
   --foco: #4338ca;
   --aguarda: #b45309;
   --trabalhando: #1d4ed8;
+  --revisao: #0e7490;
   --texto-campo: #0f172a;
   --campo-fundo: #ffffff;
   --contagem-fundo: #ffffff;

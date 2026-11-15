@@ -95,7 +95,7 @@ test('a página mostra as sessões: marcador, esteira, pergunta com âncora, PR 
   assert.match(sec, /<li class="passo passo-agora" aria-current="step"><span class="so-leitor">agora: <\/span>execução<\/li>/);
   assert.match(sec, /href="#pergunta-kit-Q1">KIT-Q1<\/a>/);
   assert.match(h, /<li class="pergunta" id="pergunta-kit-Q1">/);
-  assert.match(sec, /PR #3 aberto · rodando agora · <a class="abrir-app" href="claude:\/\/claude.ai\/epitaxy\/local_1">Abrir no app<\/a>/);
+  assert.match(sec, /PR #3 aberto · rodando agora<\/p>/);
   assert.match(sec, /🎛 orquestradora<\/span><span class="quando">última atividade há 5 min/);
   assert.match(h, /<span class="so-leitor">1 pergunta esperando você<\/span>/);
   assert.match(h, /<span class="so-leitor">1 item em andamento<\/span>/);
@@ -113,7 +113,7 @@ test('sessão sem item rodando vira cartão como as ativas; no pontilhado ficam 
   const sec = h.slice(h.indexOf('id="h-sessoes"'), h.indexOf('id="h-entregas"'));
   const pontilhado = sec.slice(sec.indexOf('class="sem-item"'));
   assert.match(sec, /<li class="sessao sessao-trabalhando sessao-sem-item"><div class="cartao-cab"><span class="marcador marcador-trabalhando girando"[^>]*><svg viewBox="0 0 16 16"[^>]*><path d="M8 2a6 6 0 1 1-6 6"[^>]*\/><\/svg><\/span><span class="cartao-titulo">Documentação do kit<\/span><span class="selo selo-sessao-trabalhando">trabalhando<\/span><\/div>/);
-  assert.match(sec, /Documentação do kit[\s\S]*rodando agora · <a class="abrir-app" href="claude:\/\/claude.ai\/epitaxy\/local_doc">/);
+  assert.match(sec, /Documentação do kit[\s\S]*rodando agora<\/p>/);
   assert.doesNotMatch(pontilhado, /Documentação do kit/);
   assert.match(pontilhado, /Sessões paradas[\s\S]*🎛 orquestradora/);
 });
