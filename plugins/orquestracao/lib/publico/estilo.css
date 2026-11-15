@@ -41,15 +41,13 @@
   --campo-fundo: rgba(3, 0, 20, 0.6);
   --h1-degrade: linear-gradient(180deg, #ffffff 30%, #cbb8ff);
   --contagem-fundo: transparent;
-  --botao-fundo: rgba(255, 255, 255, 0.03);
+  --botao-fundo: rgba(255, 255, 255, 0.07);
   --botao-borda-hover: rgba(196, 181, 253, 0.45);
-  --botao-fundo-hover: rgba(139, 92, 246, 0.1);
+  --botao-fundo-hover: rgba(139, 92, 246, 0.18);
   --primario-texto: var(--botao-texto);
-  --primario-fundo: linear-gradient(180deg, rgba(139, 92, 246, 0.42), rgba(109, 62, 220, 0.3));
-  --primario-fundo-hover: linear-gradient(180deg, rgba(150, 105, 250, 0.55), rgba(118, 72, 230, 0.4));
-  --primario-borda: rgba(196, 181, 253, 0.5);
-  --primario-borda-hover: var(--lilas);
-  --primario-sombra: 0 0 0 1px rgba(255, 255, 255, 0.04) inset, 0 6px 20px -10px rgba(139, 92, 246, 0.9);
+  --primario-fundo: rgba(124, 77, 238, 0.42);
+  --primario-fundo-hover: rgba(139, 92, 246, 0.58);
+  --primario-sombra: 0 6px 20px -10px rgba(139, 92, 246, 0.9);
 
   /* Tipo: títulos em Geist, o resto no sistema */
   --titulo: "Geist", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
@@ -106,8 +104,6 @@
   --primario-texto: #0d2443;
   --primario-fundo: #b8dcf7;
   --primario-fundo-hover: #a6d2f4;
-  --primario-borda: rgba(13, 36, 67, 0.22);
-  --primario-borda-hover: rgba(13, 36, 67, 0.4);
   --primario-sombra: none;
   color-scheme: light;
 }
@@ -186,24 +182,24 @@ main > div > .secao:first-child { border-top: 0; padding-top: 0; }
 .secao-cab { display: flex; align-items: baseline; gap: 4px 10px; flex-wrap: wrap; }
 .lido { color: var(--texto-3); font-size: var(--t-meta); font-variant-numeric: tabular-nums; }
 
-/* ---- botões: contorno fino em vidro escuro; o primário em vidro violeta ---- */
+/* ---- botões: nenhum depende de borda para aparecer; o fundo marca o botão e o hover só muda o fundo, devagar.
+   A borda fica transparente para o tamanho não mudar entre os temas. ---- */
 button {
   font: 500 13px/1.2 var(--fonte);
   min-height: 36px; padding: 8px 14px;
-  color: var(--botao-texto); background: var(--botao-fundo);
-  border: 1px solid var(--fio-forte); border-radius: var(--raio-botao);
+  color: var(--botao-texto); background-color: var(--botao-fundo);
+  border: 1px solid transparent; border-radius: var(--raio-botao);
   cursor: pointer;
-  transition: border-color 0.15s, background-color 0.15s, box-shadow 0.15s;
+  transition: background-color 0.2s ease, color 0.2s ease, box-shadow 0.2s ease;
 }
-button:hover:not(:disabled) { border-color: var(--botao-borda-hover); background: var(--botao-fundo-hover); }
+button:hover:not(:disabled) { background-color: var(--botao-fundo-hover); }
 button:disabled { opacity: 0.45; cursor: default; }
 button.primario {
   color: var(--primario-texto);
-  background: var(--primario-fundo);
-  border-color: var(--primario-borda);
+  background-color: var(--primario-fundo);
   box-shadow: var(--primario-sombra);
 }
-button.primario:hover:not(:disabled) { background: var(--primario-fundo-hover); border-color: var(--primario-borda-hover); }
+button.primario:hover:not(:disabled) { background-color: var(--primario-fundo-hover); }
 button:focus-visible { outline: 2px solid var(--foco); outline-offset: 2px; }
 
 /* ---- listas ---- */
@@ -297,14 +293,12 @@ ul { list-style: none; margin: 14px 0 0; padding: 0; display: grid; gap: 10px; }
   --campo-fundo: #0b0e14;
   --h1-degrade: none;
   --contagem-fundo: #131720;
-  --botao-fundo: #1a1f2a;
+  --botao-fundo: #222836;
   --botao-borda-hover: #6b7486;
-  --botao-fundo-hover: #262c38;
+  --botao-fundo-hover: #2d3444;
   --primario-texto: #0b0e14;
   --primario-fundo: #a5b4fc;
   --primario-fundo-hover: #bcc6fd;
-  --primario-borda: #a5b4fc;
-  --primario-borda-hover: #bcc6fd;
   --primario-sombra: none;
   --sombra-cartao: 0 0 0 1px rgba(255, 255, 255, 0.03), 0 8px 24px -12px rgba(0, 0, 0, 0.6);
   --titulo: var(--fonte);
@@ -340,14 +334,12 @@ ul { list-style: none; margin: 14px 0 0; padding: 0; display: grid; gap: 10px; }
   --texto-campo: #0f172a;
   --campo-fundo: #ffffff;
   --contagem-fundo: #ffffff;
-  --botao-fundo: #f0f2f5;
+  --botao-fundo: #e9ecf1;
   --botao-borda-hover: #8a93a3;
-  --botao-fundo-hover: #e2e5ea;
+  --botao-fundo-hover: #dde1e8;
   --primario-texto: #ffffff;
   --primario-fundo: #4338ca;
   --primario-fundo-hover: #3730a3;
-  --primario-borda: #4338ca;
-  --primario-borda-hover: #3730a3;
   --sombra-cartao: 0 1px 2px rgba(15, 23, 42, 0.06), 0 8px 24px -12px rgba(15, 23, 42, 0.18);
 }
 :root[data-tema-do-painel="desligado"] .ceu { display: none; }
