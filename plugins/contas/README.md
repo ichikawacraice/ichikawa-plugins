@@ -2,7 +2,8 @@
 
 Painel local para quem usa várias contas no app desktop do Claude no Mac:
 
-- **Cota de cada conta**: as janelas de 5 h e da semana, lado a lado, com a hora em que cada uma zera.
+- **Cota de cada conta**: as janelas de 5 h e da semana, lado a lado, com a hora em que cada uma zera. A barra vai do verde (livre) ao vermelho (perto do limite).
+- **Ordem da lista**: a conta no app primeiro; as outras pela cota livre na semana, da mais livre para a menos.
 - **Troca de conta sem Sign out** e sem código por e-mail a cada troca.
 - **As sessões do Code continuam na conta nova**: a lista de conversas vem junto, e as que estavam respondendo quando o app fechou são retomadas sozinhas.
 - **Sessões ativas**: as conversas do Code mexidas nas últimas 24 h, com as que estão respondendo agora em destaque.

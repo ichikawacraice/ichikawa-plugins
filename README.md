@@ -10,7 +10,7 @@ Junto vêm os padrões da stack (React, TypeScript, Next, Postgres, Google Cloud
   <img src="docs/imagens/painel-noite.jpg" alt="O Painel no celular, tema noite: a seção Sessões com seis sessões de dois projetos, cada uma com código, selo de estado, título e a esteira planejamento → execução → revisão → PR → entregue; uma esperando você, uma em revisão, uma com PR aberto, uma planejando e duas paradas" width="300">
   <img src="docs/imagens/painel-dia.jpg" alt="A mesma seção Sessões do Painel no celular, tema dia, com céu azul e nuvens" width="300">
 </p>
-<p align="center"><sub>As sessões de cada projeto no Painel: quem está planejando, executando, em revisão ou com PR aberto, quem espera você e quem está parado. O Painel (<code>http://127.0.0.1:4747</code>) nos dois céus, noite e dia; o botão no canto troca o tema, e a escolha vale para a barra e para o painel de contas. Dados de exemplo.</sub></p>
+<p align="center"><sub>As sessões de cada projeto no Painel: quem está planejando, executando, em revisão ou com PR aberto, quem espera você e quem está parado. O Painel (<code>http://127.0.0.1:4747</code>) nos dois céus, noite e dia; o botão ☀/☾ troca o céu, e a escolha vale para a barra e para o painel de contas; a gaveta do canto esquerdo liga e desliga o tema do Claude e o do painel. Dados de exemplo.</sub></p>
 
 ---
 
@@ -84,11 +84,11 @@ Os plugins não importam código uns dos outros. Eles se encontram só por arqui
 
 | Seção | O que mostra |
 |---|---|
-| **Perguntas** | As abertas de todos os projetos: o caso, o que acontece se ninguém decidir e a recomendação. Botões **Aceitar recomendação**, **Enviar resposta** e **Abrir sessão**. A resposta chega à sessão que perguntou, pela barra. |
-| **Sessões** | Um grupo por projeto, com a etapa de cada item (planejamento → execução → revisão → PR → entregue), quem espera você, quem está rodando agora e o link para abrir no app. |
+| **Perguntas** | As abertas de todos os projetos: o caso, o que acontece se ninguém decidir e a recomendação. Um botão só para responder: com o campo vazio ele **aceita a recomendação**, com texto **envia a resposta** (⌘/Ctrl+Enter também envia); ao lado, **Abrir sessão**. A resposta chega à sessão que perguntou, pela barra. |
+| **Sessões** | Um grupo por projeto, com a etapa de cada item (planejamento → execução → revisão → PR → entregue), quem espera você e quem está rodando agora. Cada estado tem um selo de cor própria: esperando você em âmbar, trabalhando em azul, em revisão em ciano, no PR em lilás, parada em vermelho. |
 | **Entregues** | As entregas dos últimos 30 dias: resultado, o que foi medido, o que ficou sem medir, próximos passos e o PR. |
 
-O aviso de modo ausente fica no topo. Itens entregues há mais de 30 dias vão para `arquivo/` e nada é apagado.
+O aviso de modo ausente fica no topo. O botão do canto esquerdo abre a gaveta de temas: liga e desliga o tema do Claude (o céu atrás da conversa), o tema do painel (desligado, as duas páginas voltam ao layout chapado do kit antigo) ou os dois. Itens entregues há mais de 30 dias vão para `arquivo/` e nada é apagado.
 
 ### O CLI `perguntas`
 
