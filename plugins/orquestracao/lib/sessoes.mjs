@@ -81,9 +81,19 @@ const urgencia = (s) => ORDEM_DOS_ESTADOS.indexOf(s.estado);
  * `app` é o `lerSessoesDoApp`; `projetos`, os que o kit conhece (as sessões sem item só aparecem neles).
  * Devolve `{ grupos: [{ projeto, sessoes, outras }], total, lidoEm, fresca, erro }`.
  */
-export function sessoesDaPagina({ itens, perguntas, app, projetos, agora = Date.now() }) {
+export function sessoesDaPagina({ itens, perguntas, app, projetos, sigla = () => null, agora = Date.now() }) {
   const fresca = app.lidoEm !== null && agora - app.lidoEm <= LEITURA_FRESCA_MS;
   const doApp = new Map(app.sessoes.map((s) => [s.sessionId, s]));
+  // O id gravado no item pode não bater com o do app (gravado com o id do transcript, ou a dona foi reaberta):
+  // vale então a sessão aberta do mesmo projeto cujo título começa pelo código do item (`IZA-F48 · …`).
+  const pelaSessaoOuPeloTitulo = (projeto, i) => {
+    const gravada = i.sessao ? doApp.get(i.sessao) ?? null : null;
+    if (gravada && !gravada.arquivada) return gravada;
+    const sig = sigla(projeto);
+    if (!sig || !i.id) return gravada;
+    const codigo = new RegExp(`^${sig}-${i.id}(?!\\d)`, 'i');
+    return app.sessoes.find((s) => !s.arquivada && s.projeto === projeto && codigo.test(s.titulo)) ?? gravada;
+  };
   const donas = new Set();
   const porProjeto = new Map();
   const grupo = (projeto) => {
@@ -91,11 +101,12 @@ export function sessoesDaPagina({ itens, perguntas, app, projetos, agora = Date.
     return porProjeto.get(projeto);
   };
   for (const { projeto, i } of itens) {
-    const sessao = i.sessao ? doApp.get(i.sessao) ?? null : null;
+    const sessao = pelaSessaoOuPeloTitulo(projeto, i);
     const pr = i.pr ?? sessao?.pr ?? null;
     if (i.sessao) donas.add(i.sessao);
+    if (sessao) donas.add(sessao.sessionId);
     const minhas = perguntas.filter(({ projeto: pj, p }) => pj === projeto && ((i.id && p.item === i.id) || (i.sessao && p.sessao === i.sessao))).map(({ p }) => p);
-    const { estado, motivo } = estadoDoItem(i, sessao, minhas, { fresca, agora });
+    const { estado, motivo } = estadoDoItem(sessao && !i.sessao ? { ...i, sessao: sessao.sessionId } : i, sessao, minhas, { fresca, agora });
     grupo(projeto).sessoes.push({
       item: i.id, titulo: i.titulo ?? i.id, etapa: i.etapa ?? null, estado, motivo,
       rodando: fresca && sessao?.rodando === true,

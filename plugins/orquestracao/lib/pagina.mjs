@@ -171,7 +171,7 @@ export function dados(agora = Date.now()) {
   recentes.sort((a, b) => quandoEntregou(b.i) - quandoEntregou(a.i));
   const entregas = recentes.slice(0, ENTREGAS_A_MOSTRAR);
   const maisEntregas = recentes.slice(ENTREGAS_A_MOSTRAR);
-  const sessoes = sessoesDaPagina({ itens: andamento, perguntas, app: lerSessoesDoApp(estado.raiz()), projetos: estado.projetos(), agora });
+  const sessoes = sessoesDaPagina({ itens: andamento, perguntas, app: lerSessoesDoApp(estado.raiz()), projetos: estado.projetos(), sigla: estado.sigla, agora });
   return { perguntas, andamento, sessoes, entregas, maisEntregas };
 }
 

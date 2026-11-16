@@ -72,6 +72,33 @@ test('estado por urgência: esperando › parada › no PR › em revisão › t
   assert.equal(r.total, 7);
 });
 
+test('id gravado que não bate: acha a dona aberta pelo código do item no título (ICH-F38)', () => {
+  const r = sessoesDaPagina({
+    itens: [
+      item('F33', 'execucao', 'b82d761a-df18-4096-9c8a-362d942e037a'), // id do transcript, não do app
+      item('F48', 'revisao', 'local_trocada'), // a dona foi reaberta e o item ficou com a antiga
+      item('F4', 'execucao', 'local_sumiu'), // F4 não pode casar com KIT-F48
+      item('F7', 'execucao', null),
+    ],
+    perguntas: [],
+    app: app([
+      s('local_33', { titulo: 'KIT-F33 · Laço do modo', rodando: true }),
+      s('local_48', { titulo: 'KIT-F48 · Builder acorda' }),
+      s('local_48_velha', { titulo: 'KIT-F48 · Builder acorda', arquivada: true }),
+      s('local_outro', { titulo: 'KIT-F7 · De outro projeto', projeto: 'outro' }),
+    ]),
+    projetos: ['kit', 'outro'],
+    sigla: () => 'KIT',
+    agora: AGORA,
+  });
+  const porItem = Object.fromEntries(r.grupos.find((g) => g.projeto === 'kit').sessoes.map((x) => [x.item, x]));
+  assert.deepEqual([porItem.F33.estado, porItem.F33.rodando], ['trabalhando', true]);
+  assert.equal(porItem.F48.estado, 'revisando');
+  assert.equal(porItem.F4.estado, 'parada');
+  assert.equal(porItem.F7.estado, 'trabalhando', 'sem sessão gravada, não decide parada');
+  assert.deepEqual(r.grupos.find((g) => g.projeto === 'kit').outras, [], 'a dona achada pelo título não se repete em "outras"');
+});
+
 test('leitura do app velha: não decide parada nem rodando', () => {
   const r = sessoesDaPagina({ itens: [item('F1', 'execucao', 'local_sumiu'), item('F2', 'execucao', 'local_2')], perguntas: [], app: app([s('local_2', { rodando: true })], 10), projetos: ['kit'], agora: AGORA });
   assert.equal(r.fresca, false);
