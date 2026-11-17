@@ -76,6 +76,41 @@ Os plugins não importam código uns dos outros. Eles se encontram só por arqui
 
 ### Como usar
 
+#### Orquestradora ou sessão comum?
+
+A orquestradora é para **dividir trabalho grande entre várias sessões**, não para todo pedido. Cada item que ela abre vira uma sessão dona nova, que começa sem nada no contexto e lê o projeto do zero. A dona escreve plano, executa, confere, abre PR e mergeia. Isso custa minutos e tokens antes da primeira linha de código. Num ajuste de dez minutos, esse custo é maior que o próprio trabalho. Além disso, a orquestradora não escreve código: um hook pergunta antes de ela editar qualquer arquivo. Pedir a ela um ajuste rápido só acrescenta uma sessão no meio do caminho.
+
+**Use a orquestradora quando:**
+
+- o pedido se quebra em **duas ou mais entregas independentes**, cada uma fazendo sentido sozinha num PR (por exemplo, "carrinho novo, checkout com Pix e e-mail de pedido");
+- você quer **frentes andando em paralelo** e acompanhar tudo pelo Painel, sem ficar dentro de cada conversa;
+- você vai **delegar e sair**: as perguntas que forem suas esperam no Painel, com recomendação, e o resto anda sozinho;
+- o trabalho é longo, com várias etapas (planejar, executar, revisar, PR), e você quer o registro de cada item: o que foi entregue, o que ficou sem medir e o que vem depois.
+
+**Não use a orquestradora; use uma sessão comum, quando:**
+
+- é **ajuste de layout ou visual**: espaçamento, cor, alinhamento, fonte, texto de um botão, um ícone;
+- é **um bug pontual** ou uma mudança que cabe num arquivo ou em poucos;
+- você vai **iterar olhando a tela**, no "mexe, olha, ajusta de novo". Com a orquestradora, cada rodada passaria por outra sessão;
+- é **pergunta, consulta ou investigação**: "como funciona X", "por que isso quebrou", "vale usar Y";
+- a ideia ainda está **em desenho**, sem pedido fechado. Converse numa sessão comum (`orquestracao:brainstorming`) e só leve à orquestradora quando der para dizer o que é "pronto";
+- é **uma entrega só**, mesmo que grande. Numa sessão comum, peça *"planeja"* e depois *"executa o plano"*: o processo é o mesmo (plano, executoras em ondas, revisão, PR), sem a camada de cima.
+
+**Ajuste em algo que uma dona já está fazendo:** fale com a própria dona, pelo Painel ou abrindo a sessão dela. Não abra item novo nem passe pela orquestradora: a dona já tem o contexto.
+
+**Regra de bolso:** se cabe em um PR e você vai acompanhar de perto, use uma sessão comum. Se são várias entregas, ou se você quer entregar o trabalho e sair, use a orquestradora.
+
+| Pedido | Onde |
+|---|---|
+| "Aumenta o espaço entre os cards da home" | sessão comum |
+| "O botão de comprar some no mobile" | sessão comum |
+| "Troca o texto do rodapé e a cor do link" | sessão comum |
+| "Refaz a PDP inteira: galeria, frete e avaliações" | orquestradora (três itens) |
+| "Migra o projeto de Next 14 para 15 e atualiza as dependências" | sessão comum com plano, se for uma entrega; orquestradora, se se quebrar em frentes independentes |
+| "Integra o ERP: pedidos, estoque e notas" | orquestradora |
+
+#### Começar
+
 - **Orquestrar:** numa sessão na pasta do projeto, diga *"você é a orquestradora"* ou *"orquestra isso"*. Ela marca o papel (`perguntas papel orquestradora`), dá o título `🎛 orquestradora — <projeto>` e mostra o que está vivo.
 - **Trabalho de uma sessão só:** sem orquestradora, as skills funcionam do mesmo jeito. Peça *"planeja"*, *"executa o plano"*, *"abre o PR"*, *"faz o release"*.
 - **O Painel:** o botão **◫ Painel** da barra abre `http://127.0.0.1:4747` no navegador do app, com um selo de quantas perguntas estão abertas. Sem a barra: `perguntas pagina --abrir`.
