@@ -44,6 +44,8 @@ Junto vêm os padrões da stack (React, TypeScript, Next, Postgres, Google Cloud
                                          develop ──release (gate completo, seu ok)──▶ main
 ```
 
+Este fluxo é para trabalho que se divide em várias entregas. Um ajuste de layout, um bug pontual ou uma entrega só cabem numa sessão comum: veja [Orquestradora ou sessão comum?](#quando-usar).
+
 1. **Você pede.** A sessão com o papel de orquestradora (`orquestracao:orquestradora`) entende o pedido. Quando há decisão de produto, desenha com você antes (`orquestracao:brainstorming`). Depois quebra o pedido em itens independentes: um item é uma entrega que faz sentido sozinha num PR.
 2. **Uma dona por item.** Para cada item, a orquestradora registra o item (`perguntas item nova` imprime `IZA-F7`), põe a pasta principal na `origin/develop` e abre uma sessão nova, num worktree próprio, com um brief curto. A orquestradora não escreve código de produto: um hook pergunta antes de ela editar.
 3. **A dona planeja** (`orquestracao:planejar`): arquivos, interfaces e tarefas pequenas com teste primeiro, cada uma marcada `Risco: sim/não`, e as **ondas**, ou seja, as tarefas que podem rodar juntas.
@@ -76,6 +78,7 @@ Os plugins não importam código uns dos outros. Eles se encontram só por arqui
 
 ### Como usar
 
+<a id="quando-usar"></a>
 #### Orquestradora ou sessão comum?
 
 A orquestradora é para **dividir trabalho grande entre várias sessões**, não para todo pedido. Cada item que ela abre vira uma sessão dona nova, que começa sem nada no contexto e lê o projeto do zero. A dona escreve plano, executa, confere, abre PR e mergeia. Isso custa minutos e tokens antes da primeira linha de código. Num ajuste de dez minutos, esse custo é maior que o próprio trabalho. Além disso, a orquestradora não escreve código: um hook pergunta antes de ela editar qualquer arquivo. Pedir a ela um ajuste rápido só acrescenta uma sessão no meio do caminho.
@@ -97,6 +100,11 @@ A orquestradora é para **dividir trabalho grande entre várias sessões**, não
 - é **uma entrega só**, mesmo que grande. Numa sessão comum, peça *"planeja"* e depois *"executa o plano"*: o processo é o mesmo (plano, executoras em ondas, revisão, PR), sem a camada de cima.
 
 **Ajuste em algo que uma dona já está fazendo:** fale com a própria dona, pelo Painel ou abrindo a sessão dela. Não abra item novo nem passe pela orquestradora: a dona já tem o contexto.
+
+**Dois limites que valem mesmo com a orquestradora:**
+
+- itens que mexem nos mesmos arquivos não rodam em paralelo; ela os põe em sequência;
+- o "ok" de uma sessão nunca vale como o seu: push na `main`, gasto e o que publica para fora sempre voltam a você.
 
 **Regra de bolso:** se cabe em um PR e você vai acompanhar de perto, use uma sessão comum. Se são várias entregas, ou se você quer entregar o trabalho e sair, use a orquestradora.
 
@@ -187,14 +195,6 @@ A maioria avisa ou pergunta antes. Só três seguram: a mensagem com segredo par
 | Antes da caixa de próximo passo | `pergunta-na-caixa` | A caixa que espera você só passa com a pergunta gravada no Painel. |
 | Depois de editar | `aviso-console-log`, `formatar-editado` | Avisa `console.log` em código de produto; formata só o arquivo editado, se o projeto declara Biome ou Prettier (`ICHIKAWA_FORMATAR=0` desliga). |
 | Fim do turno | `pergunta-no-painel`, `orquestradora-limpa` | Cobra bloco de decisão (`**D…`, `**IZA-Q…`) sem registro; avisa quando o contexto da orquestradora pede limpeza. |
-
-### Quando usar e quando não usar
-
-- ✅ Vários pedidos em paralelo no mesmo projeto, trabalho que atravessa dias, ou quando você quer só decidir e deixar o resto andar.
-- ✅ Sem orquestradora também: as skills de processo (planejar, TDD, depurar, revisar, release) valem em qualquer sessão.
-- ⛔ Um ajuste de uma linha não precisa de dona: peça direto na sessão.
-- ⛔ Itens que mexem nos mesmos arquivos não rodam em paralelo; a orquestradora os põe em sequência.
-- ⛔ O "ok" de uma sessão nunca vale como o seu: push na `main`, gasto e o que publica para fora sempre voltam a você.
 
 ---
 
