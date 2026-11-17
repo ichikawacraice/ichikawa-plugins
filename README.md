@@ -85,7 +85,7 @@ Os plugins não importam código uns dos outros. Eles se encontram só por arqui
 | Seção | O que mostra |
 |---|---|
 | **Perguntas** | As abertas de todos os projetos: o caso, o que acontece se ninguém decidir e a recomendação. Um botão só para responder: com o campo vazio ele **aceita a recomendação**, com texto **envia a resposta** (⌘/Ctrl+Enter também envia). A resposta chega à sessão que perguntou, pela barra. |
-| **Sessões** | Um grupo por projeto, com a etapa de cada item (planejamento → execução → revisão → PR → entregue), quem espera você e quem está rodando agora. Cada estado tem um selo de cor própria: esperando você em âmbar, trabalhando em azul, em revisão em ciano, no PR em lilás, parada em vermelho. |
+| **Sessões** | Um grupo por projeto, com a etapa de cada item (planejamento → execução → revisão → PR → entregue), quem espera você e quem está rodando agora. Cada estado tem um selo de cor própria: esperando você em âmbar, trabalhando em azul, em revisão em ciano, no PR em lilás, parada em vermelho. Clicar no cartão o abre, como os Entregues: o que já está feito e o que falta, no resumo da dona, e quanto tempo o item ficou em cada etapa, com o total. |
 | **Entregues** | As entregas dos últimos 30 dias: resultado, o que foi medido, o que ficou sem medir, próximos passos e o PR. |
 
 O aviso de modo ausente fica no topo. O botão do canto esquerdo abre a gaveta de temas: liga e desliga o tema do Claude (o céu atrás da conversa), o tema do painel (desligado, as duas páginas voltam ao layout chapado do kit antigo) ou os dois. Itens entregues há mais de 30 dias vão para `arquivo/` e nada é apagado.
@@ -98,7 +98,7 @@ Entra no PATH das sessões com o plugin ligado. Os ids levam a sigla do projeto 
 perguntas nova --titulo T --caso C --se-nao S --recomendacao R --item IZA-F7   # imprime IZA-Q12
 perguntas responder IZA-Q12 "resposta dada no chat"
 perguntas listar | perguntas novidades | perguntas contar
-perguntas item nova "título" | item etapa F7 execucao | item ver F7 | item listar
+perguntas item nova "título" | item etapa F7 execucao --feito "…" --falta "…" | item andamento F7 --feito "…" --falta "…" | item ver F7 | item listar
 perguntas item entregar F7 --desfecho entregue --resultado "…" --medido "…" --nao-medido "…" --proximo "…" --pr 12
 perguntas papel orquestradora --sessao-id ID | passar-papel --sessao-id ID
 perguntas sigla [SIG] | arquivar | pagina [--abrir | --subir] [--porta 4747]

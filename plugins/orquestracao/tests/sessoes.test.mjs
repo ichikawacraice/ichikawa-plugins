@@ -5,7 +5,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import * as estado from '../lib/estado.mjs';
 import { html } from '../lib/pagina.mjs';
-import { esteira, lerSessoesDoApp, projetoDaPasta, sessoesDaPagina } from '../lib/sessoes.mjs';
+import { duracao, esteira, lerSessoesDoApp, projetoDaPasta, sessoesDaPagina, temposDasEtapas } from '../lib/sessoes.mjs';
 
 const AGORA = Date.UTC(2026, 10, 13, 18, 0);
 const ha = (min) => new Date(AGORA - min * 60_000).toISOString();
@@ -99,10 +99,63 @@ test('id gravado que não bate: acha a dona aberta pelo código do item no títu
   assert.deepEqual(r.grupos.find((g) => g.projeto === 'kit').outras, [], 'a dona achada pelo título não se repete em "outras"');
 });
 
+test('duracao: minutos, horas e dias, sem segundos', () => {
+  assert.equal(duracao(20_000), 'menos de 1 min');
+  assert.equal(duracao(7 * 60_000), '7 min');
+  assert.equal(duracao(65 * 60_000), '1 h 5 min');
+  assert.equal(duracao(2 * 3_600_000), '2 h');
+  assert.equal(duracao(26 * 3_600_000), '1 d 2 h');
+});
+
+test('temposDasEtapas soma a etapa que volta e conta a atual até agora; sem histórico, diz que não há registro (ICH-F39)', () => {
+  const historico = [
+    { etapa: 'planejamento', em: ha(100) }, { etapa: 'execucao', em: ha(90) }, { etapa: 'revisao', em: ha(60) },
+    { etapa: 'execucao', em: ha(50) }, { etapa: 'pr', em: ha(20) },
+  ];
+  const t = temposDasEtapas({ historico, criadoEm: ha(100) }, AGORA);
+  assert.deepEqual(t.etapas.map((e) => [e.etapa, e.ms / 60_000, e.agora]), [['planejamento', 10, false], ['execucao', 60, false], ['revisao', 10, false], ['pr', 20, true]]);
+  assert.equal(t.totalMs, 100 * 60_000);
+  assert.equal(t.semRegistro, false);
+  const velho = temposDasEtapas({ etapa: 'execucao', criadoEm: ha(30) }, AGORA);
+  assert.deepEqual([velho.semRegistro, velho.etapas.length, velho.totalMs], [true, 0, 30 * 60_000]);
+});
+
+test('a sessão leva o andamento e os tempos do item para a página', () => {
+  const r = sessoesDaPagina({
+    itens: [item('F1', 'execucao', 'local_1', { andamento: { feito: 'plano', falta: 'testes', em: ha(5) }, historico: [{ etapa: 'planejamento', em: ha(30) }, { etapa: 'execucao', em: ha(10) }], criadoEm: ha(30) })],
+    perguntas: [], app: app([s('local_1', { rodando: true })]), projetos: ['kit'], agora: AGORA,
+  });
+  const [x] = r.grupos[0].sessoes;
+  assert.deepEqual([x.andamento.feito, x.andamento.falta], ['plano', 'testes']);
+  assert.deepEqual(x.tempos.etapas.map((e) => e.etapa), ['planejamento', 'execucao']);
+});
+
 test('leitura do app velha: não decide parada nem rodando', () => {
   const r = sessoesDaPagina({ itens: [item('F1', 'execucao', 'local_sumiu'), item('F2', 'execucao', 'local_2')], perguntas: [], app: app([s('local_2', { rodando: true })], 10), projetos: ['kit'], agora: AGORA });
   assert.equal(r.fresca, false);
   assert.deepEqual(r.grupos[0].sessoes.map((x) => [x.estado, x.rodando]), [['trabalhando', false], ['trabalhando', false]]);
+});
+
+test('o cartão da sessão abre e fecha: feito, falta e o tempo de cada etapa só aparecem ao abrir (ICH-F39)', () => {
+  const agora = Date.now();
+  const antes = (min) => new Date(agora - min * 60_000).toISOString();
+  estado.criar('itens', 'kit', { titulo: 'Login', etapa: 'revisao', sessao: 'local_1', andamento: { feito: 'tela & testes', falta: 'PR', em: antes(2) }, historico: [{ etapa: 'planejamento', em: antes(70) }, { etapa: 'execucao', em: antes(60) }, { etapa: 'revisao', em: antes(5) }] });
+  estado.criar('itens', 'kit', { titulo: 'Velho', etapa: 'execucao', sessao: 'local_2' });
+  const h = html(agora);
+  const sec = h.slice(h.indexOf('id="h-sessoes"'), h.indexOf('id="h-entregas"'));
+  assert.match(sec, /<li class="sessao sessao-[\w-]+"><details class="sessao-detalhe" id="sessao-kit-F1"><summary>/);
+  const aberto = sec.slice(sec.indexOf('id="sessao-kit-F1"'), sec.indexOf('id="sessao-kit-F2"'));
+  const corpo = aberto.slice(aberto.indexOf('</summary>'));
+  assert.match(corpo, /<dt>Feito<\/dt><dd>tela &amp; testes<\/dd>/);
+  assert.match(corpo, /<dt>Falta<\/dt><dd>PR<\/dd>/);
+  assert.match(corpo, /<li><span class="tempo-etapa">planejamento<\/span><span class="tempo-valor">10 min<\/span><\/li>/);
+  assert.match(corpo, /<li><span class="tempo-etapa">execução<\/span><span class="tempo-valor">55 min<\/span><\/li>/);
+  assert.match(corpo, /<li class="tempo-agora"><span class="tempo-etapa">revisão<\/span><span class="tempo-valor">5 min, até agora<\/span><\/li>/);
+  assert.match(corpo, /Total: 1 h 10 min/);
+  const velho = sec.slice(sec.indexOf('id="sessao-kit-F2"'));
+  assert.match(velho, /Sem registro das etapas: o item é anterior ao registro\./);
+  assert.match(velho, /A dona ainda não contou o que fez/);
+  assert.match(h, /details\.entrega\[open\], details\.sessao-detalhe\[open\]/, 'o recarregamento reabre o cartão da sessão também');
 });
 
 test('a página mostra as sessões: marcador, esteira, pergunta com âncora, PR e o link do app; avisa sem status do app', () => {

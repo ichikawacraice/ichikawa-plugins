@@ -61,6 +61,39 @@ export function esteira(etapa) {
   return ESTEIRA.map((nome, i) => ({ nome, estado: i < pos ? 'feito' : i === pos ? 'agora' : 'falta' }));
 }
 
+const ORDEM_DAS_ETAPAS = ['planejamento', 'execucao', 'revisao', 'pr'];
+
+/** `menos de 1 min`, `7 min`, `1 h 5 min`, `1 d 2 h`: o tempo de uma etapa, sem segundos. */
+export function duracao(ms) {
+  const min = Math.floor(Math.max(0, ms) / 60_000);
+  if (min < 1) return 'menos de 1 min';
+  if (min < 60) return `${min} min`;
+  const h = Math.floor(min / 60);
+  if (h < 24) return min % 60 ? `${h} h ${min % 60} min` : `${h} h`;
+  return h % 24 ? `${Math.floor(h / 24)} d ${h % 24} h` : `${Math.floor(h / 24)} d`;
+}
+
+/**
+ * Quanto o item ficou em cada etapa, pelo `historico` que o `perguntas item etapa` grava (ICH-F39): a etapa que volta
+ * soma, a última conta até `agora`. Item anterior ao registro: `semRegistro`, só com o total desde a criação.
+ */
+export function temposDasEtapas(item, agora) {
+  const criado = Date.parse(item?.criadoEm ?? '');
+  const marcos = (Array.isArray(item?.historico) ? item.historico : [])
+    .map((h) => ({ etapa: h?.etapa, em: Date.parse(h?.em ?? '') }))
+    .filter((h) => ORDEM_DAS_ETAPAS.includes(h.etapa) && Number.isFinite(h.em));
+  const totalDesde = Math.min(...[criado, marcos[0]?.em].filter(Number.isFinite));
+  const totalMs = Number.isFinite(totalDesde) ? Math.max(0, agora - totalDesde) : null;
+  if (!marcos.length) return { etapas: [], totalMs, semRegistro: true };
+  const soma = new Map();
+  marcos.forEach((m, n) => soma.set(m.etapa, (soma.get(m.etapa) ?? 0) + Math.max(0, (marcos[n + 1]?.em ?? agora) - m.em)));
+  const atual = marcos.at(-1).etapa;
+  const etapas = ORDEM_DAS_ETAPAS.filter((e) => soma.has(e)).map((etapa) => ({ etapa, ms: soma.get(etapa), agora: etapa === atual }));
+  return { etapas, totalMs, semRegistro: false };
+}
+
+const andamentoLido = (a) => (a && (texto(a.feito) || texto(a.falta)) ? { feito: texto(a.feito), falta: texto(a.falta), em: texto(a.em) } : null);
+
 /** O estado de um item vivo, pela primeira regra que casa: a pessoa antes da parada, a parada antes da etapa. */
 export function estadoDoItem(item, sessao, perguntas, { fresca, agora }) {
   if (perguntas.length) return { estado: 'esperando', motivo: null };
@@ -114,6 +147,7 @@ export function sessoesDaPagina({ itens, perguntas, app, projetos, sigla = () =>
       ultimaAtividade: sessao?.ultimaAtividade ?? null, link: sessao?.link ?? null,
       perguntas: minhas.map((p) => ({ id: p.id, titulo: p.titulo ?? null })),
       esteira: esteira(i.etapa),
+      andamento: andamentoLido(i.andamento), tempos: temposDasEtapas(i, agora),
     });
   }
   const conhecidos = new Set(projetos);

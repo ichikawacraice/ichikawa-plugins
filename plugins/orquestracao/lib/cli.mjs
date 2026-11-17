@@ -21,7 +21,8 @@ const AJUDA = `perguntas — perguntas ao operador e itens do projeto
   perguntas novidades                       respostas dadas pela página ainda não lidas (e marca lidas)
   perguntas contar                          quantas abertas em todos os projetos
   perguntas item nova "título" [--sessao local_…]
-  perguntas item etapa F7 <${[...ETAPAS].join('|')}> [--pr N] [--sessao local_…]
+  perguntas item etapa F7 <${[...ETAPAS].join('|')}> [--pr N] [--sessao local_…] [--feito F] [--falta F]
+  perguntas item andamento F7 --feito "o que já foi feito" --falta "o que falta"   o resumo que o cartão da sessão mostra
   perguntas item entregar F7 --desfecho <entregue|parcial|parado> --resultado R
             [--medido M] [--nao-medido N] [--proximo P ...] [--pr N]
                                             a dona grava ao terminar, logo antes de se arquivar
@@ -43,6 +44,7 @@ const OPCOES = {
   abrir: { type: 'boolean' }, subir: { type: 'boolean' }, porta: { type: 'string' }, pr: { type: 'string' },
   desfecho: { type: 'string' }, resultado: { type: 'string' }, medido: { type: 'string' },
   'nao-medido': { type: 'string' }, proximo: { type: 'string', multiple: true }, 'sessao-id': { type: 'string' },
+  feito: { type: 'string' }, falta: { type: 'string' },
 };
 
 const PAPEIS = new Set(['orquestradora', 'nenhum']);
@@ -91,6 +93,20 @@ function cmdSigla(args, v, projeto, out) {
   return 0;
 }
 
+/** A etapa entra no histórico só quando muda: é dele que o Painel tira o tempo de cada etapa (ICH-F39). */
+function comHistorico(atual, etapa, agora = new Date()) {
+  const historico = Array.isArray(atual?.historico) ? atual.historico : [];
+  if (historico.at(-1)?.etapa === etapa || (!historico.length && atual?.etapa === etapa && etapa !== 'planejamento')) return historico;
+  return [...historico, { etapa, em: agora.toISOString() }];
+}
+
+/** O resumo feito/falta que a dona atualiza; o que não veio fica como estava. */
+function comAndamento(atual, v) {
+  if (!v.feito?.trim() && !v.falta?.trim()) return {};
+  const antes = atual?.andamento ?? {};
+  return { andamento: { feito: v.feito?.trim() || antes.feito || null, falta: v.falta?.trim() || antes.falta || null, em: new Date().toISOString() } };
+}
+
 function entregar(id, v, projeto) {
   if (!id) throw new Error('uso: perguntas item entregar F7 --desfecho <entregue|parcial|parado> --resultado R');
   if (!DESFECHOS[v.desfecho]) throw new Error(`--desfecho precisa ser ${Object.keys(DESFECHOS).join(', ')}`);
@@ -100,7 +116,9 @@ function entregar(id, v, projeto) {
     naoMedido: v['nao-medido']?.trim() || null, proximos: (v.proximo ?? []).map((p) => p.trim()).filter(Boolean),
     em: new Date().toISOString(),
   };
-  const campos = { etapa: DESFECHOS[v.desfecho], entrega, ...(v.pr ? { pr: Number(v.pr) } : {}) };
+  const atual = estado.ler('itens', projeto, id);
+  if (!atual) return null;
+  const campos = { etapa: DESFECHOS[v.desfecho], historico: comHistorico(atual, DESFECHOS[v.desfecho]), entrega, ...(v.pr ? { pr: Number(v.pr) } : {}) };
   return estado.atualizar('itens', projeto, id, campos);
 }
 
@@ -165,7 +183,7 @@ function cmdItem(args, v, projeto, out) {
   if (acao === 'nova') {
     const titulo = resto.join(' ').trim();
     if (!titulo) throw new Error('uso: perguntas item nova "título"');
-    const it = estado.criar('itens', projeto, { titulo, etapa: 'planejamento', sessao: v.sessao ?? null, pr: null });
+    const it = estado.criar('itens', projeto, { titulo, etapa: 'planejamento', sessao: v.sessao ?? null, pr: null, historico: [{ etapa: 'planejamento', em: new Date().toISOString() }] });
     avisarSeCoincide(projeto);
     out(estado.rotulo(projeto, it.id));
     return 0;
@@ -174,10 +192,19 @@ function cmdItem(args, v, projeto, out) {
     const [texto, etapa] = resto;
     if (!texto || !ETAPAS.has(etapa)) throw new Error(`uso: perguntas item etapa F7 <${[...ETAPAS].join('|')}>`);
     const { id, projeto: alvo } = resolver(texto, 'F', v, projeto);
-    const campos = { etapa, ...(v.pr ? { pr: Number(v.pr) } : {}), ...(v.sessao ? { sessao: v.sessao } : {}) };
-    const it = estado.atualizar('itens', alvo, id, campos);
-    if (!it) throw new Error(`${estado.rotulo(alvo, id)} não existe em ${alvo}`);
-    out(linhaDeItem(alvo, it));
+    const atual = estado.ler('itens', alvo, id);
+    if (!atual) throw new Error(`${estado.rotulo(alvo, id)} não existe em ${alvo}`);
+    const campos = { etapa, historico: comHistorico(atual, etapa), ...comAndamento(atual, v), ...(v.pr ? { pr: Number(v.pr) } : {}), ...(v.sessao ? { sessao: v.sessao } : {}) };
+    out(linhaDeItem(alvo, estado.atualizar('itens', alvo, id, campos)));
+    return 0;
+  }
+  if (acao === 'andamento') {
+    if (!resto[0]) throw new Error('uso: perguntas item andamento F7 --feito "…" --falta "…"');
+    if (!v.feito?.trim() && !v.falta?.trim()) throw new Error('faltou --feito ou --falta: o que já foi feito e o que falta');
+    const { id, projeto: alvo } = resolver(resto[0], 'F', v, projeto);
+    const atual = estado.ler('itens', alvo, id);
+    if (!atual) throw new Error(`${estado.rotulo(alvo, id)} não existe em ${alvo}`);
+    out(linhaDeItem(alvo, estado.atualizar('itens', alvo, id, comAndamento(atual, v))));
     return 0;
   }
   if (acao === 'entregar') {

@@ -88,12 +88,16 @@ O tema das duas páginas (Painel e contas): ligado, o céu e o vidro; desligado,
   "sessao": "local_…",
   "pr": null,
   "entrega": null,
+  "historico": [{ "etapa": "planejamento", "em": "ISO-8601" }],
+  "andamento": { "feito": "texto", "falta": "texto", "em": "ISO-8601" },
   "criadoEm": "ISO-8601",
   "atualizadoEm": "ISO-8601"
 }
 ```
 
 `etapa`: `planejamento` · `execucao` · `revisao` · `pr` · `feito` · `parado` · `descartado`.
+
+`historico` ganha uma linha só quando a etapa muda (`item nova`, `item etapa`, `item entregar`); o cartão da sessão no Painel soma o tempo de cada etapa (a que repete soma; a atual conta até agora). Item anterior ao registro não tem `historico`: o cartão diz "Sem registro das etapas" até a próxima mudança. `andamento` é o resumo que a dona passa com `--feito`/`--falta` em `item etapa` ou `item andamento` (o que não vier mantém o anterior); ausente, o cartão pede o resumo.
 
 **Arquivo.** Item em etapa final (`feito`, `parado`, `descartado`) com entrega há mais de 30 dias sai da página e é movido para `itens/<projeto>/arquivo/F<n>.json` (pela página, uma vez por dia ao abrir, ou por `perguntas arquivar`). Nada é apagado; voltar é mover o arquivo de volta. O próximo número conta também os arquivados.
 

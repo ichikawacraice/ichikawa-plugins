@@ -74,6 +74,19 @@ test('entregar grava a entrega e leva a etapa a feito ou parado', async () => {
   await assert.rejects(rodar('item', 'entregar', 'F1', '--projeto', 'p', '--desfecho', 'talvez', '--resultado', 'x'), /desfecho/);
 });
 
+test('etapa grava o histórico (só quando muda) e o andamento feito/falta (ICH-F39)', async () => {
+  await rodar('item', 'nova', 'A', '--projeto', 'p');
+  await rodar('item', 'etapa', 'F1', 'execucao', '--projeto', 'p', '--feito', 'plano escrito', '--falta', 'tela e testes');
+  await rodar('item', 'etapa', 'F1', 'execucao', '--projeto', 'p');
+  await rodar('item', 'andamento', 'F1', '--projeto', 'p', '--feito', 'tela pronta', '--falta', 'testes');
+  await rodar('item', 'entregar', 'F1', '--projeto', 'p', '--desfecho', 'entregue', '--resultado', 'ok');
+  const it = estado.ler('itens', 'p', 'F1');
+  assert.deepEqual(it.historico.map((h) => h.etapa), ['planejamento', 'execucao', 'feito']);
+  assert.ok(it.historico.every((h) => !Number.isNaN(Date.parse(h.em))));
+  assert.deepEqual([it.andamento.feito, it.andamento.falta], ['tela pronta', 'testes']);
+  await assert.rejects(rodar('item', 'andamento', 'F1', '--projeto', 'p'), /--feito ou --falta/);
+});
+
 test('item ver mostra a entrega e o PR mesmo de item já entregue, que o listar esconde', async () => {
   await rodar('item', 'nova', 'A', '--projeto', 'p');
   await rodar('item', 'nova', 'B', '--projeto', 'p');

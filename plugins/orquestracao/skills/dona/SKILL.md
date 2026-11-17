@@ -19,17 +19,17 @@ Você leva o item do plano ao merge na `develop`, sozinha. Sem fila, sem gate co
 
 ## 3. Executar
 
-`perguntas item etapa IZA-F7 execucao`. Mais que poucas edições → `orquestracao:executar-plano` (o `orquestracao:executor` escreve, você confere). Bug → `orquestracao:depurar` antes de mexer. Comportamento novo → `orquestracao:tdd`.
+`perguntas item etapa IZA-F7 execucao --feito "plano escrito" --falta "…"`. **A cada etapa, conte o que já está feito e o que falta** (`--feito`, `--falta`, frases curtas de quem está de fora): o operador lê isso no cartão da sessão no Painel, junto com o tempo de cada etapa. No meio de uma etapa longa, atualize sem mudar de etapa: `perguntas item andamento IZA-F7 --feito "…" --falta "…"`. Mais que poucas edições → `orquestracao:executar-plano` (o `orquestracao:executor` escreve, você confere). Bug → `orquestracao:depurar` antes de mexer. Comportamento novo → `orquestracao:tdd`.
 
 ## 4. Conferir
 
 - `orquestracao:verificar-antes-de-concluir`: testes afetados e typecheck, saída real.
-- `orquestracao:revisar`: revisor só se o item é de risco; senão, autorrevisão. `perguntas item etapa IZA-F7 revisao` enquanto isso.
+- `orquestracao:revisar`: revisor só se o item é de risco; senão, autorrevisão. `perguntas item etapa IZA-F7 revisao --feito … --falta …` enquanto isso.
 - Tela mudou → `orquestracao:testes-de-tela`.
 
 ## 5. Entregar
 
-1. `orquestracao:entregar-branch` até o PR aberto para a `develop`, com o comando dos testes afetados e o fim da saída no corpo. `perguntas item etapa IZA-F7 pr --pr <N>`.
+1. `orquestracao:entregar-branch` até o PR aberto para a `develop`, com o comando dos testes afetados e o fim da saída no corpo. `perguntas item etapa IZA-F7 pr --pr <N> --feito … --falta …`.
 2. **Merge.** O operador autorizou a dona a mergear o próprio PR na `develop` por squash (D2, 13/11/2026): com o CI verde (ou sem CI na `develop`), `gh pr merge <N> --squash --delete-branch`. Conflito: `git fetch origin && git rebase origin/develop`, afetados de novo, `git push --force-with-lease`, e tente outra vez. Na `main` (projeto sem `develop`), o merge é deploy: só com o ok do operador.
 3. **Grave a entrega** antes de se arquivar, concluído ou não:
    ```

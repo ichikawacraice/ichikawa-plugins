@@ -76,16 +76,29 @@
 .grupo-de-projeto .quando { margin-top: 4px; }
 
 /* Entrega: abre e fecha; a seta fica no canto do cabeçalho. */
-.entrega > summary { list-style: none; cursor: pointer; }
-.entrega > summary::-webkit-details-marker { display: none; }
-.entrega > summary .cartao-cab::after {
+.entrega > summary, .sessao-detalhe > summary { list-style: none; cursor: pointer; }
+.entrega > summary::-webkit-details-marker, .sessao-detalhe > summary::-webkit-details-marker { display: none; }
+.entrega > summary .cartao-cab::after, .sessao-detalhe > summary .cartao-cab::after {
   content: ''; flex: none; width: 7px; height: 7px; margin: 0 2px 0 8px; align-self: center;
   border-right: 1.5px solid var(--texto-3); border-bottom: 1.5px solid var(--texto-3);
   transform: rotate(-45deg); transition: transform 0.15s;
 }
-.entrega[open] > summary .cartao-cab::after { transform: rotate(45deg); }
-.entrega > summary:hover .cartao-titulo { color: var(--lilas); }
-.entrega > summary:focus-visible { outline: 2px solid var(--foco); outline-offset: 6px; border-radius: 8px; }
+.entrega[open] > summary .cartao-cab::after, .sessao-detalhe[open] > summary .cartao-cab::after { transform: rotate(45deg); }
+.entrega > summary:hover .cartao-titulo, .sessao-detalhe > summary:hover .cartao-titulo { color: var(--lilas); }
+.entrega > summary:focus-visible, .sessao-detalhe > summary:focus-visible { outline: 2px solid var(--foco); outline-offset: 6px; border-radius: 8px; }
+
+/* Sessão aberta (ICH-F39): o feito, o que falta e o tempo de cada etapa. */
+.sessao-aberta { margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--fio); }
+.sessao-aberta > .campos { margin-top: 0; }
+.sessao-aberta .quando { margin: 6px 0 0; }
+.sem-andamento { margin: 0; color: var(--texto-2); font-size: var(--t-apoio); line-height: 18px; }
+.sem-andamento code { font-size: 0.92em; }
+.rotulo-tempos { margin: 14px 0 0; color: var(--texto-2); font-size: var(--t-meta); line-height: 16px; font-weight: 500; }
+.tempos { margin: 4px 0 0; padding: 0; list-style: none; display: grid; gap: 2px; font-size: var(--t-apoio); line-height: 20px; }
+.tempos li { display: flex; justify-content: space-between; gap: 12px; max-width: 320px; }
+.tempo-etapa { color: var(--texto-campo); }
+.tempo-valor { color: var(--texto-2); font-variant-numeric: tabular-nums; }
+.tempo-agora .tempo-etapa, .tempo-agora .tempo-valor { color: var(--texto); font-weight: 500; }
 .entrega[open] > .campos { padding-top: 12px; border-top: 1px solid var(--fio); }
 
 .ver-mais { margin-top: 12px; }
@@ -142,7 +155,7 @@
 .sem-item .quando { margin: 0; }
 
 @media (prefers-reduced-motion: reduce) {
-  .entrega > summary .cartao-cab::after { transition: none; }
+  .entrega > summary .cartao-cab::after, .sessao-detalhe > summary .cartao-cab::after { transition: none; }
   .marcador.girando { animation: none; }
 }
 
@@ -179,4 +192,4 @@
 :root[data-tema-do-painel="desligado"] [aria-labelledby="h-entregas"] > .cartoes > li.vazio { padding: 14px 16px; }
 :root[data-tema-do-painel="desligado"] .cartoes > li.sem-item { border-style: solid; border-radius: 0; }
 :root[data-tema-do-painel="desligado"] .grupo { font-weight: 600; }
-:root[data-tema-do-painel="desligado"] .entrega > summary:hover .cartao-titulo { color: var(--texto); text-decoration: underline; }
+:root[data-tema-do-painel="desligado"] .entrega > summary:hover .cartao-titulo, :root[data-tema-do-painel="desligado"] .sessao-detalhe > summary:hover .cartao-titulo { color: var(--texto); text-decoration: underline; }

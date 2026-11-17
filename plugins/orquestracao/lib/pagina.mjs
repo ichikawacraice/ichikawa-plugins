@@ -8,7 +8,7 @@ import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import * as estado from './estado.mjs';
-import { ROTULO_DO_ESTADO, lerSessoesDoApp, sessoesDaPagina } from './sessoes.mjs';
+import { ROTULO_DO_ESTADO, duracao, lerSessoesDoApp, sessoesDaPagina } from './sessoes.mjs';
 import { BOTAO_DE_TEMA, BOTAO_DE_TEMAS, GAVETA_DE_TEMAS } from './publico/tema.js';
 
 export const PORTA_PADRAO = 4747;
@@ -118,11 +118,30 @@ const atividade = (s, agora) => {
 /** A esteira: feito, agora e falta pela forma (✓, ponto cheio, ponto vazio), nunca só pela cor. */
 const esteiraHtml = (passos) => `<ol class="esteira" aria-label="Etapas do item">${passos.map((e) => `<li class="passo passo-${esc(e.estado)}"${e.estado === 'agora' ? ' aria-current="step"' : ''}><span class="so-leitor">${esc(e.estado)}: </span>${esc(e.nome)}</li>`).join('')}</ol>`;
 
+const NOME_DA_ETAPA = { planejamento: 'planejamento', execucao: 'execução', revisao: 'revisão', pr: 'PR' };
+
+/** O que abre no cartão da sessão (ICH-F39): o feito e o que falta, contados pela dona, e o tempo de cada etapa. */
+function detalheDaSessao(s, agora) {
+  const a = s.andamento;
+  const andamento = a
+    ? `${campos([['Feito', esc(a.feito)], ['Falta', esc(a.falta)]])}${a.em ? `<p class="quando">Resumo da dona ${esc(haQuanto(Date.parse(a.em), agora))}</p>` : ''}`
+    : '<p class="sem-andamento">A dona ainda não contou o que fez e o que falta (<code>perguntas item andamento</code>).</p>';
+  const t = s.tempos;
+  const linhas = t.etapas.map((e) => `<li${e.agora ? ' class="tempo-agora"' : ''}><span class="tempo-etapa">${esc(NOME_DA_ETAPA[e.etapa])}</span><span class="tempo-valor">${esc(duracao(e.ms))}${e.agora ? ', até agora' : ''}</span></li>`).join('');
+  const tempos = t.semRegistro
+    ? '<p class="sem-andamento">Sem registro das etapas: o item é anterior ao registro.</p>'
+    : `<ul class="tempos" aria-label="Tempo em cada etapa">${linhas}</ul>`;
+  const total = t.totalMs !== null ? `<p class="quando">Total: ${esc(duracao(t.totalMs))}</p>` : '';
+  return `<div class="sessao-aberta">${andamento}<p class="rotulo-tempos">Tempo por etapa</p>${tempos}${total}</div>`;
+}
+
 function cartaoDeSessao(projeto, s, agora) {
   const esperas = s.perguntas.map((q) => `<p class="espera">Esperando você na pergunta <a href="#${esc(ancora(projeto, q.id))}">${idLido(projeto, q.id)}</a>${q.titulo ? ` · ${esc(q.titulo)}` : ''}</p>`).join('');
   const meta = [textoDoPr(s), atividade(s, agora)].filter(Boolean).map(esc);
-  return `<li class="sessao sessao-${esc(s.estado)}"><div class="cartao-cab">${marcador(s.estado, s.rodando)}<span class="id">${idLido(projeto, s.item)}</span><span class="cartao-titulo">${esc(s.titulo)}</span><span class="selo selo-sessao-${esc(s.estado)}">${esc(ROTULO_DO_ESTADO[s.estado])}</span></div>
-${esteiraHtml(s.esteira)}${esperas}${s.motivo ? `<p class="motivo">${esc(s.motivo)}</p>` : ''}${meta.length ? `<p class="quando">${meta.join(' · ')}</p>` : ''}</li>`;
+  const id = `sessao-${String(projeto).replace(/[^\w-]/g, '-')}-${s.item}`;
+  return `<li class="sessao sessao-${esc(s.estado)}"><details class="sessao-detalhe" id="${esc(id)}"><summary><div class="cartao-cab">${marcador(s.estado, s.rodando)}<span class="id">${idLido(projeto, s.item)}</span><span class="cartao-titulo">${esc(s.titulo)}</span><span class="selo selo-sessao-${esc(s.estado)}">${esc(ROTULO_DO_ESTADO[s.estado])}</span></div>
+${esteiraHtml(s.esteira)}${esperas}${s.motivo ? `<p class="motivo">${esc(s.motivo)}</p>` : ''}${meta.length ? `<p class="quando">${meta.join(' · ')}</p>` : ''}</summary>
+${detalheDaSessao(s, agora)}</details></li>`;
 }
 
 /** Sessão sem item que está rodando: cartão como as ativas (ativa tem um só desenho), sem id nem esteira, que não tem. */
@@ -250,7 +269,7 @@ const ABERTOS = 'entregas-abertas';
 const lerAbertos = () => { try { return JSON.parse(sessionStorage.getItem(ABERTOS) ?? '[]'); } catch { return []; } };
 for (const id of lerAbertos()) { const d = document.getElementById(id); if (d) { d.open = true; d.closest('.ver-mais')?.setAttribute('open', ''); } }
 document.addEventListener('toggle', () => {
-  const abertos = [...document.querySelectorAll('details.entrega[open]')].map((d) => d.id);
+  const abertos = [...document.querySelectorAll('details.entrega[open], details.sessao-detalhe[open]')].map((d) => d.id);
   try { sessionStorage.setItem(ABERTOS, JSON.stringify(abertos)); } catch { /* sem armazenamento: só não lembra */ }
 }, true);
 setInterval(() => { if (!document.hidden && !escrevendo()) location.reload(); }, 30000);
