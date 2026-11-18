@@ -25,7 +25,11 @@ const SESSAO_DO_APP = 'local_12345678-1234-1234-1234-123456789abc';
 let saida;
 const rodar = (...args) => { saida = []; return main(args, (s) => saida.push(s)); };
 
-beforeEach(() => { process.env.ICHIKAWA_HOME = mkdtempSync(join(tmpdir(), 'ichikawa-')); });
+beforeEach(() => {
+  process.env.ICHIKAWA_HOME = mkdtempSync(join(tmpdir(), 'ichikawa-'));
+  // A página confere o kit instalado: aponta para uma pasta vazia, longe do ~/.claude de verdade.
+  process.env.CLAUDE_CONFIG_DIR = mkdtempSync(join(tmpdir(), 'claude-'));
+});
 
 test('criar numera em sequência por projeto e listar devolve do mais novo ao mais velho', () => {
   estado.criar('perguntas', 'p', { titulo: 'a' });
