@@ -172,6 +172,26 @@ export function gravarTemaDoPainel(ligado, por, agora = new Date()) {
   return ligado;
 }
 
+// ---- efeitos.json: quanto o céu se mexe, no app (a barra relê a cada 2 s) e no Painel ----
+
+/** `nenhum`: o céu parado; `poucos`: só o que muda em degraus (estrelas que piscam, nuvens em passinhos); `completo`: tudo. */
+export const EFEITOS = ['nenhum', 'poucos', 'completo'];
+/** Sem arquivo, ilegível ou valor desconhecido: poucos (o completo custava ~50 pontos de CPU a mais, medido em 18/11/2026). */
+export const EFEITOS_PADRAO = 'poucos';
+const arquivoDosEfeitos = () => join(raiz(), 'efeitos.json');
+
+export function lerEfeitos() {
+  const v = lerJson(arquivoDosEfeitos())?.efeitos;
+  return EFEITOS.includes(v) ? v : EFEITOS_PADRAO;
+}
+
+/** Grava o nível; outro valor lança e nada se grava. */
+export function gravarEfeitos(efeitos, por, agora = new Date()) {
+  if (!EFEITOS.includes(efeitos)) throw new Error(`efeitos desconhecidos: ${efeitos}`);
+  gravarJson(arquivoDosEfeitos(), { efeitos, em: agora.toISOString(), por });
+  return efeitos;
+}
+
 const TAMANHO_DA_SIGLA = 3;
 const SIGLA_VALIDA = /^[A-Z0-9]{3}$/;
 const ID_COM_SIGLA = /^(?:([A-Za-z0-9]{3})-)?([QFqf]\d+)$/;

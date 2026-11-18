@@ -8,6 +8,7 @@ import {
   lerAusente,
   lerBarraJson,
   lerContador,
+  lerEfeitos,
   lerPedido,
   lerTema,
   lerTemaDoApp,
@@ -197,4 +198,14 @@ test('tema-do-app.json: só `"ligado": false` desliga; sem arquivo, ilegível ou
   expect(lerTemaDoApp('lixo')).toBe(true)
   expect(lerTemaDoApp('null')).toBe(true)
   expect(lerTemaDoApp('{"ligado":false,"em":"2026-11-13T21:15:00-03:00","por":"painel"}')).toBe(false)
+})
+
+test('lerEfeitos: os três níveis; sem arquivo, ilegível ou valor desconhecido, poucos', () => {
+  expect(lerEfeitos('{"efeitos":"nenhum"}')).toBe('nenhum')
+  expect(lerEfeitos('{"efeitos":"completo"}')).toBe('completo')
+  expect(lerEfeitos('{"efeitos":"poucos"}')).toBe('poucos')
+  expect(lerEfeitos(null)).toBe('poucos')
+  expect(lerEfeitos('{')).toBe('poucos')
+  expect(lerEfeitos('{"efeitos":"tudo"}')).toBe('poucos')
+  expect(lerEfeitos('null')).toBe('poucos')
 })

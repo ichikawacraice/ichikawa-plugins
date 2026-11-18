@@ -4,6 +4,10 @@
 // O fundo é claro de propósito: o texto escuro por cima fica legível em qualquer ponto (nuvem e sol só clareiam).
 
 const QUADRO_MS = 1000 / 12;
+/** Os níveis de efeito (`data-efeitos` no `<html>`): poucos desenha 2 quadros por segundo; nenhum, um quadro só. */
+const QUADRO_POUCOS_MS = 1000 / 2;
+const efeitosPedidos = () => document.documentElement.dataset.efeitos || 'poucos';
+const intervalo = () => (efeitosPedidos() === 'completo' ? QUADRO_MS : QUADRO_POUCOS_MS);
 const DPR_MAX = 2;
 const NUVENS = 7;
 /** Geometria igual à do planeta: quanto aparece acima da borda e o raio, grande o bastante para virar um arco. */
@@ -226,14 +230,14 @@ export function iniciarCeuDia(canvas, medida = () => ({ w: window.innerWidth, h:
 
   const laco = (t) => {
     pedido = requestAnimationFrame(laco);
-    if (t - ultimo < QUADRO_MS) return;
+    if (t - ultimo < intervalo()) return;
     ultimo = t;
     quadro(t);
   };
   const parar = () => { cancelAnimationFrame(pedido); pedido = 0; };
   const andar = () => {
     parar();
-    if (document.hidden || calmo.matches) { quadro(performance.now()); return; }
+    if (document.hidden || calmo.matches || efeitosPedidos() === 'nenhum') { quadro(performance.now()); return; }
     pedido = requestAnimationFrame(laco);
   };
 
@@ -242,6 +246,8 @@ export function iniciarCeuDia(canvas, medida = () => ({ w: window.innerWidth, h:
   window.addEventListener('resize', aoRedimensionar);
   document.addEventListener('visibilitychange', andar);
   calmo.addEventListener('change', andar);
+  const nivel = new MutationObserver(andar);
+  nivel.observe(document.documentElement, { attributes: true, attributeFilter: ['data-efeitos'] });
   medir();
   andar();
   return () => {
@@ -249,5 +255,6 @@ export function iniciarCeuDia(canvas, medida = () => ({ w: window.innerWidth, h:
     window.removeEventListener('resize', aoRedimensionar);
     document.removeEventListener('visibilitychange', andar);
     calmo.removeEventListener('change', andar);
+    nivel.disconnect();
   };
 }

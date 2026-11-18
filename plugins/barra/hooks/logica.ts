@@ -82,6 +82,27 @@ export function lerTemaDoApp(texto: string | null): boolean {
   }
 }
 
+// ---- efeitos.json ----
+
+/**
+ * Quanto o céu se mexe: `nenhum` (a cena parada), `poucos` (só as estrelas que piscam em degraus de 1 s e as nuvens em
+ * passinhos) ou `completo` (tudo, como era). Medido em 18/11/2026: o completo custava ~50 pontos de CPU a mais que o tema desligado.
+ */
+export type { Efeitos } from '../types'
+export const EFEITOS: readonly Efeitos[] = ['nenhum', 'poucos', 'completo']
+/** Sem arquivo, ilegível ou valor desconhecido: poucos. */
+export const EFEITOS_PADRAO: Efeitos = 'poucos'
+
+export function lerEfeitos(texto: string | null): Efeitos {
+  if (texto === null) return EFEITOS_PADRAO
+  try {
+    const v = (JSON.parse(texto) as Record<string, unknown> | null)?.efeitos
+    return EFEITOS.includes(v as Efeitos) ? (v as Efeitos) : EFEITOS_PADRAO
+  } catch {
+    return EFEITOS_PADRAO
+  }
+}
+
 // ---- quais plugins estão instalados e ligados ----
 
 /** As fontes de settings, da menor para a maior precedência (a ordem do Claude Code). */

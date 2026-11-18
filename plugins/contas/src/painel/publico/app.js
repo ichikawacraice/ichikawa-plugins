@@ -1,6 +1,6 @@
 // A tela do painel: lê `/api/contas` e `/api/sessoes`, desenha e manda as ações. Texto da tela nunca vem cru do servidor
 // como HTML: tudo entra por `textContent`.
-import { ligarBotaoDeTema, ligarGavetaDeTemas } from './tema.js';
+import { ligarBotaoDeTema, ligarEfeitos, ligarGavetaDeTemas } from './tema.js';
 import { avisoDaCota, desfecho, erroDoUso, fraseDaChave, fraseDoAndamento, haQuanto, identidade, janelas, matizDoUso, ordenarContas, validarNome } from './regras.js';
 
 const CABECALHO = { 'X-Painel-De-Contas': '1', 'Content-Type': 'application/json' };
@@ -286,11 +286,12 @@ async function carregarSessoes() {
  */
 async function conferirCeu() {
   try {
-    const { ceu, temaDoApp, temaDoPainel } = await lerJson('/api/ceu');
+    const { ceu, temaDoApp, temaDoPainel, efeitos } = await lerJson('/api/ceu');
     const raiz = document.documentElement.dataset;
     if (ceu === 'dia' || ceu === 'noite') raiz.ceu = ceu;
     if (temaDoApp === 'ligado' || temaDoApp === 'desligado') raiz.temaDoApp = temaDoApp;
     if (temaDoPainel === 'ligado' || temaDoPainel === 'desligado') raiz.temaDoPainel = temaDoPainel;
+    if (['nenhum', 'poucos', 'completo'].includes(efeitos)) raiz.efeitos = efeitos;
   } catch { /* fica o céu que está */ }
 }
 
@@ -315,6 +316,10 @@ ligarBotaoDeTema($('b-tema'), async (tema) => {
 });
 ligarGavetaDeTemas($('b-temas'), $('gaveta-temas'), async (qual, ligado) => {
   const r = await postar(qual === 'app' ? '/api/tema-do-app' : '/api/tema-do-painel', { ligado });
+  if (!r.ok) throw new Error(r.motivo);
+});
+ligarEfeitos($('gaveta-temas'), async (efeitos) => {
+  const r = await postar('/api/efeitos', { efeitos });
   if (!r.ok) throw new Error(r.motivo);
 });
 $('b-adicionar').addEventListener('click', adicionar);

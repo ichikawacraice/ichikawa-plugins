@@ -232,7 +232,7 @@ test('o topo avisa se o modo ausente está ligado ou desligado', () => {
 });
 
 test('o céu segue só o tema.json: escuro sem escolha (com ausente ligado ou não), claro quando gravado', () => {
-  assert.match(html(), /^<!doctype html><html lang="pt-BR" data-ceu="noite" data-tema-do-app="ligado" data-tema-do-painel="ligado">/);
+  assert.match(html(), /^<!doctype html><html lang="pt-BR" data-ceu="noite" data-tema-do-app="ligado" data-tema-do-painel="ligado" data-efeitos="poucos">/);
   writeFileSync(join(process.env.ICHIKAWA_HOME, 'ausente.json'), '{"ligado":false}');
   assert.match(html(), /data-ceu="noite"/, 'o ausente desligado não traz mais o dia');
   writeFileSync(join(process.env.ICHIKAWA_HOME, 'tema.json'), 'não é json');
@@ -254,7 +254,7 @@ test('tema.json: lê e grava o contrato; valor desconhecido não grava', () => {
 
 test('o topo traz o botão de tema e a página serve o tema.js', async () => {
   assert.match(topoDe(html()), /<button type="button" class="botao-tema" id="b-tema"[\s\S]*icone-sol[\s\S]*icone-lua/);
-  assert.match(html(), /import \{ ligarBotaoDeTema, ligarGavetaDeTemas \} from '\/tema\.js'/);
+  assert.match(html(), /import \{ ligarBotaoDeTema, ligarEfeitos, ligarGavetaDeTemas \} from '\/tema\.js'/);
   const porta = 4800 + Math.floor(Math.random() * 500);
   const servidor = await servir(porta);
   try {
@@ -900,4 +900,30 @@ test('nenhum comando das skills cola `:` logo depois de `$VAR` (no zsh, `$SHA:r�
     }
   }
   assert.deepEqual(achados, [], 'escreva ${VAR}: no lugar de $VAR:');
+});
+
+test('efeitos: os três níveis vão no <html>, na gaveta, e POST /efeitos grava só da própria origem e só nível conhecido', async () => {
+  assert.equal(estado.lerEfeitos(), 'poucos', 'sem arquivo, poucos');
+  writeFileSync(join(process.env.ICHIKAWA_HOME, 'efeitos.json'), '{"efeitos":"tudo"}');
+  assert.equal(estado.lerEfeitos(), 'poucos', 'desconhecido, poucos');
+  assert.throws(() => estado.gravarEfeitos('tudo', 'painel'), /efeitos desconhecidos/);
+  assert.match(html(), /data-efeitos="poucos"/);
+  for (const nivel of ['nenhum', 'poucos', 'completo']) assert.match(html(), new RegExp(`name="efeitos" class="efeito-botao" value="${nivel}"`));
+  const porta = 4800 + Math.floor(Math.random() * 500);
+  const servidor = await servir(porta);
+  try {
+    const url = `http://127.0.0.1:${porta}`;
+    const enviar = (corpo, origin = url) => fetch(`${url}/efeitos`, { method: 'POST', headers: { origin, 'content-type': 'application/x-www-form-urlencoded' }, body: corpo });
+    assert.equal((await enviar('efeitos=nenhum', 'http://evil.test')).status, 403);
+    assert.equal(estado.lerEfeitos(), 'poucos');
+    assert.equal((await enviar('efeitos=tudo')).status, 400);
+    assert.equal((await enviar('efeitos=nenhum')).status, 204);
+    assert.equal(estado.lerEfeitos(), 'nenhum');
+    assert.equal(JSON.parse(readFileSync(join(process.env.ICHIKAWA_HOME, 'efeitos.json'), 'utf8')).por, 'painel');
+    assert.match(await (await fetch(url)).text(), /data-efeitos="nenhum"/);
+    assert.equal((await enviar('efeitos=completo')).status, 204);
+    assert.equal(estado.lerEfeitos(), 'completo');
+  } finally {
+    servidor.close();
+  }
 });

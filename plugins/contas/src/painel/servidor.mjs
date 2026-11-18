@@ -8,7 +8,7 @@ import { tratarAcao } from './acoes.mjs';
 import { lerContas } from './contas.mjs';
 import { estadoDoUso, releituraSePreciso } from './uso.mjs';
 import { lerSessoes } from './sessoes.mjs';
-import { ceuDoTema, lerTema, lerTemaDoApp, lerTemaDoPainel } from './tema.mjs';
+import { ceuDoTema, lerEfeitos, lerTema, lerTemaDoApp, lerTemaDoPainel } from './tema.mjs';
 import { BOTAO_DE_TEMA, BOTAO_DE_TEMAS, GAVETA_DE_TEMAS } from './publico/tema.js';
 import { criarApp, pastaDeDados } from '../troca/app-do-claude.mjs';
 import { haParaImportar, pastaDoKit } from '../troca/importar.mjs';
@@ -35,8 +35,8 @@ const NO_STORE = { 'Cache-Control': 'no-store' };
 /** O céu do painel: só a escolha do botão de tema (`tema.json`); sem escolha, a noite. */
 export const ceuDoPainel = async (env) => ceuDoTema(await lerTema(env));
 const ligadoOuNao = (v) => (v ? 'ligado' : 'desligado');
-/** O que o `<html>` leva e o `/api/ceu` devolve: o céu e as duas chaves da gaveta de temas. */
-const temas = async (env) => ({ ceu: await ceuDoPainel(env), temaDoApp: ligadoOuNao(await lerTemaDoApp(env)), temaDoPainel: ligadoOuNao(await lerTemaDoPainel(env)) });
+/** O que o `<html>` leva e o `/api/ceu` devolve: o céu, as duas chaves da gaveta de temas e o nível de efeitos. */
+const temas = async (env) => ({ ceu: await ceuDoPainel(env), temaDoApp: ligadoOuNao(await lerTemaDoApp(env)), temaDoPainel: ligadoOuNao(await lerTemaDoPainel(env)), efeitos: await lerEfeitos(env) });
 
 /** `pasta`: a do plugin (uma por versão no cache), que `/api/saude` diz para quem abre trocar o servidor de outra versão. `contas`: `{ env, app, spawn, cli, kill, comandoDoPid, uso: { fetch, agora, lerSenha } }`, tudo opcional (os testes injetam). */
 export function criarServidor({ publico, versao = '0.0.0', pasta = null, contas = {} }) {
@@ -65,7 +65,7 @@ export function criarServidor({ publico, versao = '0.0.0', pasta = null, contas 
         if (caminho === '/') {
           const t = await temas(env);
           const tela = corpo.toString('utf8')
-            .replace('<html lang="pt-BR">', `<html lang="pt-BR" data-ceu="${t.ceu}" data-tema-do-app="${t.temaDoApp}" data-tema-do-painel="${t.temaDoPainel}">`)
+            .replace('<html lang="pt-BR">', `<html lang="pt-BR" data-ceu="${t.ceu}" data-tema-do-app="${t.temaDoApp}" data-tema-do-painel="${t.temaDoPainel}" data-efeitos="${t.efeitos}">`)
             .replace('<header class="topo">', `<header class="topo">${BOTAO_DE_TEMAS}${BOTAO_DE_TEMA}`)
             .replace('</body>', `${GAVETA_DE_TEMAS}\n</body>`);
           return enviar(200, tipo, tela, NO_STORE);

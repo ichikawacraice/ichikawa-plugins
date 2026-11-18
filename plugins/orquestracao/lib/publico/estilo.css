@@ -264,6 +264,17 @@ ul { list-style: none; margin: 14px 0 0; padding: 0; display: grid; gap: 10px; }
 .chave-botao:indeterminate { background: color-mix(in srgb, var(--violeta) 45%, var(--fio-forte)); }
 .chave-botao:indeterminate::after { transform: translateX(8px); }
 .chave-botao:focus-visible { outline: 2px solid var(--foco); outline-offset: 2px; }
+/* Os níveis de efeito: três opções de rádio com o mesmo cartão das chaves; a escolhida ganha a borda e a bolinha do acento. */
+.efeitos { display: grid; gap: 8px; margin: 0; padding: 12px 0 0; border: 0; border-top: 1px solid var(--fio); }
+.efeitos-titulo { padding: 0; font: 500 var(--t-corpo)/20px var(--titulo); }
+.efeitos > .chave-apoio { margin: -4px 0 4px; }
+.efeito:has(.efeito-botao:checked) { border-color: var(--violeta); }
+.efeito-botao {
+  -webkit-appearance: none; appearance: none; flex: none; order: 2; margin: 0; cursor: pointer;
+  width: 20px; height: 20px; border-radius: 50%; border: 2px solid var(--fio-forte); transition: border-color 0.15s, border-width 0.15s;
+}
+.efeito-botao:checked { border: 6px solid var(--violeta); }
+.efeito-botao:focus-visible { outline: 2px solid var(--foco); outline-offset: 2px; }
 .gaveta-erro { margin: 0; color: var(--critico); font-size: var(--t-apoio); line-height: 18px; }
 
 /* ---- o tema do painel desligado (`data-tema-do-painel="desligado"`): o layout do kit antigo, "plantão" ----

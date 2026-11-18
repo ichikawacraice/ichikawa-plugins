@@ -233,7 +233,7 @@ export function html(agora = Date.now()) {
   // O céu segue só o botão de tema (`tema.json`): claro é o dia; escuro, e o padrão, a noite (estilo.css e ceu.js leem o `data-ceu`).
   // O tema do painel desligado (`tema-do-painel.json`) tira o céu e o vidro: o layout do kit antigo, no claro ou no escuro.
   const ligadoOuNao = (v) => (v ? 'ligado' : 'desligado');
-  return `<!doctype html><html lang="pt-BR" data-ceu="${estado.lerTema() === 'claro' ? 'dia' : 'noite'}" data-tema-do-app="${ligadoOuNao(estado.lerTemaDoApp())}" data-tema-do-painel="${ligadoOuNao(estado.lerTemaDoPainel())}"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+  return `<!doctype html><html lang="pt-BR" data-ceu="${estado.lerTema() === 'claro' ? 'dia' : 'noite'}" data-tema-do-app="${ligadoOuNao(estado.lerTemaDoApp())}" data-tema-do-painel="${ligadoOuNao(estado.lerTemaDoPainel())}" data-efeitos="${estado.lerEfeitos()}"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
 <title>${esc(NOME_DA_PAGINA)}</title><link rel="preload" href="/fontes/geist-medium.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="stylesheet" href="/estilo.css"><link rel="stylesheet" href="/perguntas.css"></head>
 <body><canvas id="ceu" class="ceu" aria-hidden="true"></canvas><header class="topo">${BOTAO_DE_TEMAS}${BOTAO_DE_TEMA}<h1>${esc(NOME_DA_PAGINA)}</h1>${selosDoTopo(perguntas.length, andamento.length, entregas.length + maisEntregas.length)}${avisoDeAusente(ausente)}</header>
@@ -242,13 +242,17 @@ export function html(agora = Date.now()) {
 ${GAVETA_DE_TEMAS}
 <script type="module">
 import { iniciarCeu } from '/ceu.js';
-import { ligarBotaoDeTema, ligarGavetaDeTemas } from '/tema.js';
+import { ligarBotaoDeTema, ligarEfeitos, ligarGavetaDeTemas } from '/tema.js';
 ligarBotaoDeTema(document.getElementById('b-tema'), async (tema) => {
   const r = await fetch('/tema', { method: 'POST', headers: { 'Content-Type': 'application/x-www-form-urlencoded' }, body: new URLSearchParams({ tema }) });
   if (!r.ok) throw new Error('a página respondeu ' + r.status);
 });
 ligarGavetaDeTemas(document.getElementById('b-temas'), document.getElementById('gaveta-temas'), async (qual, ligado) => {
   const r = await fetch(qual === 'app' ? '/tema-do-app' : '/tema-do-painel', { method: 'POST', headers: { 'Content-Type': 'application/x-www-form-urlencoded' }, body: new URLSearchParams({ ligado: String(ligado) }) });
+  if (!r.ok) throw new Error('a página respondeu ' + r.status);
+});
+ligarEfeitos(document.getElementById('gaveta-temas'), async (efeitos) => {
+  const r = await fetch('/efeitos', { method: 'POST', headers: { 'Content-Type': 'application/x-www-form-urlencoded' }, body: new URLSearchParams({ efeitos }) });
   if (!r.ok) throw new Error('a página respondeu ' + r.status);
 });
 // O botão de responder diz o que vai fazer: vazio, aceitar a recomendação; com texto, enviar a resposta.
@@ -348,6 +352,15 @@ const trocarLigado = (gravar) => async (req, res, porta) => {
 const trocarTemaDoApp = trocarLigado((ligado, por) => estado.gravarTemaDoApp(ligado, por));
 const trocarTemaDoPainel = trocarLigado((ligado, por) => estado.gravarTemaDoPainel(ligado, por));
 
+/** O nível de efeitos da gaveta: grava `nenhum`, `poucos` ou `completo` no `efeitos.json` (que a barra relê). */
+async function trocarEfeitos(req, res, porta) {
+  if (!origemLocal(req, porta)) { res.writeHead(403).end('origem recusada'); return; }
+  const efeitos = new URLSearchParams(await lerCorpo(req)).get('efeitos');
+  if (!estado.EFEITOS.includes(efeitos)) { res.writeHead(400).end('efeitos: nenhum, poucos ou completo'); return; }
+  estado.gravarEfeitos(efeitos, 'painel');
+  res.writeHead(204).end();
+}
+
 /** Arquiva em todos os projetos o que já saiu da página; devolve os ids lidos (`IZA-F3`). */
 export function arquivarTudo(agora = Date.now()) {
   return estado.projetos().flatMap((projeto) => estado.arquivar(projeto, agora).map((id) => estado.rotulo(projeto, id)));
@@ -381,6 +394,7 @@ export function criarServidor(porta = PORTA_PADRAO) {
       if (req.method === 'POST' && caminho === '/tema') { await trocarTema(req, res, porta); return; }
       if (req.method === 'POST' && caminho === '/tema-do-app') { await trocarTemaDoApp(req, res, porta); return; }
       if (req.method === 'POST' && caminho === '/tema-do-painel') { await trocarTemaDoPainel(req, res, porta); return; }
+      if (req.method === 'POST' && caminho === '/efeitos') { await trocarEfeitos(req, res, porta); return; }
       res.writeHead(404).end('não existe');
     } catch (err) {
       process.stderr.write(`pagina: ${err.message}\n`);

@@ -68,3 +68,26 @@ export async function gravarTemaDoPainel(env, ligado, agora = new Date()) {
   await rename(temp, destino);
   return ligado;
 }
+
+/** Quanto o céu se mexe (`efeitos.json`, o mesmo da barra e do Painel): `nenhum`, `poucos` ou `completo`; sem arquivo ou outro valor, poucos. */
+export const EFEITOS = ['nenhum', 'poucos', 'completo'];
+export const EFEITOS_PADRAO = 'poucos';
+
+export async function lerEfeitos(env) {
+  try {
+    const v = JSON.parse(await readFile(join(pastaDoKit(env), 'efeitos.json'), 'utf8'))?.efeitos;
+    return EFEITOS.includes(v) ? v : EFEITOS_PADRAO;
+  } catch { return EFEITOS_PADRAO; }
+}
+
+/** Grava o nível de efeitos (a barra relê a cada 2 s). Valor desconhecido lança e nada se grava. */
+export async function gravarEfeitos(env, efeitos, agora = new Date()) {
+  if (!EFEITOS.includes(efeitos)) throw new Error(`efeitos desconhecidos: ${efeitos}`);
+  const pasta = pastaDoKit(env);
+  await mkdir(pasta, { recursive: true });
+  const destino = join(pasta, 'efeitos.json');
+  const temp = `${destino}.${process.pid}.tmp`;
+  await writeFile(temp, `${JSON.stringify({ efeitos, em: agora.toISOString(), por: 'cotas' }, null, 2)}\n`);
+  await rename(temp, destino);
+  return efeitos;
+}
