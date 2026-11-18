@@ -4,6 +4,9 @@ export type Ausente = { ligado: boolean; desde?: string }
 /** A escolha do botão de tema, como `tema.json` a diz (contrato em docs/contratos.md). */
 export type EscolhaDeTema = 'claro' | 'escuro'
 
+/** Quanto o céu se mexe, como `efeitos.json` o diz (contrato em docs/contratos.md). */
+export type Efeitos = 'nenhum' | 'poucos' | 'completo'
+
 /** Um botão vindo do `barra.json` de um plugin instalado e ligado, já com `${CLAUDE_PLUGIN_ROOT}` trocado. */
 export type Botao = {
   /** `<plugin>/<id>`: única na barra. */
@@ -43,6 +46,8 @@ declare module 'claude-code' {
       trocandoTema: boolean
       /** O tema do app (céu atrás da conversa e paleta) ligado, como o `tema-do-app.json` diz (gravado pelas páginas do kit). */
       temaDoApp: boolean
+      /** Quanto o céu do app e o da barra se mexem, como o `efeitos.json` diz (gravado pelo Painel). */
+      efeitos: Efeitos
       botoes: Botao[]
       /** O selo de cada botão, pela chave; `null` = sem selo. */
       selos: Record<string, number | null>

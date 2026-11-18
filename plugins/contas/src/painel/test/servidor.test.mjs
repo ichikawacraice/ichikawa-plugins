@@ -50,20 +50,20 @@ test('o céu segue só o tema.json: escuro sem escolha (o ausente não muda nada
   const m = montar();
   const s = await subir(m.env);
   try {
-    assert.match((await pedir(s.porta, '/')).texto, /<html lang="pt-BR" data-ceu="noite" data-tema-do-app="ligado" data-tema-do-painel="ligado">/);
-    assert.deepEqual((await pedir(s.porta, '/api/ceu')).json, { ceu: 'noite', temaDoApp: 'ligado', temaDoPainel: 'ligado' });
+    assert.match((await pedir(s.porta, '/')).texto, /<html lang="pt-BR" data-ceu="noite" data-tema-do-app="ligado" data-tema-do-painel="ligado" data-efeitos="poucos">/);
+    assert.deepEqual((await pedir(s.porta, '/api/ceu')).json, { ceu: 'noite', temaDoApp: 'ligado', temaDoPainel: 'ligado', efeitos: 'poucos' });
     const pasta = join(m.home, '.claude', 'ichikawa');
     mkdirSync(pasta, { recursive: true });
     writeFileSync(join(pasta, 'ausente.json'), '{"ligado":false}');
-    assert.deepEqual((await pedir(s.porta, '/api/ceu')).json, { ceu: 'noite', temaDoApp: 'ligado', temaDoPainel: 'ligado' }, 'o ausente desligado não traz mais o dia');
+    assert.deepEqual((await pedir(s.porta, '/api/ceu')).json, { ceu: 'noite', temaDoApp: 'ligado', temaDoPainel: 'ligado', efeitos: 'poucos' }, 'o ausente desligado não traz mais o dia');
     writeFileSync(join(pasta, 'tema.json'), '{"tema":"claro"}');
-    assert.match((await pedir(s.porta, '/')).texto, /<html lang="pt-BR" data-ceu="dia" data-tema-do-app="ligado" data-tema-do-painel="ligado">/);
+    assert.match((await pedir(s.porta, '/')).texto, /<html lang="pt-BR" data-ceu="dia" data-tema-do-app="ligado" data-tema-do-painel="ligado" data-efeitos="poucos">/);
     writeFileSync(join(pasta, 'ausente.json'), '{"ligado":true}');
     const r = await pedir(s.porta, '/api/ceu');
-    assert.deepEqual(r.json, { ceu: 'dia', temaDoApp: 'ligado', temaDoPainel: 'ligado' }, 'o ausente ligado não traz mais a noite');
+    assert.deepEqual(r.json, { ceu: 'dia', temaDoApp: 'ligado', temaDoPainel: 'ligado', efeitos: 'poucos' }, 'o ausente ligado não traz mais a noite');
     assert.equal(r.headers['cache-control'], 'no-store');
     writeFileSync(join(pasta, 'tema.json'), 'não é json');
-    assert.deepEqual((await pedir(s.porta, '/api/ceu')).json, { ceu: 'noite', temaDoApp: 'ligado', temaDoPainel: 'ligado' });
+    assert.deepEqual((await pedir(s.porta, '/api/ceu')).json, { ceu: 'noite', temaDoApp: 'ligado', temaDoPainel: 'ligado', efeitos: 'poucos' });
   } finally { await s.fechar(); }
 });
 
@@ -94,9 +94,9 @@ test('POST /api/tema grava a escolha com a guarda das ações; valor desconhecid
     const gravado = JSON.parse(readFileSync(arquivo, 'utf8'));
     assert.equal(gravado.tema, 'claro');
     assert.equal(gravado.por, 'cotas');
-    assert.deepEqual((await pedir(s.porta, '/api/ceu')).json, { ceu: 'dia', temaDoApp: 'ligado', temaDoPainel: 'ligado' });
+    assert.deepEqual((await pedir(s.porta, '/api/ceu')).json, { ceu: 'dia', temaDoApp: 'ligado', temaDoPainel: 'ligado', efeitos: 'poucos' });
     assert.equal((await postar({ tema: 'escuro' })).status, 202);
-    assert.deepEqual((await pedir(s.porta, '/api/ceu')).json, { ceu: 'noite', temaDoApp: 'ligado', temaDoPainel: 'ligado' });
+    assert.deepEqual((await pedir(s.porta, '/api/ceu')).json, { ceu: 'noite', temaDoApp: 'ligado', temaDoPainel: 'ligado', efeitos: 'poucos' });
   } finally { await s.fechar(); }
 });
 
@@ -137,6 +137,26 @@ test('POST /api/tema-do-painel grava o liga/desliga; a tela sai com a gaveta e o
     assert.equal(JSON.parse(readFileSync(arquivo, 'utf8')).por, 'cotas');
     assert.match((await pedir(s.porta, '/')).texto, /data-tema-do-painel="desligado"/);
     assert.equal((await pedir(s.porta, '/api/ceu')).json.temaDoPainel, 'desligado');
+  } finally { await s.fechar(); }
+});
+
+test('POST /api/efeitos grava o nível com a guarda das ações; a tela e o /api/ceu dizem o nível', async () => {
+  const m = montar();
+  const s = await subir(m.env);
+  const postar = (corpo, cabecalhos = { 'x-painel-de-contas': '1' }) =>
+    fetch(`http://127.0.0.1:${s.porta}/api/efeitos`, { method: 'POST', headers: { 'content-type': 'application/json', ...cabecalhos }, body: JSON.stringify(corpo) });
+  const arquivo = join(m.home, '.claude', 'ichikawa', 'efeitos.json');
+  try {
+    const tela = (await pedir(s.porta, '/')).texto;
+    assert.match(tela, /data-efeitos="poucos"/, 'sem arquivo, poucos');
+    assert.match(tela, /name="efeitos" class="efeito-botao" value="nenhum"/);
+    assert.equal((await postar({ efeitos: 'nenhum' }, {})).status, 403, 'sem o cabeçalho do painel');
+    assert.equal(existsSync(arquivo), false);
+    assert.equal((await postar({ efeitos: 'tudo' })).status, 400);
+    assert.equal((await postar({ efeitos: 'nenhum' })).status, 202);
+    assert.equal(JSON.parse(readFileSync(arquivo, 'utf8')).por, 'cotas');
+    assert.match((await pedir(s.porta, '/')).texto, /data-efeitos="nenhum"/);
+    assert.equal((await pedir(s.porta, '/api/ceu')).json.efeitos, 'nenhum');
   } finally { await s.fechar(); }
 });
 

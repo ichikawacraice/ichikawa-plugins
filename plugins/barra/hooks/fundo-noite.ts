@@ -46,6 +46,8 @@ export function sorteio(semente: number): () => number {
   }
 }
 
+import type { Efeitos } from './logica'
+
 const n1 = (n: number) => (Math.round(n * 10) / 10).toString()
 const n2 = (n: number) => (Math.round(n * 100) / 100).toString()
 
@@ -67,6 +69,14 @@ const ESTILO =
   `.p{animation:pisca ${CICLO_PISCA}s steps(${CICLO_PISCA},jump-none) infinite}` +
   Array.from({ length: CICLO_PISCA - 1 }, (_, k) => `.p${k + 1}{animation-delay:-${k + 1}s}`).join('') +
   '@media (prefers-reduced-motion:reduce){.tw,.halo,.fa,.cad,.rota,.p{animation:none!important}.fa{opacity:.6}}'
+
+/** O que cada nível desliga. Poucos guarda só o que muda em degraus (as estrelas que piscam): o resto redesenhava a tela a cada quadro. */
+const PARADO = '.tw,.halo,.fa{animation:none!important}.halo{opacity:.7}.fa{opacity:.6}'
+const ESTILO_DO_NIVEL: Record<Efeitos, string> = {
+  completo: '',
+  poucos: PARADO,
+  nenhum: `${PARADO}.p{animation:none!important}`,
+}
 
 function defs(): string {
   return (
@@ -257,16 +267,16 @@ function planeta(): string {
   )
 }
 
-/** O SVG inteiro da cena. O céu é fixo; só as cadentes mudam com `acaso`. */
-export function svgDoCeu(acaso: () => number = Math.random): string {
+/** O SVG inteiro da cena. O céu é fixo; só as cadentes mudam com `acaso`, e só existem no nível completo. */
+export function svgDoCeu(efeitos: Efeitos = 'completo', acaso: () => number = Math.random): string {
   return (
     `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${L} ${A}" preserveAspectRatio="xMidYMax slice">` +
-    `<style>${ESTILO}</style>` +
+    `<style>${ESTILO}${ESTILO_DO_NIVEL[efeitos]}</style>` +
     defs() +
     ceuFixo() +
     piscantes() +
     estrelasVivas() +
-    cadentes(acaso) +
+    (efeitos === 'completo' ? cadentes(acaso) : '') +
     planeta() +
     '</svg>'
   )

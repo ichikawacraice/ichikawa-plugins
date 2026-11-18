@@ -3,7 +3,7 @@
 // Falhou a guarda: 403 e nada se grava.
 import { lancar, nomear as nomearConta, cancelarAdicionar } from './contas.mjs';
 import { iniciarUso } from './uso.mjs';
-import { TEMAS, gravarTema, gravarTemaDoApp, gravarTemaDoPainel } from './tema.mjs';
+import { EFEITOS, TEMAS, gravarEfeitos, gravarTema, gravarTemaDoApp, gravarTemaDoPainel } from './tema.mjs';
 
 export const CABECALHO = 'x-painel-de-contas';
 export const LIMITE_DO_CORPO = 16 * 1024;
@@ -91,6 +91,11 @@ export const TRATADORES = {
   '/api/tema-do-painel': async (corpo, ctx) => {
     if (typeof corpo.ligado !== 'boolean') return recusa('invalida');
     return { ok: true, ligado: await gravarTemaDoPainel(dosContas(ctx).env, corpo.ligado) };
+  },
+  // Os efeitos do céu: grava `nenhum`, `poucos` ou `completo` no `efeitos.json` (a barra relê e troca a cena do Claude).
+  '/api/efeitos': async (corpo, ctx) => {
+    if (!EFEITOS.includes(corpo.efeitos)) return recusa('invalida');
+    return { ok: true, efeitos: await gravarEfeitos(dosContas(ctx).env, corpo.efeitos) };
   },
 };
 

@@ -1,7 +1,7 @@
 import { atom, read, update } from 'claude-code'
 import type { ElementConstructor, EngineInterface, Register, SvgProps, ThemeSetArgs } from 'claude-code'
 
-import type { Ausente, Botao, Cache, EscolhaDeTema } from '../types'
+import type { Ausente, Botao, Cache, Efeitos, EscolhaDeTema } from '../types'
 import {
   CACHE_TTL_MS,
   COMANDO_COM_URL_PRAZO_MS,
@@ -13,7 +13,9 @@ import {
   argvDesacoplado,
   lerAusente,
   lerBarraJson,
+  EFEITOS_PADRAO,
   lerContador,
+  lerEfeitos,
   lerTema,
   lerTemaDoApp,
   mesclarLigados,
@@ -65,6 +67,7 @@ export const trocando = atom({ plugin: 'barra', key: 'trocando' } as const, fals
 export const temaEscolhido = atom({ plugin: 'barra', key: 'tema' } as const, TEMA_PADRAO as EscolhaDeTema)
 export const trocandoTema = atom({ plugin: 'barra', key: 'trocandoTema' } as const, false)
 export const temaDoApp = atom({ plugin: 'barra', key: 'temaDoApp' } as const, true)
+export const efeitos = atom({ plugin: 'barra', key: 'efeitos' } as const, EFEITOS_PADRAO as Efeitos)
 export const botoes = atom({ plugin: 'barra', key: 'botoes' } as const, [] as Botao[])
 export const selos = atom({ plugin: 'barra', key: 'selos' } as const, {} as Record<string, number | null>)
 /** O quadro da cintilação do terminal; `null` = parado (menos movimento pedido). */
@@ -191,41 +194,46 @@ export async function alternarTema($: EngineInterface): Promise<void> {
 /** De quanto em quanto tempo o `tema.json` e o `tema-do-app.json` são relidos: a escolha feita numa página chega em até 2 s. */
 export const TEMA_INTERVALO_MS = 2000
 
-/** As cenas que o hook do `Backdrop` desenha. */
-export const CENAS: Record<Modo, string> = { noite: 'noite-do-kit', dia: 'dia-do-kit' }
+/** As cenas que o hook do `Backdrop` desenha: uma por modo e nível de efeitos (`noite-do-kit-poucos`). */
+const BASE_DA_CENA: Record<Modo, string> = { noite: 'noite-do-kit', dia: 'dia-do-kit' }
+export const cenaDe = (modo: Modo, nivel: Efeitos): string => `${BASE_DA_CENA[modo]}-${nivel}`
 
 /** O vidro fosco dos painéis herda a cor da paleta (sem `tint`). */
 const VIDRO = { blur: 14, opacity: 0.55 }
-const LOOKS: Record<Modo, ThemeSetArgs> = {
-  noite: { colors: CORES_NOITE.theme, backdrop: { scene: CENAS.noite, glass: VIDRO } },
-  dia: { colors: CORES_DIA.theme, backdrop: { scene: CENAS.dia, glass: VIDRO } },
-}
+const CORES: Record<Modo, ThemeSetArgs['colors']> = { noite: CORES_NOITE.theme, dia: CORES_DIA.theme }
+const lookDe = (modo: Modo, nivel: Efeitos): ThemeSetArgs => ({ colors: CORES[modo], backdrop: { scene: cenaDe(modo, nivel), glass: VIDRO } })
 
-// Montados uma vez por carga: as cadentes da noite sorteiam lugar e ritmo a cada carga.
-const FUNDOS: Record<string, { source: string; alt: string }> = {
-  [CENAS.noite]: {
-    source: svgDoCeu(),
-    alt: 'Céu noturno com via láctea, galáxias e estrelas piscando, estrelas cadentes de vez em quando e um planeta violeta nascendo no rodapé',
-  },
-  [CENAS.dia]: { source: svgDoDia(), alt: 'Céu azul de dia com nuvens andando devagar e um sol enorme nascendo no rodapé' },
+const ALT: Record<Modo, string> = {
+  noite: 'Céu noturno com via láctea, galáxias e estrelas, e um planeta violeta nascendo no rodapé',
+  dia: 'Céu azul de dia com nuvens e um sol enorme nascendo no rodapé',
 }
+const NIVEIS: readonly Efeitos[] = ['nenhum', 'poucos', 'completo']
+// Montados uma vez por carga: as cadentes da noite (só no completo) sorteiam lugar e ritmo a cada carga.
+const FUNDOS: Record<string, { source: string; alt: string }> = Object.fromEntries(
+  NIVEIS.flatMap(nivel => [
+    [cenaDe('noite', nivel), { source: svgDoCeu(nivel), alt: ALT.noite }],
+    [cenaDe('dia', nivel), { source: svgDoDia(nivel), alt: ALT.dia }],
+  ]),
+)
 
 /** O que esta sessão aplicou: `null` antes da primeira vez (nada a limpar), `desligado` depois de limpar ou de nascer desligada. */
-let aplicado: Modo | 'desligado' | null = null
+let aplicado: string | null = null
 let avisouSemDesenho = false
 
 /** Aplica o tema que os átomos pedem, só quando muda. Limpa só depois de ter aplicado: não apaga o tema de outro plugin ao abrir. */
 async function aplicarTema($: EngineInterface): Promise<void> {
-  const pedido: Modo | 'desligado' = (await read($, temaDoApp)) ? modoDoTema(await read($, temaEscolhido)) : 'desligado'
+  const modo: Modo | null = (await read($, temaDoApp)) ? modoDoTema(await read($, temaEscolhido)) : null
+  const nivel = await read($, efeitos)
+  const pedido = modo ? cenaDe(modo, nivel) : 'desligado'
   if (pedido === aplicado) return
   const antes = aplicado
   aplicado = pedido
   try {
-    if (pedido === 'desligado') {
+    if (!modo) {
       if (antes !== null) await $.theme.clear()
       return
     }
-    const r = await $.theme.set(LOOKS[pedido])
+    const r = await $.theme.set(lookDe(modo, nivel))
     // No terminal o tema não se desenha: avisa no log uma vez só.
     if (!r.isDrawn && !avisouSemDesenho) {
       avisouSemDesenho = true
@@ -248,13 +256,25 @@ async function lerTemaDoAppGravado($: EngineInterface): Promise<void> {
   await update($, temaDoApp, () => valor)
 }
 
-/** A leitura de 2 s: as duas escolhas gravadas e o tema do app que elas pedem. */
+/** O nível de efeitos fica no Painel, que grava o `efeitos.json`. */
+async function lerEfeitosGravados($: EngineInterface): Promise<void> {
+  let valor: Efeitos = EFEITOS_PADRAO
+  try {
+    valor = lerEfeitos(await lerSeExiste($, `${await pastaIchikawa($)}/efeitos.json`))
+  } catch (err) {
+    logar($, `efeitos.json: ${mensagem(err)}`)
+  }
+  if ((await read($, efeitos)) !== valor) await update($, efeitos, () => valor)
+}
+
+/** A leitura de 2 s: as escolhas gravadas e o tema do app que elas pedem. */
 export async function lerTemas($: EngineInterface): Promise<void> {
   if (lendoTema) return
   lendoTema = true
   try {
     await lerEscolhaDeTema($)
     await lerTemaDoAppGravado($)
+    await lerEfeitosGravados($)
     await aplicarTema($)
   } finally {
     lendoTema = false
@@ -398,7 +418,7 @@ export async function gravarSessoes($: EngineInterface): Promise<void> {
 // ---- relógios ----
 
 async function tique($: EngineInterface): Promise<void> {
-  if (!semMovimento) await update($, fase, f => ((f ?? 0) + 1) % CICLO_CINTILA)
+  if (!semMovimento && (await read($, efeitos)) !== 'nenhum') await update($, fase, f => ((f ?? 0) + 1) % CICLO_CINTILA)
   const c = await read($, cache)
   if (c.expiraEm === null) return
   const segundos = segundosRestantes(c.expiraEm, await $.clock.now())
@@ -477,6 +497,7 @@ export const register: Register = on => {
     const lista = await read($, botoes)
     const s = await read($, selos)
     const quadro = Svg ? null : await read($, fase)
+    const nivelDeEfeitos = await read($, efeitos)
     // O céu segue só a escolha do botão de tema (o `tema.json`); sem escolha, o escuro.
     const escolha = await read($, temaEscolhido)
     const modo = modoDoTema(escolha)
@@ -525,7 +546,7 @@ export const register: Register = on => {
         <Box key={`barra-${modo}`} flexDirection="row" alignItems="center" columnGap={1} paddingX={1} paddingY="xs" backgroundColor={tema.fundo}>
           {relogioDoCache}
           <Box key="ceu" flexGrow={1} flexDirection="row" justifyContent="flex-end">
-            {largura ? <Svg source={svgDaCena(modo, largura, semMovimento)} alt={modo === 'noite' ? 'Céu estrelado com a lua' : 'Céu com o sol'} width={largura} height={SVG_ALTURA} /> : null}
+            {largura ? <Svg source={svgDaCena(modo, largura, semMovimento || nivelDeEfeitos === 'nenhum')} alt={modo === 'noite' ? 'Céu estrelado com a lua' : 'Céu com o sol'} width={largura} height={SVG_ALTURA} /> : null}
           </Box>
           {botoesDaBarra}
         </Box>

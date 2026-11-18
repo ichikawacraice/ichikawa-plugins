@@ -3,6 +3,7 @@
 // nascendo no rodapé, com o halo que respira e brilhos que sobem da borda. Mesma geometria do planeta da noite.
 
 import { sorteio } from './fundo-noite'
+import type { Efeitos } from './logica'
 
 const L = 1600
 const A = 1000
@@ -35,6 +36,15 @@ const ESTILO =
   '@keyframes anda{from{transform:translate(var(--de),0)}to{transform:translate(var(--ate),0)}}' +
   '.nv{animation:anda linear infinite}' +
   '@media (prefers-reduced-motion:reduce){.halo,.br,.nv{animation-play-state:paused}}'
+
+/** Poucos: as nuvens andam em passinhos (alguns por segundo) e o halo e os brilhos param; nenhum: tudo para onde está. */
+const PASSOS_POR_SEGUNDO = 2
+const PARADO = '.halo,.br{animation-play-state:paused}'
+const ESTILO_DO_NIVEL: Record<Efeitos, string> = {
+  completo: '',
+  poucos: PARADO,
+  nenhum: `${PARADO}.nv{animation-play-state:paused}`,
+}
 
 function defs(): string {
   return (
@@ -77,7 +87,7 @@ function nuvem(r: () => number, largura: number): string {
 }
 
 /** As nuvens atravessam da esquerda para a direita e voltam a entrar pela esquerda, cada uma no seu passo. */
-function nuvens(): string {
+function nuvens(efeitos: Efeitos): string {
   const r = sorteio(21)
 
   return Array.from({ length: NUVENS }, (_, i) => {
@@ -91,7 +101,7 @@ function nuvens(): string {
 
     return (
       `<g transform="translate(0 ${n1(y)})" opacity="${n2(alfa)}">` +
-      `<g class="nv" style="--de:-${n1(largura)}px;--ate:${L}px;animation-duration:${n1(volta)}s;animation-delay:-${n1(inicio * volta)}s">${desenho}</g></g>`
+      `<g class="nv" style="--de:-${n1(largura)}px;--ate:${L}px;animation-duration:${n1(volta)}s;animation-delay:-${n1(inicio * volta)}s${efeitos === 'poucos' ? `;animation-timing-function:steps(${Math.round(volta * PASSOS_POR_SEGUNDO)})` : ''}">${desenho}</g></g>`
     )
   }).join('')
 }
@@ -121,13 +131,13 @@ function sol(): string {
 }
 
 /** O SVG inteiro do dia. Determinístico. */
-export function svgDoDia(): string {
+export function svgDoDia(efeitos: Efeitos = 'completo'): string {
   return (
     `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${L} ${A}" preserveAspectRatio="xMidYMax slice">` +
-    `<style>${ESTILO}</style>` +
+    `<style>${ESTILO}${ESTILO_DO_NIVEL[efeitos]}</style>` +
     defs() +
     ceuFixo() +
-    nuvens() +
+    nuvens(efeitos) +
     sol() +
     '</svg>'
   )

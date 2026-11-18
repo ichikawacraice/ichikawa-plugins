@@ -131,7 +131,7 @@ A orquestradora é para **dividir trabalho grande entre várias sessões**, não
 | **Sessões** | Um grupo por projeto, com a etapa de cada item (planejamento → execução → revisão → PR → entregue), quem espera você e quem está rodando agora. Cada estado tem um selo de cor própria: esperando você em âmbar, trabalhando em azul, em revisão em ciano, no PR em lilás, parada em vermelho. Clicar no cartão o abre, como os Entregues: o que já está feito e o que falta, no resumo da dona, e quanto tempo o item ficou em cada etapa, com o total. |
 | **Entregues** | As entregas dos últimos 30 dias: resultado, o que foi medido, o que ficou sem medir, próximos passos e o PR. |
 
-O aviso de modo ausente fica no topo. O botão do canto esquerdo abre a gaveta de temas: liga e desliga o tema do Claude (o céu atrás da conversa), o tema do painel (desligado, as duas páginas voltam ao layout chapado do kit antigo) ou os dois. Itens entregues há mais de 30 dias vão para `arquivo/` e nada é apagado.
+O aviso de modo ausente fica no topo. O botão do canto esquerdo abre a gaveta de temas: liga e desliga o tema do Claude (o céu atrás da conversa), o tema do painel (desligado, as duas páginas voltam ao layout chapado do kit antigo) ou os dois. Itens entregues há mais de 30 dias vão para `arquivo/` e nada é apagado. Na mesma gaveta, **Efeitos do céu** escolhe quanto o céu se mexe, no Claude e nas duas páginas: **Mínimo** (parado, o mais leve), **Poucos efeitos** (estrelas piscando e nuvens em passinhos; o padrão) ou **Completo** (cadentes, halo e fagulhas, que gastam cerca de meio núcleo de CPU o tempo todo).
 
 ### O CLI `perguntas`
 
@@ -259,7 +259,7 @@ Detalhes e fontes: [`plugins/stack/README.md`](plugins/stack/README.md).
 
 Qualquer plugin ganha botão com um `barra.json` na raiz: `id`, `rotulo`, `comando` (argv, sem shell), `ordem`; opcionais `icone`, `contador` e `url` (página local, aberta no navegador do app). Contrato completo em [`docs/contratos.md`](docs/contratos.md#botões-da-barra-barrajson).
 
-**Quando não usar:** se você não quer movimento, `BARRA_SEM_ANIMACAO=1` ou o "Reduzir movimento" do macOS deixam o céu parado; sem o plugin, o Painel e o painel de contas continuam abrindo pelos próprios comandos.
+**Quando não usar:** se você não quer movimento, escolha **Mínimo** em Efeitos do céu, na gaveta de temas do Painel ou do painel de contas (ou use `BARRA_SEM_ANIMACAO=1`, ou o "Reduzir movimento" do macOS); sem o plugin, o Painel e o painel de contas continuam abrindo pelos próprios comandos.
 
 ---
 

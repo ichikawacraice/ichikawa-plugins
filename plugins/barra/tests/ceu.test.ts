@@ -1,6 +1,8 @@
 import { expect, test } from 'claude-code/testing'
 
 import { CENA_MAX, CICLO_CINTILA, ESPACO_SOL_BOTOES, SVG_ALTURA, TEMAS, estrelasDaLinha, larguraDaCena, linhaDeEstrelas, linhaDeNuvens, linhaDoCeu, modoDoTema, pedeMenosMovimento, svgDaCena } from '../hooks/ceu'
+import { svgDoDia } from '../hooks/fundo-dia'
+import { svgDoCeu } from '../hooks/fundo-noite'
 
 test('estrelas do terminal: a linha tem a largura pedida, o mesmo céu a cada desenho e só estrela onde há', () => {
   const linha = linhaDeEstrelas(80, 0)
@@ -82,4 +84,25 @@ test('largura da cena: o que sobra entre o relógio e os botões, com teto, e na
   const media = larguraDaCena(80, '⧗ 59:00', rotulos)
   expect(media !== null && media < CENA_MAX && media >= 140).toBe(true)
   expect(larguraDaCena(50, '⧗ 59:00', rotulos)).toBe(null)
+})
+
+test('níveis de efeito da noite: completo anima tudo; poucos só as que piscam em degraus; nenhum para tudo', () => {
+  const completo = svgDoCeu('completo', () => 0.5)
+  const poucos = svgDoCeu('poucos', () => 0.5)
+  const nenhum = svgDoCeu('nenhum', () => 0.5)
+  expect(completo).toContain('class="cad"')
+  expect(completo).not.toContain('.tw,.halo,.fa{animation:none')
+  expect(poucos).not.toContain('class="cad"')
+  expect(poucos).toContain('.tw,.halo,.fa{animation:none!important}')
+  expect(poucos).not.toContain('}.p{animation:none')
+  expect(nenhum).toContain('}.p{animation:none!important}')
+  expect(nenhum).not.toContain('class="cad"')
+})
+
+test('níveis de efeito do dia: poucos põe as nuvens em passinhos e para halo e brilhos; nenhum para as nuvens', () => {
+  expect(svgDoDia('completo')).not.toContain('steps(')
+  expect(svgDoDia('poucos')).toMatch(/class="nv"[^>]*animation-timing-function:steps\(\d+\)/)
+  expect(svgDoDia('poucos')).toContain('.halo,.br{animation-play-state:paused}')
+  expect(svgDoDia('poucos')).not.toContain('}.nv{animation-play-state:paused}')
+  expect(svgDoDia('nenhum')).toContain('}.nv{animation-play-state:paused}')
 })

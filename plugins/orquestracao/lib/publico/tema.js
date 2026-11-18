@@ -62,6 +62,9 @@ export const BOTAO_DE_TEMAS = '<button type="button" class="botao-tema botao-tem
 const chave = (qual, titulo, apoio) => `<label class="chave"><span class="chave-texto"><span class="chave-titulo">${titulo}</span><span class="chave-apoio">${apoio}</span></span>`
   + `<input type="checkbox" role="switch" class="chave-botao" data-chave="${qual}"></label>`;
 
+const efeito = (valor, titulo, apoio) => `<label class="chave efeito"><input type="radio" name="efeitos" class="efeito-botao" value="${valor}">`
+  + `<span class="chave-texto"><span class="chave-titulo">${titulo}</span><span class="chave-apoio">${apoio}</span></span></label>`;
+
 /** A gaveta (um `<dialog>` que entra pela esquerda). Os servidores a põem logo depois do botão. */
 export const GAVETA_DE_TEMAS = '<dialog class="gaveta" id="gaveta-temas" aria-labelledby="gaveta-temas-titulo"><div class="gaveta-dentro">'
   + '<div class="gaveta-cab"><h2 id="gaveta-temas-titulo">Temas</h2>'
@@ -71,6 +74,12 @@ export const GAVETA_DE_TEMAS = '<dialog class="gaveta" id="gaveta-temas" aria-la
   + chave('painel', 'Tema do painel', 'Céu, vidro e Geist no Painel e nas Contas. Desligado, o layout do kit antigo.')
   + '</div>'
   + chave('os-dois', 'Os dois', 'Liga ou desliga o do Claude e o do painel juntos.')
+  + '<fieldset class="efeitos"><legend class="efeitos-titulo">Efeitos do céu</legend>'
+  + '<p class="chave-apoio">Vale para o céu do Claude e o do painel. Quanto mais movimento, mais o computador trabalha.</p>'
+  + efeito('nenhum', 'Mínimo', 'Sem efeitos: o céu fica parado. O mais leve.')
+  + efeito('poucos', 'Poucos efeitos', 'Só estrelas piscando e nuvens andando em passinhos. O padrão.')
+  + efeito('completo', 'Completo', 'Estrelas cadentes, halo que respira e fagulhas. Gasta cerca de meio núcleo de CPU o tempo todo.')
+  + '</fieldset>'
   + '<p class="gaveta-erro" role="alert" hidden></p></div></dialog>';
 
 /**
@@ -118,5 +127,32 @@ export function ligarGavetaDeTemas(botao, gaveta, gravar) {
   gaveta.addEventListener('click', (ev) => { if (ev.target === gaveta) gaveta.close(); });
   gaveta.addEventListener('close', desenhar);
   new MutationObserver(desenhar).observe(document.documentElement, { attributes: true, attributeFilter: ['data-tema-do-app', 'data-tema-do-painel'] });
+  desenhar();
+}
+
+/** Os níveis de efeito (`data-efeitos` no `<html>`): o escolhido vale na hora e é gravado; se não gravou, volta e a gaveta avisa. */
+export function ligarEfeitos(gaveta, gravar) {
+  if (!gaveta) return;
+  const raiz = document.documentElement.dataset;
+  const erro = gaveta.querySelector('.gaveta-erro');
+  const opcoes = [...gaveta.querySelectorAll('.efeito-botao')];
+  const desenhar = () => { for (const o of opcoes) o.checked = o.value === (raiz.efeitos || 'poucos'); };
+  for (const o of opcoes) {
+    o.addEventListener('change', async () => {
+      if (!o.checked) return;
+      const antes = raiz.efeitos;
+      raiz.efeitos = o.value;
+      erro.hidden = true;
+      try {
+        await gravar(o.value);
+      } catch {
+        raiz.efeitos = antes;
+        erro.textContent = 'Não consegui gravar os efeitos; tente de novo.';
+        erro.hidden = false;
+      }
+      desenhar();
+    });
+  }
+  new MutationObserver(desenhar).observe(document.documentElement, { attributes: true, attributeFilter: ['data-efeitos'] });
   desenhar();
 }

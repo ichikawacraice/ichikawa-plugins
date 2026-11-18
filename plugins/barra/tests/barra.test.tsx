@@ -577,13 +577,13 @@ test('céu: o "Reduzir movimento" do macOS também para', async ($, on) => {
 
 test('tema do app: ligado por padrão no escuro — a noite ao abrir, o dia no clique do tema, sem repetir', async ($, on) => {
   const m = await iniciar($, on)
-  expect(m.temas).toEqual(['noite-do-kit'])
+  expect(m.temas).toEqual(['noite-do-kit-poucos'])
   await m.relogio.advance(10_000)
-  expect(m.temas, 'a leitura de 2 s não reaplica o mesmo').toEqual(['noite-do-kit'])
+  expect(m.temas, 'a leitura de 2 s não reaplica o mesmo').toEqual(['noite-do-kit-poucos'])
   const ui = await montar($, 'desktop')
   await ui.press({ key: 'tema' })
   await m.relogio.settle()
-  expect(m.temas).toEqual(['noite-do-kit', 'dia-do-kit'])
+  expect(m.temas).toEqual(['noite-do-kit-poucos', 'dia-do-kit-poucos'])
   await ui.unmount()
 })
 
@@ -594,13 +594,13 @@ test('tema do app: a barra não tem o botão; desligado por uma página, limpa e
   expect(await ui.find({ type: 'Svg' }), 'a cena da barra segue').toBeDefined()
   m.arquivos.set(`${ICH}/tema-do-app.json`, '{"ligado": false, "por": "painel"}')
   await m.relogio.advance(2_000)
-  expect(m.temas).toEqual(['noite-do-kit', 'limpo'])
+  expect(m.temas).toEqual(['noite-do-kit-poucos', 'limpo'])
   await ui.press({ key: 'tema' })
   await m.relogio.settle()
-  expect(m.temas, 'desligado, o clique do tema não aplica nada').toEqual(['noite-do-kit', 'limpo'])
+  expect(m.temas, 'desligado, o clique do tema não aplica nada').toEqual(['noite-do-kit-poucos', 'limpo'])
   m.arquivos.set(`${ICH}/tema-do-app.json`, '{"ligado": true, "por": "cotas"}')
   await m.relogio.advance(2_000)
-  expect(m.temas).toEqual(['noite-do-kit', 'limpo', 'dia-do-kit'])
+  expect(m.temas).toEqual(['noite-do-kit-poucos', 'limpo', 'dia-do-kit-poucos'])
   await ui.unmount()
 })
 
@@ -609,16 +609,40 @@ test('tema do app: desligado no arquivo, abre sem aplicar nem limpar; ligado por
   expect(m.temas, 'não apaga o tema de outro plugin ao abrir').toEqual([])
   m.arquivos.set(`${ICH}/tema-do-app.json`, '{"ligado": true}')
   await m.relogio.advance(2_000)
-  expect(m.temas).toEqual(['noite-do-kit'])
+  expect(m.temas).toEqual(['noite-do-kit-poucos'])
 })
 
 test('tema do app: o fundo desenha só as cenas da barra', async ($, on) => {
   await iniciar($, on)
-  for (const [cena, marca] of [['noite-do-kit', /id="planeta"|via|galax/i], ['dia-do-kit', /id="sol"/]] as const) {
+  for (const [cena, marca] of [['noite-do-kit-poucos', /id="planeta"|via|galax/i], ['dia-do-kit-poucos', /id="sol"/]] as const) {
     const ui = await $.ui.mount({ plugin: 'barra', component: 'Backdrop', surface: 'desktop', props: { scene: cena, plugin: 'barra', glass: { blur: 14, opacity: 0.55 } } } as never)
     const svg = await ui.find({ type: 'Svg' })
     expect(String(svg?.props.source)).toMatch(marca)
     expect(String(svg?.props.source).length).toBeLessThanOrEqual(131_072)
+    await ui.unmount()
+  }
+})
+
+test('efeitos: o efeitos.json troca a cena do app em 2 s, e sem efeitos a barra para as estrelas', async ($, on) => {
+  const m = await iniciar($, on)
+  expect(m.temas, 'sem arquivo, poucos').toEqual(['noite-do-kit-poucos'])
+  m.arquivos.set(`${ICH}/efeitos.json`, '{"efeitos": "completo", "por": "painel"}')
+  await m.relogio.advance(2_000)
+  expect(m.temas).toEqual(['noite-do-kit-poucos', 'noite-do-kit-completo'])
+  m.arquivos.set(`${ICH}/efeitos.json`, '{"efeitos": "nenhum", "por": "painel"}')
+  await m.relogio.advance(2_000)
+  expect(m.temas).toEqual(['noite-do-kit-poucos', 'noite-do-kit-completo', 'noite-do-kit-nenhum'])
+  m.arquivos.set(`${ICH}/efeitos.json`, '{"efeitos": "tudo"}')
+  await m.relogio.advance(2_000)
+  expect(m.temas.at(-1), 'valor desconhecido volta a poucos').toBe('noite-do-kit-poucos')
+})
+
+test('efeitos: o fundo tem as três cenas de cada modo, e só o completo tem estrelas cadentes', async ($, on) => {
+  await iniciar($, on)
+  for (const nivel of ['nenhum', 'poucos', 'completo'] as const) {
+    const ui = await $.ui.mount({ plugin: 'barra', component: 'Backdrop', surface: 'desktop', props: { scene: `noite-do-kit-${nivel}`, plugin: 'barra', glass: { blur: 14, opacity: 0.55 } } } as never)
+    const fonte = String((await ui.find({ type: 'Svg' }))?.props.source)
+    expect(fonte.includes('class="cad"'), nivel).toBe(nivel === 'completo')
     await ui.unmount()
   }
 })
