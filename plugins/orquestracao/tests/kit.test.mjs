@@ -4,8 +4,8 @@ import { execFileSync } from 'node:child_process';
 import { mkdirSync, mkdtempSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { arvore, comandoDeAtualizar, conferirKit, criarAviso, instalados, nomesDosVelhos, pastaDifere, shaDoBlob } from '../lib/kit.mjs';
-import { html } from '../lib/pagina.mjs';
+import { atualizarKit, arvore, comandoDeAtualizar, passosDeAtualizar, conferirKit, criarAviso, instalados, nomesDosVelhos, pastaDifere, shaDoBlob } from '../lib/kit.mjs';
+import { criarServidor, html } from '../lib/pagina.mjs';
 
 const MAIN = 'a'.repeat(40);
 
@@ -128,11 +128,74 @@ test('comando e nomes: o de usuário direto; o de projeto de dentro da pasta, co
   assert.deepEqual(nomesDosVelhos(velhos), ['barra', 'design-wicomm (Wi Control, worktree)', "design-wicomm (O'Neil)"]);
 });
 
-test('a página mostra o aviso de kit novo só quando há plugin velho', () => {
-  assert.doesNotMatch(html(Date.now(), null), /<details class="aviso-kit"/);
-  assert.doesNotMatch(html(Date.now(), { velhos: [], main: MAIN }), /<details class="aviso-kit"/);
+test('a página mostra o aviso de kit novo só quando há plugin velho, com o botão de atualizar', () => {
+  assert.doesNotMatch(html(Date.now(), null), /<div class="aviso-kit"/);
+  assert.doesNotMatch(html(Date.now(), { velhos: [], main: MAIN }), /<div class="aviso-kit"/);
   const pagina = html(Date.now(), { velhos: [{ nome: 'barra', escopo: 'user', projeto: null }, { nome: 'contas', escopo: 'user', projeto: null }], main: MAIN });
-  const comando = 'claude plugin marketplace update ichikawa-plugins &amp;&amp; claude plugin update barra@ichikawa-plugins &amp;&amp; claude plugin update contas@ichikawa-plugins';
-  assert.match(pagina, /<details class="aviso-kit" id="aviso-kit"><summary>.*Versão nova dos plugins barra, contas<\/span><span class="kit-ver">ver comando<\/span><\/summary>/);
-  assert.ok(pagina.includes(`<code>${comando}</code><button type="button" class="botao-kit" data-comando="${comando}">Copiar</button>`));
+  assert.match(pagina, /<div class="aviso-kit" role="status"><p>.*Versão nova dos plugins barra, contas<\/span><button type="button" class="botao-kit">Atualizar<\/button><\/p>/);
+  assert.ok(pagina.includes('<div class="kit-comando" hidden><p class="kit-erro"></p><code>claude plugin marketplace update ichikawa-plugins &amp;&amp; claude plugin update barra@ichikawa-plugins &amp;&amp; claude plugin update contas@ichikawa-plugins</code></div>'));
+});
+
+const VELHOS = [
+  { nome: 'barra', escopo: 'user', projeto: null },
+  { nome: 'design-wicomm', escopo: 'local', projeto: '/p/WiControl' },
+];
+
+test('passosDeAtualizar: o marketplace primeiro; a instalação de projeto roda de dentro dele, com o escopo', () => {
+  assert.deepEqual(passosDeAtualizar(VELHOS), [
+    { args: ['plugin', 'marketplace', 'update', 'ichikawa-plugins'], cwd: null },
+    { args: ['plugin', 'update', 'barra@ichikawa-plugins'], cwd: null },
+    { args: ['plugin', 'update', 'design-wicomm@ichikawa-plugins', '--scope', 'local'], cwd: '/p/WiControl' },
+  ]);
+});
+
+test('atualizarKit para no primeiro passo que falha e diz qual foi', async () => {
+  const rodados = [];
+  const r = await atualizarKit(VELHOS, async (p) => { rodados.push(p.args[1]); return p.args[1] === 'update' ? { ok: false, saida: 'linha 1\nplugin não encontrado' } : { ok: true, saida: '' }; });
+  assert.deepEqual(rodados, ['marketplace', 'update']);
+  assert.deepEqual(r, { ok: false, falhou: { comando: 'claude plugin update barra@ichikawa-plugins', saida: 'linha 1\nplugin não encontrado' } });
+  assert.deepEqual(await atualizarKit(VELHOS, async () => ({ ok: true, saida: '' })), { ok: true });
+});
+
+/** Sobe o servidor numa porta livre com a conferência e a atualização falsas. */
+async function servidorDeTeste(kit, atualizar) {
+  let esquecido = 0;
+  const aviso = Object.assign(() => kit, { esquecer: () => { esquecido++; } });
+  const servidor = criarServidor(0, { aviso, atualizar });
+  await new Promise((ok) => servidor.listen(0, '127.0.0.1', ok));
+  const porta = servidor.address().port;
+  servidor.close();
+  const real = criarServidor(porta, { aviso, atualizar });
+  await new Promise((ok) => real.listen(porta, '127.0.0.1', ok));
+  const post = (origem = `http://127.0.0.1:${porta}`) => fetch(`http://127.0.0.1:${porta}/atualizar-kit`, { method: 'POST', headers: origem ? { Origin: origem } : {} });
+  return { post, fechar: () => new Promise((ok) => real.close(ok)), esquecidos: () => esquecido };
+}
+
+test('POST /atualizar-kit: só da própria origem, só com plugin velho, e devolve o comando quando falha', async () => {
+  const chamadas = [];
+  const ok = await servidorDeTeste({ velhos: VELHOS, main: MAIN }, async (v) => { chamadas.push(v); return { ok: true }; });
+  try {
+    assert.equal((await ok.post('http://mal.example')).status, 403);
+    assert.equal((await ok.post(null)).status, 403);
+    assert.equal(chamadas.length, 0);
+    const r = await ok.post();
+    assert.equal(r.status, 200);
+    assert.deepEqual(await r.json(), { ok: true });
+    assert.deepEqual(chamadas, [VELHOS]);
+    assert.equal(ok.esquecidos(), 1);
+  } finally { await ok.fechar(); }
+
+  const nada = await servidorDeTeste({ velhos: [], main: MAIN }, async () => assert.fail('não devia rodar'));
+  try {
+    assert.equal((await nada.post()).status, 409);
+  } finally { await nada.fechar(); }
+
+  const falha = await servidorDeTeste({ velhos: VELHOS, main: MAIN }, async () => ({ ok: false, falhou: { comando: 'x', saida: 'a\nsem rede' } }));
+  try {
+    const r = await falha.post();
+    assert.equal(r.status, 500);
+    const corpo = await r.json();
+    assert.equal(corpo.erro, 'falhou: sem rede');
+    assert.match(corpo.comando, /^claude plugin marketplace update ichikawa-plugins && /);
+  } finally { await falha.fechar(); }
 });

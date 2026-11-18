@@ -131,7 +131,7 @@ A orquestradora é para **dividir trabalho grande entre várias sessões**, não
 | **Sessões** | Um grupo por projeto, com a etapa de cada item (planejamento → execução → revisão → PR → entregue), quem espera você e quem está rodando agora. Cada estado tem um selo de cor própria: esperando você em âmbar, trabalhando em azul, em revisão em ciano, no PR em lilás, parada em vermelho. Clicar no cartão o abre, como os Entregues: o que já está feito e o que falta, no resumo da dona, e quanto tempo o item ficou em cada etapa, com o total. |
 | **Entregues** | As entregas dos últimos 30 dias: resultado, o que foi medido, o que ficou sem medir, próximos passos e o PR. |
 
-O aviso de modo ausente fica no topo. Logo abaixo, só quando algum plugin do kit instalado nesta máquina está mais velho que a `main`, aparece uma linha discreta, como *Versão nova do plugin barra*. Instalação de projeto vem com o nome do projeto. **ver comando** abre o comando de atualizar, com um botão de copiar; depois de rodar, reinicie as sessões abertas. O botão do canto esquerdo abre a gaveta de temas: liga e desliga o tema do Claude (o céu atrás da conversa), o tema do painel (desligado, as duas páginas voltam ao layout chapado do kit antigo) ou os dois. Itens entregues há mais de 30 dias vão para `arquivo/` e nada é apagado. Na mesma gaveta, **Efeitos do céu** escolhe quanto o céu se mexe, no Claude e nas duas páginas: **Mínimo** (parado, o mais leve), **Poucos efeitos** (estrelas piscando e nuvens em passinhos; o padrão) ou **Completo** (cadentes, halo e fagulhas, que gastam cerca de meio núcleo de CPU o tempo todo).
+O aviso de modo ausente fica no topo. Logo abaixo, só quando algum plugin do kit instalado nesta máquina está mais velho que a `main`, aparece uma linha discreta, como *Versão nova do plugin barra*. Instalação de projeto vem com o nome do projeto. **Atualizar** roda o `claude plugin update` ali mesmo (leva alguns segundos); depois, reinicie as sessões abertas. Se falhar, o aviso mostra o motivo e o comando para rodar no terminal. O botão do canto esquerdo abre a gaveta de temas: liga e desliga o tema do Claude (o céu atrás da conversa), o tema do painel (desligado, as duas páginas voltam ao layout chapado do kit antigo) ou os dois. Itens entregues há mais de 30 dias vão para `arquivo/` e nada é apagado. Na mesma gaveta, **Efeitos do céu** escolhe quanto o céu se mexe, no Claude e nas duas páginas: **Mínimo** (parado, o mais leve), **Poucos efeitos** (estrelas piscando e nuvens em passinhos; o padrão) ou **Completo** (cadentes, halo e fagulhas, que gastam cerca de meio núcleo de CPU o tempo todo).
 
 ### O CLI `perguntas`
 
@@ -369,7 +369,7 @@ claude plugin marketplace update ichikawa-plugins
 claude plugin update orquestracao@ichikawa-plugins   # e cada plugin que mudou
 ```
 
-A sessão que já estava aberta só pega a versão nova ao reiniciar. O Painel avisa no topo quando algum plugin instalado ficou para trás e mostra o comando pronto, inclusive para instalações de projeto.
+A sessão que já estava aberta só pega a versão nova ao reiniciar. O Painel avisa no topo quando algum plugin instalado ficou para trás, e o botão **Atualizar** do aviso faz isso por você, inclusive nas instalações de projeto.
 
 ---
 

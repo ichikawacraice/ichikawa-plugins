@@ -124,6 +124,8 @@ export function criarAviso({ conferir = conferirKit, intervaloLocal = INTERVALO_
     return ultimo;
   };
   aviso.esperar = () => emCurso ?? Promise.resolve();
+  /** Esquece o resultado (depois de atualizar): a próxima carga confere de novo, sem buscar no GitHub. */
+  aviso.esquecer = () => { ultimo = null; conferidoEm = -Infinity; };
   return aviso;
 }
 
@@ -146,3 +148,38 @@ const nomeDoProjeto = (projeto) => {
 
 /** O nome curto de cada instalação velha: `barra`, `design-wicomm (WiControl)`, `design-wicomm (WiControl, worktree)`. */
 export const nomesDosVelhos = (velhos) => [...new Set(velhos.map(({ nome, projeto }) => (projeto ? `${nome} (${nomeDoProjeto(projeto)})` : nome)))];
+
+const PRAZO_DO_CLAUDE_MS = 120_000;
+
+/** Os passos de `claude` que põem o kit em dia, na ordem: o marketplace, depois cada instalação velha (a de projeto, de dentro dela). */
+export const passosDeAtualizar = (velhos) => [
+  { args: ['plugin', 'marketplace', 'update', MARKETPLACE], cwd: null },
+  ...velhos.map(({ nome, escopo, projeto }) => (projeto
+    ? { args: ['plugin', 'update', `${nome}@${MARKETPLACE}`, '--scope', escopo], cwd: projeto }
+    : { args: ['plugin', 'update', `${nome}@${MARKETPLACE}`], cwd: null })),
+];
+
+function rodarClaude({ args, cwd }) {
+  return new Promise((ok) => {
+    const filho = execFile('claude', args, { cwd: cwd ?? undefined, timeout: PRAZO_DO_CLAUDE_MS, maxBuffer: 1024 * 1024 }, (err, stdout, stderr) => {
+      ok({ ok: !err, saida: `${stdout ?? ''}${stderr ?? ''}`.trim() || (err?.message ?? '') });
+    });
+    // Sem terminal: nada de pergunta esperando resposta.
+    filho.stdin?.end();
+  });
+}
+
+/**
+ * Roda os passos em sequência e para no primeiro que falhar. `{ ok, falhou? }`: `falhou` é a linha de comando do passo
+ * que não deu e o fim da saída dele, para a página mostrar.
+ */
+export async function atualizarKit(velhos, rodar = rodarClaude) {
+  for (const passo of passosDeAtualizar(velhos)) {
+    const r = await rodar(passo);
+    if (!r.ok) {
+      const comando = `${passo.cwd ? `(cd ${aspas(passo.cwd)} && ` : ''}claude ${passo.args.join(' ')}${passo.cwd ? ')' : ''}`;
+      return { ok: false, falhou: { comando, saida: String(r.saida).slice(-600) } };
+    }
+  }
+  return { ok: true };
+}
