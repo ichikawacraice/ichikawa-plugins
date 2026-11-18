@@ -145,6 +145,15 @@ O navegador não alcança as ferramentas do app; o mod da `barra` alcança. A p�
 
 Pedido vencido ou inválido também vai a `falhos/` com o motivo (fica o rastro). O nome do arquivo segue `[A-Za-z0-9_-]+.json` e `sessao` segue `local_[A-Za-z0-9-]+`. **Limite do app:** `abrir-sessao` usa `open_session_in` com `target: "focus"`, que só mostra a própria sessão (`self`) ou uma que a sessão que tomou o pedido abriu, e só age com essa sessão na tela; fora disso o app diz que não mudou nada e o mod registra o texto no log.
 
+### Kit novo (leitura de fora da pasta de estado)
+
+O Painel compara o que está instalado com a `main`, sem gravar nada em `ICHIKAWA_HOME` (`lib/kit.mjs`):
+
+- **Lê** `~/.claude/plugins/installed_plugins.json` (ou `$CLAUDE_CONFIG_DIR/plugins/…`), só as chaves `<plugin>@ichikawa-plugins`. Instalação de escopo `local` ou `project` cuja pasta de projeto já não existe fica de fora.
+- **Compara** por conteúdo, não por commit. O clone do marketplace que o Claude guarda (`plugins/marketplaces/ichikawa-plugins`) é raso. Por isso cada arquivo de `git ls-tree -r origin/main -- plugins/<plugin>/` é comparado, pelo hash de blob do git, com o arquivo da pasta instalada (`installPath`). Arquivo a mais na pasta instalada (`.in_use`, tipos gerados) não conta.
+- **Busca a `main`** com `git fetch --depth=1 origin main` no clone, no máximo uma vez a cada 30 min. Isso só mexe em `refs/remotes/origin/main`, não no `HEAD` nem nos arquivos. A comparação local roda no máximo uma vez por minuto, disparada pela carga da página e sem esperar por ela: o resultado aparece no recarregamento seguinte. Falha do git ou da rede: nada aparece.
+- **Mostra** um `<details class="aviso-kit">` no topo, com o comando: `claude plugin marketplace update ichikawa-plugins`, seguido de `claude plugin update <plugin>@ichikawa-plugins` para cada instalação velha. A de projeto vai como `(cd '<projeto>' && … --scope <escopo>)`.
+
 ## Botões da barra: `barra.json`
 
 Cada plugin que quer botão na barra traz um `barra.json` na raiz dele (ao lado de `.claude-plugin/`). A `barra` lê o arquivo de cada plugin **instalado e ligado** e mostra os botões. Plugin desligado ou ausente não aparece.

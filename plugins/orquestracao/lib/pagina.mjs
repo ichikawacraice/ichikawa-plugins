@@ -8,6 +8,7 @@ import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import * as estado from './estado.mjs';
+import { comandoDeAtualizar, criarAviso, nomesDosVelhos } from './kit.mjs';
 import { ROTULO_DO_ESTADO, duracao, lerSessoesDoApp, sessoesDaPagina } from './sessoes.mjs';
 import { BOTAO_DE_TEMA, BOTAO_DE_TEMAS, GAVETA_DE_TEMAS } from './publico/tema.js';
 
@@ -224,7 +225,24 @@ function avisoDeAusente(ausente) {
     : '<p class="aviso-ausente desligado" role="status"><span class="aviso-ponto" aria-hidden="true"></span><b>Ausente desligado</b><span class="aviso-apoio">o que é seu espera pela sua resposta</span></p>';
 }
 
-export function html(agora = Date.now()) {
+/** A conferência do kit desta página (uma por processo do servidor). */
+export const avisoDoKit = criarAviso();
+
+/**
+ * Plugin do kit instalado numa versão mais velha que a `main`: uma linha discreta no topo que abre o comando de
+ * atualizar (texto selecionável, porque o navegador do app pode recusar a área de transferência) e o botão de copiar.
+ * Nada quando está tudo em dia ou a conferência não respondeu.
+ */
+function avisoDeKitNovo(kit) {
+  if (!kit?.velhos?.length) return '';
+  const nomes = nomesDosVelhos(kit.velhos);
+  const comando = comandoDeAtualizar(kit.velhos);
+  return `<details class="aviso-kit" id="aviso-kit"><summary><span class="aviso-ponto" aria-hidden="true"></span><span>${nomes.length === 1 ? 'Versão nova do plugin' : 'Versão nova dos plugins'} ${esc(nomes.join(', '))}</span><span class="kit-ver">ver comando</span></summary>`
+    + `<div class="kit-comando"><code>${esc(comando)}</code><button type="button" class="botao-kit" data-comando="${esc(comando)}">Copiar</button>`
+    + '<p>Rode no terminal; depois, reinicie as sessões abertas para elas pegarem a versão nova.</p></div></details>';
+}
+
+export function html(agora = Date.now(), kit = avisoDoKit(agora)) {
   const { perguntas, andamento, sessoes, entregas, maisEntregas } = dados(agora);
   const ausente = estado.lerAusente();
   const esquerda = secao('h-perguntas', 'Perguntas', perguntas.length || '', perguntas.map(({ projeto, p }) => cartaoDePergunta(projeto, p)), 'Nada esperando por você.')
@@ -236,7 +254,7 @@ export function html(agora = Date.now()) {
   return `<!doctype html><html lang="pt-BR" data-ceu="${estado.lerTema() === 'claro' ? 'dia' : 'noite'}" data-tema-do-app="${ligadoOuNao(estado.lerTemaDoApp())}" data-tema-do-painel="${ligadoOuNao(estado.lerTemaDoPainel())}" data-efeitos="${estado.lerEfeitos()}"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
 <title>${esc(NOME_DA_PAGINA)}</title><link rel="preload" href="/fontes/geist-medium.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="stylesheet" href="/estilo.css"><link rel="stylesheet" href="/perguntas.css"></head>
-<body><canvas id="ceu" class="ceu" aria-hidden="true"></canvas><header class="topo">${BOTAO_DE_TEMAS}${BOTAO_DE_TEMA}<h1>${esc(NOME_DA_PAGINA)}</h1>${selosDoTopo(perguntas.length, andamento.length, entregas.length + maisEntregas.length)}${avisoDeAusente(ausente)}</header>
+<body><canvas id="ceu" class="ceu" aria-hidden="true"></canvas><header class="topo">${BOTAO_DE_TEMAS}${BOTAO_DE_TEMA}<h1>${esc(NOME_DA_PAGINA)}</h1>${selosDoTopo(perguntas.length, andamento.length, entregas.length + maisEntregas.length)}${avisoDeAusente(ausente)}${avisoDeKitNovo(kit)}</header>
 <main><div>${esquerda}</div><div>${direita}</div></main>
 <footer class="pe"><p>Lido às ${esc(horaSP(new Date(agora).toISOString()))}. A página se atualiza sozinha enquanto você não está escrevendo.</p><p class="assinatura">made by Ichikawa</p></footer>
 ${GAVETA_DE_TEMAS}
@@ -255,6 +273,21 @@ ligarEfeitos(document.getElementById('gaveta-temas'), async (efeitos) => {
   const r = await fetch('/efeitos', { method: 'POST', headers: { 'Content-Type': 'application/x-www-form-urlencoded' }, body: new URLSearchParams({ efeitos }) });
   if (!r.ok) throw new Error('a página respondeu ' + r.status);
 });
+// O aviso de kit novo copia o comando de atualizar; se o navegador recusar, deixa o texto selecionado para o ⌘C.
+for (const botao of document.querySelectorAll('.botao-kit')) {
+  botao.addEventListener('click', async () => {
+    try {
+      await navigator.clipboard.writeText(botao.dataset.comando);
+      botao.textContent = 'Copiado';
+    } catch {
+      const faixa = document.createRange();
+      faixa.selectNodeContents(botao.previousElementSibling);
+      getSelection().removeAllRanges();
+      getSelection().addRange(faixa);
+      botao.textContent = 'Selecionado: tecle ⌘C';
+    }
+  });
+}
 // O botão de responder diz o que vai fazer: vazio, aceitar a recomendação; com texto, enviar a resposta.
 const rotularResposta = (campo) => {
   const botao = campo.form?.querySelector('.botao-responder');
@@ -273,7 +306,7 @@ const ABERTOS = 'entregas-abertas';
 const lerAbertos = () => { try { return JSON.parse(sessionStorage.getItem(ABERTOS) ?? '[]'); } catch { return []; } };
 for (const id of lerAbertos()) { const d = document.getElementById(id); if (d) { d.open = true; d.closest('.ver-mais')?.setAttribute('open', ''); } }
 document.addEventListener('toggle', () => {
-  const abertos = [...document.querySelectorAll('details.entrega[open], details.sessao-detalhe[open]')].map((d) => d.id);
+  const abertos = [...document.querySelectorAll('details.entrega[open], details.sessao-detalhe[open], details.aviso-kit[open]')].map((d) => d.id);
   try { sessionStorage.setItem(ABERTOS, JSON.stringify(abertos)); } catch { /* sem armazenamento: só não lembra */ }
 }, true);
 setInterval(() => { if (!document.hidden && !escrevendo()) location.reload(); }, 30000);
