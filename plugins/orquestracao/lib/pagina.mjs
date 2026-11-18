@@ -8,7 +8,7 @@ import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import * as estado from './estado.mjs';
-import { comandoDeAtualizar, criarAviso, nomesDosVelhos } from './kit.mjs';
+import { atualizarKit, comandoDeAtualizar, criarAviso, nomesDosVelhos } from './kit.mjs';
 import { ROTULO_DO_ESTADO, duracao, lerSessoesDoApp, sessoesDaPagina } from './sessoes.mjs';
 import { BOTAO_DE_TEMA, BOTAO_DE_TEMAS, GAVETA_DE_TEMAS } from './publico/tema.js';
 
@@ -229,17 +229,16 @@ function avisoDeAusente(ausente) {
 export const avisoDoKit = criarAviso();
 
 /**
- * Plugin do kit instalado numa versão mais velha que a `main`: uma linha discreta no topo que abre o comando de
- * atualizar (texto selecionável, porque o navegador do app pode recusar a área de transferência) e o botão de copiar.
+ * Plugin do kit instalado numa versão mais velha que a `main`: uma linha discreta no topo com o botão que atualiza
+ * (`POST /atualizar-kit`). O comando fica escondido e só aparece se a atualização falhar, para rodar à mão.
  * Nada quando está tudo em dia ou a conferência não respondeu.
  */
 function avisoDeKitNovo(kit) {
   if (!kit?.velhos?.length) return '';
   const nomes = nomesDosVelhos(kit.velhos);
-  const comando = comandoDeAtualizar(kit.velhos);
-  return `<details class="aviso-kit" id="aviso-kit"><summary><span class="aviso-ponto" aria-hidden="true"></span><span>${nomes.length === 1 ? 'Versão nova do plugin' : 'Versão nova dos plugins'} ${esc(nomes.join(', '))}</span><span class="kit-ver">ver comando</span></summary>`
-    + `<div class="kit-comando"><code>${esc(comando)}</code><button type="button" class="botao-kit" data-comando="${esc(comando)}">Copiar</button>`
-    + '<p>Rode no terminal; depois, reinicie as sessões abertas para elas pegarem a versão nova.</p></div></details>';
+  return `<div class="aviso-kit" role="status"><p><span class="aviso-ponto" aria-hidden="true"></span><span class="kit-texto">${nomes.length === 1 ? 'Versão nova do plugin' : 'Versão nova dos plugins'} ${esc(nomes.join(', '))}</span>`
+    + '<button type="button" class="botao-kit">Atualizar</button></p>'
+    + `<div class="kit-comando" hidden><p class="kit-erro"></p><code>${esc(comandoDeAtualizar(kit.velhos))}</code></div></div>`;
 }
 
 export function html(agora = Date.now(), kit = avisoDoKit(agora)) {
@@ -273,18 +272,29 @@ ligarEfeitos(document.getElementById('gaveta-temas'), async (efeitos) => {
   const r = await fetch('/efeitos', { method: 'POST', headers: { 'Content-Type': 'application/x-www-form-urlencoded' }, body: new URLSearchParams({ efeitos }) });
   if (!r.ok) throw new Error('a página respondeu ' + r.status);
 });
-// O aviso de kit novo copia o comando de atualizar; se o navegador recusar, deixa o texto selecionado para o ⌘C.
+// O aviso de kit novo atualiza pelo servidor da página; se falhar, mostra o porquê e o comando para rodar à mão.
 for (const botao of document.querySelectorAll('.botao-kit')) {
   botao.addEventListener('click', async () => {
+    const aviso = botao.closest('.aviso-kit');
+    const texto = aviso.querySelector('.kit-texto');
+    botao.disabled = true;
+    botao.textContent = 'Atualizando…';
+    aviso.dataset.atualizando = '';
     try {
-      await navigator.clipboard.writeText(botao.dataset.comando);
-      botao.textContent = 'Copiado';
-    } catch {
-      const faixa = document.createRange();
-      faixa.selectNodeContents(botao.previousElementSibling);
-      getSelection().removeAllRanges();
-      getSelection().addRange(faixa);
-      botao.textContent = 'Selecionado: tecle ⌘C';
+      const r = await fetch('/atualizar-kit', { method: 'POST' });
+      const corpo = await r.json().catch(() => ({}));
+      if (!r.ok || !corpo.ok) throw Object.assign(new Error(corpo.erro ?? 'a página respondeu ' + r.status), { comando: corpo.comando });
+      texto.textContent = 'Atualizado. Reinicie as sessões abertas para elas pegarem a versão nova.';
+      botao.remove();
+    } catch (err) {
+      botao.disabled = false;
+      botao.textContent = 'Tentar de novo';
+      const caixa = aviso.querySelector('.kit-comando');
+      caixa.querySelector('.kit-erro').textContent = 'Não deu: ' + err.message + '. Dá para rodar no terminal:';
+      if (err.comando) caixa.querySelector('code').textContent = err.comando;
+      caixa.hidden = false;
+    } finally {
+      delete aviso.dataset.atualizando;
     }
   });
 }
@@ -300,13 +310,13 @@ for (const campo of document.querySelectorAll('.responder textarea')) {
   campo.addEventListener('keydown', (ev) => { if (ev.key === 'Enter' && (ev.metaKey || ev.ctrlKey)) { ev.preventDefault(); campo.form.requestSubmit(); } });
 }
 const escrevendo = () => [...document.querySelectorAll('textarea')].some((t) => t.value.trim() || t === document.activeElement)
-  || document.getElementById('gaveta-temas')?.open;
+  || document.getElementById('gaveta-temas')?.open || document.querySelector('.aviso-kit[data-atualizando], .kit-comando:not([hidden])');
 // O recarregamento fecharia os cartões abertos: guarda quais estavam abertos e reabre.
 const ABERTOS = 'entregas-abertas';
 const lerAbertos = () => { try { return JSON.parse(sessionStorage.getItem(ABERTOS) ?? '[]'); } catch { return []; } };
 for (const id of lerAbertos()) { const d = document.getElementById(id); if (d) { d.open = true; d.closest('.ver-mais')?.setAttribute('open', ''); } }
 document.addEventListener('toggle', () => {
-  const abertos = [...document.querySelectorAll('details.entrega[open], details.sessao-detalhe[open], details.aviso-kit[open]')].map((d) => d.id);
+  const abertos = [...document.querySelectorAll('details.entrega[open], details.sessao-detalhe[open]')].map((d) => d.id);
   try { sessionStorage.setItem(ABERTOS, JSON.stringify(abertos)); } catch { /* sem armazenamento: só não lembra */ }
 }, true);
 setInterval(() => { if (!document.hidden && !escrevendo()) location.reload(); }, 30000);
@@ -395,11 +405,35 @@ async function trocarEfeitos(req, res, porta) {
 }
 
 /** Arquiva em todos os projetos o que já saiu da página; devolve os ids lidos (`IZA-F3`). */
+let atualizandoKit = false;
+
+/**
+ * `POST /atualizar-kit`: roda o `claude plugin update` das instalações que a própria página achou velhas (nada vem do
+ * pedido além do clique). Responde JSON: `{ ok: true }`, ou `{ ok: false, erro, comando }` com o comando para rodar à mão.
+ */
+async function atualizarKitPelaPagina(req, res, porta, { aviso = avisoDoKit, atualizar = atualizarKit } = {}) {
+  const json = (codigo, corpo) => res.writeHead(codigo, { 'Content-Type': 'application/json; charset=utf-8' }).end(JSON.stringify(corpo));
+  if (!origemLocal(req, porta)) { res.writeHead(403).end('origem recusada'); return; }
+  await lerCorpo(req);
+  const kit = aviso();
+  if (!kit?.velhos?.length) { json(409, { ok: false, erro: 'não há plugin para atualizar' }); return; }
+  if (atualizandoKit) { json(409, { ok: false, erro: 'já estou atualizando' }); return; }
+  atualizandoKit = true;
+  try {
+    const r = await atualizar(kit.velhos);
+    aviso.esquecer();
+    if (r.ok) json(200, { ok: true });
+    else json(500, { ok: false, erro: `falhou: ${r.falhou.saida.split('\n').pop() || 'sem saída'}`, comando: comandoDeAtualizar(kit.velhos) });
+  } finally {
+    atualizandoKit = false;
+  }
+}
+
 export function arquivarTudo(agora = Date.now()) {
   return estado.projetos().flatMap((projeto) => estado.arquivar(projeto, agora).map((id) => estado.rotulo(projeto, id)));
 }
 
-export function criarServidor(porta = PORTA_PADRAO) {
+export function criarServidor(porta = PORTA_PADRAO, opcoes = {}) {
   let ultimaLimpeza = -Infinity;
   // A limpeza roda ao abrir a página, no máximo uma vez por dia por processo: sem laço em segundo plano.
   const limparSeDeuODia = () => {
@@ -420,7 +454,7 @@ export function criarServidor(porta = PORTA_PADRAO) {
       }
       if (req.method === 'GET' && caminho === '/') {
         limparSeDeuODia();
-        res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8', 'Cache-Control': 'no-store' }).end(html());
+        res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8', 'Cache-Control': 'no-store' }).end(html(Date.now(), (opcoes.aviso ?? avisoDoKit)()));
         return;
       }
       if (req.method === 'POST' && caminho === '/responder') { await responder(req, res, porta); return; }
@@ -428,6 +462,7 @@ export function criarServidor(porta = PORTA_PADRAO) {
       if (req.method === 'POST' && caminho === '/tema-do-app') { await trocarTemaDoApp(req, res, porta); return; }
       if (req.method === 'POST' && caminho === '/tema-do-painel') { await trocarTemaDoPainel(req, res, porta); return; }
       if (req.method === 'POST' && caminho === '/efeitos') { await trocarEfeitos(req, res, porta); return; }
+      if (req.method === 'POST' && caminho === '/atualizar-kit') { await atualizarKitPelaPagina(req, res, porta, opcoes); return; }
       res.writeHead(404).end('não existe');
     } catch (err) {
       process.stderr.write(`pagina: ${err.message}\n`);

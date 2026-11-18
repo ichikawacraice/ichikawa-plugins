@@ -386,21 +386,24 @@ ul { list-style: none; margin: 14px 0 0; padding: 0; display: grid; gap: 10px; }
   .gaveta[open] { animation: none; }
 }
 
-/* ---- kit novo: uma linha discreta no topo, só quando algum plugin do kit está velho; abre o comando de atualizar ---- */
+/* ---- kit novo: uma linha discreta no topo, só quando algum plugin do kit está velho; o botão atualiza ali mesmo ---- */
 .aviso-kit { margin: 8px auto 0; max-width: 480px; font-size: var(--t-meta); line-height: 16px; color: var(--texto-2); }
-.aviso-kit summary {
-  display: flex; align-items: center; flex-wrap: wrap; justify-content: center; gap: 2px 8px;
-  list-style: none; cursor: pointer;
-}
-.aviso-kit summary::-webkit-details-marker { display: none; }
+.aviso-kit > p { display: flex; align-items: center; flex-wrap: wrap; justify-content: center; gap: 2px 8px; margin: 0; }
 .aviso-kit .aviso-ponto { width: 6px; height: 6px; background: var(--trabalhando); }
-.aviso-kit .kit-ver { color: var(--texto); text-decoration: underline; text-decoration-color: var(--fio-forte); text-underline-offset: 3px; }
-.aviso-kit summary:hover .kit-ver { text-decoration-color: currentColor; }
-.aviso-kit[open] .kit-ver { display: none; }
+.aviso-kit[data-atualizando] .aviso-ponto { animation: kit-pulsa 1.2s ease-in-out infinite; }
+@keyframes kit-pulsa { 50% { opacity: .3; } }
+@media (prefers-reduced-motion: reduce) { .aviso-kit[data-atualizando] .aviso-ponto { animation: none; } }
+.topo .aviso-kit button.botao-kit, .topo .aviso-kit button.botao-kit:hover:not(:disabled) {
+  min-height: 0; padding: 0; border: 0; border-radius: 2px; background: none; box-shadow: none;
+  font: inherit; color: var(--texto); cursor: pointer;
+  text-decoration: underline; text-decoration-color: var(--fio-forte); text-underline-offset: 3px;
+}
+.topo .aviso-kit button.botao-kit:hover:not(:disabled) { text-decoration-color: currentColor; }
+.topo .aviso-kit button.botao-kit:disabled { opacity: .6; cursor: default; text-decoration: none; }
 .kit-comando {
   margin-top: 8px; padding: 10px 12px; border: 1px solid var(--fio-forte); border-radius: var(--raio-botao);
   background: var(--vidro); text-align: left;
 }
+.kit-comando[hidden] { display: none; }
+.kit-comando p { margin: 0 0 6px; }
 .kit-comando code { display: block; font: 12px/18px ui-monospace, SFMono-Regular, Menlo, monospace; color: var(--texto); overflow-wrap: anywhere; user-select: all; }
-.kit-comando p { margin: 6px 0 0; }
-.topo .kit-comando button.botao-kit { margin-top: 8px; }

@@ -152,7 +152,16 @@ O Painel compara o que está instalado com a `main`, sem gravar nada em `ICHIKAW
 - **Lê** `~/.claude/plugins/installed_plugins.json` (ou `$CLAUDE_CONFIG_DIR/plugins/…`), só as chaves `<plugin>@ichikawa-plugins`. Instalação de escopo `local` ou `project` cuja pasta de projeto já não existe fica de fora.
 - **Compara** por conteúdo, não por commit. O clone do marketplace que o Claude guarda (`plugins/marketplaces/ichikawa-plugins`) é raso. Por isso cada arquivo de `git ls-tree -r origin/main -- plugins/<plugin>/` é comparado, pelo hash de blob do git, com o arquivo da pasta instalada (`installPath`). Arquivo a mais na pasta instalada (`.in_use`, tipos gerados) não conta.
 - **Busca a `main`** com `git fetch --depth=1 origin main` no clone, no máximo uma vez a cada 30 min. Isso só mexe em `refs/remotes/origin/main`, não no `HEAD` nem nos arquivos. A comparação local roda no máximo uma vez por minuto, disparada pela carga da página e sem esperar por ela: o resultado aparece no recarregamento seguinte. Falha do git ou da rede: nada aparece.
-- **Mostra** um `<details class="aviso-kit">` no topo, com o comando: `claude plugin marketplace update ichikawa-plugins`, seguido de `claude plugin update <plugin>@ichikawa-plugins` para cada instalação velha. A de projeto vai como `(cd '<projeto>' && … --scope <escopo>)`.
+- **Mostra** um `<div class="aviso-kit">` no topo, com o botão **Atualizar**.
+- **Atualiza** por `POST /atualizar-kit`, aceito só da própria origem; outra origem recebe 403.
+  - O pedido não carrega nada: a página roda os passos das instalações que ela mesma achou velhas, um de cada vez, e para no primeiro que falhar.
+  - Os passos são `claude plugin marketplace update ichikawa-plugins` e, para cada instalação velha, `claude plugin update <plugin>@ichikawa-plugins`. A de projeto roda de dentro da pasta do projeto, com `--scope <escopo>`.
+  - Cada passo tem prazo de 2 min e roda sem stdin.
+  - Respostas:
+    - `200 {ok:true}`;
+    - `409` sem plugin velho ou com uma atualização já em curso;
+    - `500 {ok:false, erro, comando}` quando um passo falha. Nesse caso a página mostra o motivo e o comando inteiro para rodar no terminal.
+  - Depois, a conferência esquece o resultado e confere de novo na próxima carga.
 
 ## Botões da barra: `barra.json`
 
