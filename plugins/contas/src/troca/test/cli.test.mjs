@@ -364,7 +364,8 @@ describe('cli: adicionar --voltar (F556)', () => {
 
   it('prazo, semAtiva e cancelado saem com código 1 e o desfecho leva o código novo (sem conta)', async () => {
     let m = montar();
-    let r = await roda(m, ['adicionar', '--voltar'], controleFalso(), rapido(async () => {}));
+    // prazo 0: vence na primeira olhada, sem esperar o relógio (com 10 s e espera vazia, o laço girava 10 s)
+    let r = await roda(m, ['adicionar', '--voltar'], controleFalso(), { ...rapido(async () => {}), prazoMs: 0 });
     assert.equal(r.codigo, 1);
     assert.match(r.erro, /não entrou/);
     assert.match(r.erro, /voltou para a conta de antes/);

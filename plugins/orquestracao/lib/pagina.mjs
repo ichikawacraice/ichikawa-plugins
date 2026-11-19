@@ -433,7 +433,7 @@ export function arquivarTudo(agora = Date.now()) {
   return estado.projetos().flatMap((projeto) => estado.arquivar(projeto, agora).map((id) => estado.rotulo(projeto, id)));
 }
 
-export function criarServidor(porta = PORTA_PADRAO, opcoes = {}) {
+export function criarServidor(portaPedida = PORTA_PADRAO, opcoes = {}) {
   let ultimaLimpeza = -Infinity;
   // A limpeza roda ao abrir a página, no máximo uma vez por dia por processo: sem laço em segundo plano.
   const limparSeDeuODia = () => {
@@ -441,7 +441,9 @@ export function criarServidor(porta = PORTA_PADRAO, opcoes = {}) {
     ultimaLimpeza = Date.now();
     try { arquivarTudo(); } catch (err) { process.stderr.write(`pagina: limpeza falhou: ${err.message}\n`); }
   };
-  return createServer(async (req, res) => {
+  // Porta 0: o sistema escolhe uma livre, e a origem aceita passa a ser a que ele escolheu.
+  const servidor = createServer(async (req, res) => {
+    const porta = portaPedida || servidor.address().port;
     try {
       const caminho = (req.url ?? '/').split('?')[0];
       if (req.method === 'GET' && caminho === '/saude') {
@@ -469,6 +471,7 @@ export function criarServidor(porta = PORTA_PADRAO, opcoes = {}) {
       if (!res.headersSent) res.writeHead(500).end('erro ao ler o estado');
     }
   });
+  return servidor;
 }
 
 export function servir(porta = PORTA_PADRAO) {
