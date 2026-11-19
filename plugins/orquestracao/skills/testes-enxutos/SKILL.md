@@ -43,6 +43,7 @@ O que o teste do PR deixa de rodar não some: o gate do release pega. Por isso d
 - **O prazo do teste serve para pegar o teste pendurado, não o lento.** Use algo como 15× o caso mais caro. Prazo apertado mede a máquina, não o código.
 - **Todo subprocesso de teste tem `timeout` e `killSignal: 'SIGKILL'`,** inclusive `git`, shell e navegador. O relógio do runner não corta uma chamada síncrona.
 - **O servidor de teste escuta em `127.0.0.1` explícito.** `listen(0)` em `::` deixa outro processo tomar a porta.
+- **A porta é a 0, nunca sorteada.** Sorteio numa faixa colide com a suíte de outra sessão (`EADDRINUSE`) e pode cair numa porta que o `fetch` recusa (5060, 5061, 6000…: `bad port`). O código que precisa saber a própria porta lê `server.address().port`. No kit, isso derrubava 12% das rodadas sob carga.
 - **Dependência fora do git é precondição declarada e afirmada** antes de medir (variável, binário, banco). Sem isso, o verde quer dizer "esta máquina", não "este código".
 - **Consertou um teste instável? Prove sob carga, com controle:** N rodadas da versão nova lado a lado com a velha. Flake consertado sem controle foi só sorte.
 
@@ -163,6 +164,7 @@ Regra escrita não segura a próxima sessão. A regra que importa ganha um teste
 - `setTimeout` ou `sleep` com número em arquivo de teste;
 - `execFileSync` sem `timeout`;
 - `listen(0)` sem host;
+- porta sorteada com `Math.random()`;
 - declaração `o-filho-le` cujo glob não casa com nada.
 
 Duas listas que precisam concordar (a dos caros e a do CI, o setup e as configs) também ganham um teste que lê as duas.

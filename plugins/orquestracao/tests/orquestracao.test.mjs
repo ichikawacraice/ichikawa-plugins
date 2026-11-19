@@ -163,8 +163,8 @@ test('a página escapa o texto e separa perguntas, sessões e entregas', () => {
 });
 
 test('a página serve o céu e o planeta do rodapé que ele importa', async () => {
-  const porta = 4800 + Math.floor(Math.random() * 500);
-  const servidor = await servir(porta);
+  const servidor = await servir(0);
+  const porta = servidor.address().port;
   try {
     const url = `http://127.0.0.1:${porta}`;
     const ceu = await (await fetch(`${url}/ceu.js`)).text();
@@ -184,8 +184,8 @@ test('a página serve o céu e o planeta do rodapé que ele importa', async () =
 });
 
 test('a página serve a fonte dos títulos embutida, como woff2 e sem charset', async () => {
-  const porta = 4800 + Math.floor(Math.random() * 500);
-  const servidor = await servir(porta);
+  const servidor = await servir(0);
+  const porta = servidor.address().port;
   try {
     const fonte = await fetch(`http://127.0.0.1:${porta}/fontes/geist-medium.woff2`);
     assert.equal(fonte.status, 200);
@@ -259,8 +259,8 @@ test('tema.json: lê e grava o contrato; valor desconhecido não grava', () => {
 test('o topo traz o botão de tema e a página serve o tema.js', async () => {
   assert.match(topoDe(html()), /<button type="button" class="botao-tema" id="b-tema"[\s\S]*icone-sol[\s\S]*icone-lua/);
   assert.match(html(), /import \{ ligarBotaoDeTema, ligarEfeitos, ligarGavetaDeTemas \} from '\/tema\.js'/);
-  const porta = 4800 + Math.floor(Math.random() * 500);
-  const servidor = await servir(porta);
+  const servidor = await servir(0);
+  const porta = servidor.address().port;
   try {
     const r = await fetch(`http://127.0.0.1:${porta}/tema.js`);
     assert.equal(r.status, 200);
@@ -281,8 +281,8 @@ test('tema do painel: desligado vai no <html> e POST /tema-do-painel grava só d
   assert.equal(estado.lerTemaDoPainel(), true, 'sem arquivo, ligado');
   writeFileSync(join(process.env.ICHIKAWA_HOME, 'tema-do-painel.json'), 'não é json');
   assert.equal(estado.lerTemaDoPainel(), true, 'ilegível, ligado');
-  const porta = 4800 + Math.floor(Math.random() * 500);
-  const servidor = await servir(porta);
+  const servidor = await servir(0);
+  const porta = servidor.address().port;
   try {
     const url = `http://127.0.0.1:${porta}`;
     const enviar = (corpo, origin = url) => fetch(`${url}/tema-do-painel`, { method: 'POST', headers: { origin, 'content-type': 'application/x-www-form-urlencoded' }, body: corpo });
@@ -303,8 +303,8 @@ test('tema do painel: desligado vai no <html> e POST /tema-do-painel grava só d
 test('tema do app: POST /tema-do-app grava só da própria origem', async () => {
   assert.equal(estado.lerTemaDoApp(), true, 'sem arquivo, ligado');
   assert.match(html(), /data-tema-do-app="ligado"/);
-  const porta = 4800 + Math.floor(Math.random() * 500);
-  const servidor = await servir(porta);
+  const servidor = await servir(0);
+  const porta = servidor.address().port;
   try {
     const url = `http://127.0.0.1:${porta}`;
     const enviar = (corpo, origin = url) => fetch(`${url}/tema-do-app`, { method: 'POST', headers: { origin, 'content-type': 'application/x-www-form-urlencoded' }, body: corpo });
@@ -323,8 +323,8 @@ test('tema do app: POST /tema-do-app grava só da própria origem', async () => 
 });
 
 test('POST /tema grava a escolha só da própria origem e só com claro ou escuro', async () => {
-  const porta = 4800 + Math.floor(Math.random() * 500);
-  const servidor = await servir(porta);
+  const servidor = await servir(0);
+  const porta = servidor.address().port;
   try {
     const url = `http://127.0.0.1:${porta}`;
     const enviar = (corpo, origin = url) => fetch(`${url}/tema`, { method: 'POST', headers: { origin, 'content-type': 'application/x-www-form-urlencoded' }, body: corpo });
@@ -344,8 +344,8 @@ test('POST /tema grava a escolha só da própria origem e só com claro ou escur
 
 test('a página só aceita POST da própria origem e grava o pedido de resposta', async () => {
   estado.criar('perguntas', 'p', { titulo: 'T', estado: 'aberta', sessao: SESSAO_DO_APP });
-  const porta = 4800 + Math.floor(Math.random() * 500);
-  const servidor = await servir(porta);
+  const servidor = await servir(0);
+  const porta = servidor.address().port;
   try {
     const url = `http://127.0.0.1:${porta}`;
     const corpo = 'projeto=p&id=Q1&resposta=pode';
@@ -398,8 +398,8 @@ test('cada pergunta tem um botão só: vazio aceita a recomendação, com texto 
   assert.doesNotMatch(h, /value="aceitar"|value="enviar"|>Enviar resposta</, 'sem o segundo botão');
   assert.match(h, /data-vazio="Aceitar recomendação" data-cheio="Enviar resposta">Aceitar recomendação</);
   assert.doesNotMatch(h, /<textarea[^>]*required/, 'o campo vazio pode ir: é o aceitar');
-  const porta = 5400 + Math.floor(Math.random() * 500);
-  const servidor = await servir(porta);
+  const servidor = await servir(0);
+  const porta = servidor.address().port;
   try {
     const url = `http://127.0.0.1:${porta}`;
     const post = (corpo) => fetch(`${url}/responder`, { method: 'POST', redirect: 'manual', headers: { origin: url, 'content-type': 'application/x-www-form-urlencoded' }, body: corpo });
@@ -724,9 +724,9 @@ test('perguntas arquivar move de todos os projetos e diz o que moveu', async () 
 test('abrir a página arquiva no máximo uma vez por dia', async () => {
   const velha = new Date(Date.now() - 45 * 24 * 60 * 60 * 1000);
   entregar('p', 'a', velha);
-  const porta = 4800 + Math.floor(Math.random() * 500);
-  const servidor = criarServidor(porta);
-  await new Promise((ok) => servidor.listen(porta, '127.0.0.1', ok));
+  const servidor = criarServidor(0);
+  await new Promise((ok) => servidor.listen(0, '127.0.0.1', ok));
+  const porta = servidor.address().port;
   try {
     await fetch(`http://127.0.0.1:${porta}/`);
     assert.ok(readdirSync(join(estado.pastaDe('itens', 'p'), 'arquivo')).includes('F1.json'));
@@ -742,16 +742,16 @@ test('abrir a página arquiva no máximo uma vez por dia', async () => {
 const PASTA_VELHA = '/Users/x/.claude/plugins/cache/ichikawa-plugins/orquestracao/3084fc400022';
 const comandoDaPagina = (pasta) => `/usr/local/bin/node ${pasta}/lib/cli.mjs pagina --porta 4747`;
 
-async function servidorFalso(porta, corpo) {
+async function servidorFalso(corpo) {
   const s = createServer((req, res) => res.writeHead(200).end(corpo));
-  await new Promise((ok) => s.listen(porta, '127.0.0.1', ok));
+  await new Promise((ok) => s.listen(0, '127.0.0.1', ok));
   return s;
 }
 
 /** Roda `abrirPagina` com um servidor falso na porta e devolve o que ele encerrou e se subiu outro. */
 async function abrirSobre(corpo, comando) {
-  const porta = 4800 + Math.floor(Math.random() * 500);
-  const falso = await servidorFalso(porta, corpo);
+  const falso = await servidorFalso(corpo);
+  const porta = falso.address().port;
   const r = { encerrados: [], subiu: false, avisos: [] };
   let novo;
   try {
@@ -769,8 +769,8 @@ async function abrirSobre(corpo, comando) {
 }
 
 test('/saude diz que é o kit e de que pasta', async () => {
-  const porta = 4800 + Math.floor(Math.random() * 500);
-  const servidor = await servir(porta);
+  const servidor = await servir(0);
+  const porta = servidor.address().port;
   try {
     assert.deepEqual(await (await fetch(`http://127.0.0.1:${porta}/saude`)).json(), { kit: 'orquestracao', pasta: PASTA_DO_KIT });
   } finally {
@@ -913,8 +913,8 @@ test('efeitos: os três níveis vão no <html>, na gaveta, e POST /efeitos grava
   assert.throws(() => estado.gravarEfeitos('tudo', 'painel'), /efeitos desconhecidos/);
   assert.match(html(), /data-efeitos="poucos"/);
   for (const nivel of ['nenhum', 'poucos', 'completo']) assert.match(html(), new RegExp(`name="efeitos" class="efeito-botao" value="${nivel}"`));
-  const porta = 4800 + Math.floor(Math.random() * 500);
-  const servidor = await servir(porta);
+  const servidor = await servir(0);
+  const porta = servidor.address().port;
   try {
     const url = `http://127.0.0.1:${porta}`;
     const enviar = (corpo, origin = url) => fetch(`${url}/efeitos`, { method: 'POST', headers: { origin, 'content-type': 'application/x-www-form-urlencoded' }, body: corpo });
