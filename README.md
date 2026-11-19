@@ -160,6 +160,7 @@ perguntas sigla [SIG] | arquivar | pagina [--abrir | --subir] [--porta 4747]
 | `paralelizar-agentes` | Vários subagentes de uma vez para problemas que não se ligam. |
 | `tdd` | Teste que falha pelo motivo certo, o mínimo para passar, refatorar no verde. |
 | `testes-de-tela` | Onde mora cada teste de React: componente (Testing Library) ou ponta a ponta (Playwright). |
+| `testes-enxutos` | Teste que custa pouco e não mente: escrever só o que paga a si mesmo, o PR roda o que o diff alcança e o release roda a suíte inteira, em degraus (suíte inteira, grafo de import, registro de leituras, tempo e paralelismo), com os modelos `scripts/testes-afetados.mjs` e `scripts/os-lentos.mjs` para copiar. Sai do que o Izanagi mediu. |
 | `depurar` | A causa raiz antes do conserto, em quatro fases. |
 | `auditoria-de-clique` | Segue cada clique até o estado final, para achar o botão que "não faz nada". |
 | `verificar-antes-de-concluir` | Nenhum "pronto" sem a saída do comando que prova. |
@@ -186,7 +187,7 @@ A maioria avisa ou pergunta antes. Só três seguram: a mensagem com segredo par
 
 | Quando | Hook | O que faz |
 |---|---|---|
-| Início da sessão | `inicio` | Injeta as regras do kit, o papel herdado, o modo ausente e as respostas do Painel ainda não lidas. |
+| Início da sessão | `inicio` | Injeta as regras do kit, o papel herdado, o modo ausente e as respostas do Painel ainda não lidas. Em projeto com script de teste cujo `CLAUDE.md` não declara o comando de testes afetados, lembra a sessão de seguir o Diagnóstico de `testes-enxutos`. |
 | Antes de editar | `orquestradora-nao-edita` | A orquestradora não escreve código de produto: pergunta antes. |
 | Antes de editar | `config-protegida` | Mexer em configuração de lint, formatador ou tipos pergunta antes (o certo é consertar o código). |
 | Antes de editar ou rodar Bash | `segredo-em-arquivo` | Pergunta antes de gravar segredo de verdade em arquivo e antes de `git add .env`. Nomeia o padrão, nunca o valor. |

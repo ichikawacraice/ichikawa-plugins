@@ -56,7 +56,7 @@ O código mais simples que passa. Sem opções, parâmetros ou "já que estou aq
 
 Rode de novo. Confira: o teste passa; os **testes afetados** pela mudança e o **typecheck** do projeto (os comandos do `CLAUDE.md`) continuam verdes; a saída está limpa, sem erro nem aviso. Teste falha → conserte o código, não o teste. Outro teste quebrou → conserte agora; falha que não foi você quem causou entra no relato pelo nome.
 
-O gate completo não roda a cada ciclo: ele é do release. Durante o trabalho, afetados + typecheck.
+O gate completo não roda a cada ciclo: ele é do release. Durante o trabalho, afetados + typecheck. Quanto teste escrever, como não deixar o teste lento ou instável e como o projeto escolhe os afetados: `orquestracao:testes-enxutos`.
 
 ### Refatorar — só no verde
 
