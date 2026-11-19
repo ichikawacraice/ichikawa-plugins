@@ -283,10 +283,16 @@ export function lerPedido(texto: string, agora: number): { pedido: Pedido } | { 
   const criado = typeof o.criadoEm === 'string' ? Date.parse(o.criadoEm) : Number.NaN
   if (Number.isNaN(criado)) return { motivo: 'criadoEm inválido' }
   if (agora - criado > PEDIDO_VALE_MS) return { motivo: 'vencido (mais de 30 min)' }
+  if (o.tipo !== 'responder') return { pedido: { tipo: 'abrir-sessao', sessao: o.sessao, criadoEm: o.criadoEm as string } }
+  // A reserva (a orquestradora, quando a dona sumiu) é opcional: malformada, fica de fora sem recusar o pedido.
+  const r = (o.reserva ?? null) as Record<string, unknown> | null
+  const reserva =
+    r && typeof r.sessao === 'string' && SESSAO.test(r.sessao) && r.sessao !== o.sessao && typeof r.texto === 'string' && r.texto.trim() !== ''
+      ? { sessao: r.sessao, texto: r.texto }
+      : undefined
 
-  return {
-    pedido: o.tipo === 'responder'
-      ? { tipo: 'responder', sessao: o.sessao, texto: o.texto as string, criadoEm: o.criadoEm as string }
-      : { tipo: 'abrir-sessao', sessao: o.sessao, criadoEm: o.criadoEm as string },
-  }
+  return { pedido: { tipo: 'responder', sessao: o.sessao, texto: o.texto as string, criadoEm: o.criadoEm as string, ...(reserva ? { reserva } : {}) } }
 }
+
+/** A entrega falhou porque a sessão não existe mais para receber (arquivada ou apagada): vale tentar a reserva. */
+export const sessaoSumiu = (motivo: string): boolean => /is archived|not found/i.test(motivo)

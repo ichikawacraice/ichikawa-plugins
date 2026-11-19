@@ -27,7 +27,7 @@ export type Botao = {
 /** Um pedido da página (`pedidos/<uuid>.json`). */
 export type Pedido =
   | { tipo: 'abrir-sessao'; sessao: string; criadoEm: string }
-  | { tipo: 'responder'; sessao: string; texto: string; criadoEm: string }
+  | { tipo: 'responder'; sessao: string; texto: string; criadoEm: string; reserva?: { sessao: string; texto: string } }
 
 /** O relógio do cache: quando vence (ms) e quantos segundos faltam; `null` antes da primeira resposta. */
 export type Cache = { expiraEm: number | null; segundos: number | null }

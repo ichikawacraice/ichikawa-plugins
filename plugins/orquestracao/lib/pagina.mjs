@@ -9,7 +9,7 @@ import { join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import * as estado from './estado.mjs';
 import { atualizarKit, comandoDeAtualizar, criarAviso, nomesDosVelhos } from './kit.mjs';
-import { ROTULO_DO_ESTADO, duracao, lerSessoesDoApp, sessoesDaPagina } from './sessoes.mjs';
+import { LEITURA_FRESCA_MS, ROTULO_DO_ESTADO, duracao, lerSessoesDoApp, sessoesDaPagina } from './sessoes.mjs';
 import { BOTAO_DE_TEMA, BOTAO_DE_TEMAS, GAVETA_DE_TEMAS } from './publico/tema.js';
 
 export const PORTA_PADRAO = 4747;
@@ -27,7 +27,7 @@ const RESPOSTA_PADRAO = 'Sim, siga a recomendação.';
 const ROTULO_VAZIO = 'Aceitar recomendação';
 const ROTULO_CHEIO = 'Enviar resposta';
 const ROTULOS_DO_RESPONDER = `data-vazio="${ROTULO_VAZIO}" data-cheio="${ROTULO_CHEIO}"`;
-const SESSAO_DO_APP = /^local_[0-9a-f-]{36}$/;
+const { SESSAO_DO_APP } = estado;
 const NOME_DO_KIT = 'orquestracao';
 /** A pasta deste plugin (no cache, uma por versão): é o que distingue o servidor desta versão do de outra. */
 export const PASTA_DO_KIT = resolve(fileURLToPath(new URL('..', import.meta.url)));
@@ -344,10 +344,10 @@ const origemLocal = (req, porta) => {
 };
 
 /** O pedido que o mod da barra executa (docs/contratos.md, `pedidos/`). */
-export function gravarPedido(tipo, sessao, texto = null) {
+export function gravarPedido(tipo, sessao, texto = null, reserva = null) {
   const pasta = join(estado.raiz(), 'pedidos');
   mkdirSync(pasta, { recursive: true });
-  const pedido = { tipo, sessao, texto, criadoEm: new Date().toISOString() };
+  const pedido = { tipo, sessao, texto, ...(reserva ? { reserva } : {}), criadoEm: new Date().toISOString() };
   writeFileSync(join(pasta, `${randomUUID()}.json`), `${JSON.stringify(pedido, null, 2)}\n`, { flag: 'wx' });
   return pedido;
 }
@@ -370,9 +370,45 @@ async function responder(req, res, porta) {
   // era clicar em "Aceitar" com a resposta escrita que jogava fora o que o operador digitou.
   const resposta = f.get('resposta')?.trim() || RESPOSTA_PADRAO;
   estado.atualizar('perguntas', projeto, p.id, { estado: 'respondida', resposta, respondidaEm: new Date().toISOString(), lida: false });
-  // A sessão pode ter se limpado depois de perguntar: o texto diz que a pergunta é dela e traz o título.
-  if (ehSessaoDoApp(p.sessao)) gravarPedido('responder', p.sessao, `${p.id} · pergunta aberta por esta sessão («${p.titulo}»), resposta do operador pela página: ${resposta}`);
+  entregarResposta(p, projeto, resposta, lerSessoesDoApp(estado.raiz()));
   res.writeHead(303, { Location: '/' }).end();
+}
+
+/**
+ * Para quem vai a resposta da página: a sessão que perguntou, se o app a mostra aberta; senão (arquivada, apagada ou
+ * pergunta sem sessão), a orquestradora do projeto: a gravada, ou a sessão aberta do projeto com "orquestradora" no
+ * título. Com a leitura do app velha não dá para saber se a dona vive: vai a ela, e a orquestradora fica de reserva
+ * (a barra tenta a reserva se a entrega falhar). `null` quando não há para quem mandar: a resposta fica para
+ * `perguntas novidades`.
+ */
+export function destinoDaResposta(p, projeto, app, agora = Date.now()) {
+  const fresca = app.lidoEm !== null && agora - app.lidoEm <= LEITURA_FRESCA_MS;
+  const abertas = app.sessoes.filter((s) => !s.arquivada);
+  const aberta = (id) => abertas.some((s) => s.sessionId === id);
+  const gravada = estado.orquestradoraDe(projeto);
+  const peloTitulo = abertas.find((s) => s.projeto === projeto && /orquestradora/i.test(s.titulo))?.sessionId ?? null;
+  const orquestradora = fresca ? ((gravada && aberta(gravada) ? gravada : null) ?? peloTitulo) : (gravada ?? peloTitulo);
+  const dona = ehSessaoDoApp(p.sessao) ? p.sessao : null;
+  if (dona && (!fresca || aberta(dona))) return { sessao: dona, dona: true, reserva: orquestradora !== dona ? orquestradora : null };
+  return orquestradora ? { sessao: orquestradora, dona: dona === orquestradora, reserva: null } : null;
+}
+
+const textoParaADona = (p, resposta) => `${p.id} · pergunta aberta por esta sessão («${p.titulo}»), resposta do operador pela página: ${resposta}`;
+
+function textoParaAOrquestradora(p, projeto, resposta) {
+  const de = p.sessao ? `pela sessão ${p.sessao}, que não está mais aberta` : 'sem sessão gravada';
+  const item = p.item ? ` (item ${estado.rotulo(projeto, p.item)})` : '';
+  return `${estado.rotulo(projeto, p.id)} · resposta do operador pela página à pergunta «${p.titulo}»${item}, aberta ${de}: ${resposta}\n`
+    + 'A dona não vai receber: aja com essa decisão (retome o item com outra dona, ou siga você) ou diga ao operador que não há o que fazer. Depois, `perguntas novidades` para marcá-la lida.';
+}
+
+/** Grava o pedido que a barra entrega; a sessão pode ter se limpado depois de perguntar, então o texto traz o título. */
+export function entregarResposta(p, projeto, resposta, app, agora = Date.now()) {
+  const destino = destinoDaResposta(p, projeto, app, agora);
+  if (!destino) return null;
+  const texto = destino.dona ? textoParaADona(p, resposta) : textoParaAOrquestradora(p, projeto, resposta);
+  const reserva = destino.reserva ? { sessao: destino.reserva, texto: textoParaAOrquestradora(p, projeto, resposta) } : null;
+  return gravarPedido('responder', destino.sessao, texto, reserva);
 }
 
 /** O botão de tema: grava `claro` ou `escuro` no `tema.json` (o mesmo da barra e do painel de cotas). */
