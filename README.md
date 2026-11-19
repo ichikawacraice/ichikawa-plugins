@@ -127,7 +127,7 @@ A orquestradora é para **dividir trabalho grande entre várias sessões**, não
 
 | Seção | O que mostra |
 |---|---|
-| **Perguntas** | As abertas de todos os projetos: o caso, o que acontece se ninguém decidir e a recomendação. Um botão só para responder: com o campo vazio ele **aceita a recomendação**, com texto **envia a resposta** (⌘/Ctrl+Enter também envia). A resposta chega à sessão que perguntou, pela barra. |
+| **Perguntas** | As abertas de todos os projetos: o caso, o que acontece se ninguém decidir e a recomendação. Um botão só para responder: com o campo vazio ele **aceita a recomendação**, com texto **envia a resposta** (⌘/Ctrl+Enter também envia). A resposta chega à sessão que perguntou, pela barra; se ela foi arquivada ou apagada, chega à orquestradora do projeto. |
 | **Sessões** | Um grupo por projeto, com a etapa de cada item (planejamento → execução → revisão → PR → entregue), quem espera você e quem está rodando agora. Cada estado tem um selo de cor própria: esperando você em âmbar, trabalhando em azul, em revisão em ciano, no PR em lilás, parada em vermelho. Clicar no cartão o abre, como os Entregues: o que já está feito e o que falta, no resumo da dona, e quanto tempo o item ficou em cada etapa, com o total. |
 | **Entregues** | As entregas dos últimos 30 dias: resultado, o que foi medido, o que ficou sem medir, próximos passos e o PR. |
 
@@ -183,7 +183,7 @@ perguntas sigla [SIG] | arquivar | pagina [--abrir | --subir] [--porta 4747]
 
 ### Hooks
 
-A maioria avisa ou pergunta antes. Só três seguram: a mensagem com segredo para outra sessão, a caixa que espera você sem a pergunta gravada e o fim de turno com bloco de decisão sem registro (devolvido uma vez).
+A maioria avisa ou pergunta antes. Só três seguram: a mensagem com segredo para outra sessão, a caixa com pergunta sem a pergunta gravada e o fim de turno com bloco de decisão sem registro (devolvido uma vez).
 
 | Quando | Hook | O que faz |
 |---|---|---|
@@ -193,7 +193,7 @@ A maioria avisa ou pergunta antes. Só três seguram: a mensagem com segredo par
 | Antes de editar ou rodar Bash | `segredo-em-arquivo` | Pergunta antes de gravar segredo de verdade em arquivo e antes de `git add .env`. Nomeia o padrão, nunca o valor. |
 | Antes de rodar Bash | `sem-no-verify` | `--no-verify` e afins perguntam antes. |
 | Antes de mandar mensagem a outra sessão | `segredo-sai` | Recusa a mensagem que leva segredo a outra sessão. |
-| Antes da caixa de próximo passo | `pergunta-na-caixa` | A caixa que espera você só passa com a pergunta gravada no Painel. |
+| Antes da caixa de próximo passo | `pergunta-na-caixa` | Toda caixa com pergunta (bloqueando ou não) só passa com a pergunta gravada no Painel. |
 | Depois de editar | `aviso-console-log`, `formatar-editado` | Avisa `console.log` em código de produto; formata só o arquivo editado, se o projeto declara Biome ou Prettier (`ICHIKAWA_FORMATAR=0` desliga). |
 | Fim do turno | `pergunta-no-painel`, `orquestradora-limpa` | Cobra bloco de decisão (`**D…`, `**IZA-Q…`) sem registro; avisa quando o contexto da orquestradora pede limpeza. |
 

@@ -45,6 +45,8 @@ export function contexto(entrada) {
   const herdado = herdarPapel(entrada);
   const papel = herdado ?? papelDe(entrada.session_id);
   if (papel) partes.push(`Papel desta sessão: **${papel}** (siga a skill \`orquestracao:${papel}\`).`);
+  // A cada início (e depois de um /clear), a orquestradora se regrava: é para ela que vai a resposta de dona arquivada.
+  if (papel === 'orquestradora') estado.gravarOrquestradora(projeto, estado.sessaoDoAppAtual());
   if (herdado) partes.push('Você acabou de ser limpa: o andamento está em `perguntas item listar` e `perguntas listar`. Não releia transcripts; responda ao que chegar.');
   const testes = avisoDeTestes(entrada.cwd || process.cwd());
   if (testes) partes.push(testes);

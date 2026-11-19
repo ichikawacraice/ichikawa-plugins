@@ -18,6 +18,7 @@ import {
   pluginsLigados,
   relogio,
   rotuloComSelo,
+  sessaoSumiu,
   temaOposto,
   textoDoAusente,
   textoDoTema,
@@ -163,6 +164,19 @@ test('lerPedido: tipos, sessão, texto e o prazo de 30 min', () => {
   expect(lerPedido(JSON.stringify({ ...ok, tipo: 'apagar' }), agora)).toEqual({ motivo: 'tipo desconhecido: apagar' })
   expect(lerPedido(JSON.stringify({ ...ok, criadoEm: new Date(agora - 31 * 60_000).toISOString() }), agora)).toEqual({ motivo: 'vencido (mais de 30 min)' })
   expect(lerPedido('{', agora)).toEqual({ motivo: 'não é JSON' })
+})
+
+test('lerPedido: a reserva (orquestradora) entra só bem formada; a entrega que falhou por sessão arquivada ou apagada tenta a reserva', () => {
+  const agora = Date.UTC(2026, 10, 14, 0, 0)
+  const criadoEm = new Date(agora - 60_000).toISOString()
+  const ok = { tipo: 'responder', sessao: 'local_abc-123', texto: 'sim', criadoEm }
+  const reserva = { sessao: 'local_orq-1', texto: 'para a orquestradora' }
+  expect(lerPedido(JSON.stringify({ ...ok, reserva }), agora)).toEqual({ pedido: { ...ok, reserva } })
+  expect(lerPedido(JSON.stringify({ ...ok, reserva: { ...reserva, sessao: '../x' } }), agora)).toEqual({ pedido: ok })
+  expect(lerPedido(JSON.stringify({ ...ok, reserva: { ...reserva, sessao: ok.sessao } }), agora)).toEqual({ pedido: ok })
+  expect(sessaoSumiu('Message not delivered: session local_x is archived; unarchive it first.')).toBe(true)
+  expect(sessaoSumiu('Message not delivered: session local_x not found.')).toBe(true)
+  expect(sessaoSumiu('sem resposta em 60 s')).toBe(false)
 })
 
 test('iconeValido: aceita um glifo curto e recusa vazio, espaço, texto longo e não texto', () => {

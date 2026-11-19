@@ -49,14 +49,16 @@ const OPCOES = {
 
 const PAPEIS = new Set(['orquestradora', 'nenhum']);
 
-function marcarPapel(papel, sessaoId) {
+function marcarPapel(papel, sessaoId, projeto) {
   if (!PAPEIS.has(papel) || !/^[\w-]{8,80}$/.test(sessaoId ?? '')) throw new Error('uso: perguntas papel <orquestradora|nenhum> --sessao-id ID');
   const pasta = join(estado.raiz(), 'papeis');
   const marcador = join(pasta, sessaoId);
   if (papel === 'nenhum') { rmSync(marcador, { force: true }); return 'papel removido'; }
   mkdirSync(pasta, { recursive: true });
   writeFileSync(marcador, `${papel}\n`);
-  return `papel: ${papel}`;
+  // A sessão do app recebe as respostas da página cuja dona foi arquivada.
+  const doApp = estado.gravarOrquestradora(projeto, estado.sessaoDoAppAtual());
+  return `papel: ${papel}${doApp ? '' : ' (fora do app: as respostas de donas arquivadas não terão para onde ir)'}`;
 }
 
 /**
@@ -135,7 +137,8 @@ function cmdPergunta(acao, args, v, projeto, out) {
     exigir(v, ['titulo', 'caso', 'se-nao', 'recomendacao']);
     const item = v.item ? resolver(v.item, 'F', v, projeto) : null;
     const alvo = item?.projeto ?? projeto;
-    const sessao = v.sessao ?? (item ? estado.ler('itens', alvo, item.id)?.sessao : null) ?? null;
+    // Quem pergunta recebe a resposta: a sessão do app que roda o comando, antes da dona gravada no item.
+    const sessao = v.sessao ?? estado.sessaoDoAppAtual() ?? (item ? estado.ler('itens', alvo, item.id)?.sessao : null) ?? null;
     const p = estado.criar('perguntas', alvo, {
       titulo: v.titulo, caso: v.caso, seNaoDecidir: v['se-nao'], recomendacao: v.recomendacao,
       item: item?.id ?? null, sessao, estado: 'aberta', resposta: null, respondidaEm: null,
@@ -237,7 +240,7 @@ export async function main(argv, out = (s) => process.stdout.write(`${s}\n`)) {
   const [cmd, ...args] = positionals;
   if (!cmd || cmd === 'ajuda' || cmd === 'help') { out(AJUDA); return 0; }
   const projeto = v.projeto || estado.nomeDoProjeto();
-  if (cmd === 'papel') { out(marcarPapel(args[0], v['sessao-id'])); return 0; }
+  if (cmd === 'papel') { out(marcarPapel(args[0], v['sessao-id'], projeto)); return 0; }
   if (cmd === 'passar-papel') {
     if (!/^[\w-]{8,80}$/.test(v['sessao-id'] ?? '')) throw new Error('uso: perguntas passar-papel --sessao-id ID');
     out(`passagem gravada: a próxima sessão nesta pasta (15 min) assume ${gravarPassagem(v['sessao-id'], process.cwd())}`);

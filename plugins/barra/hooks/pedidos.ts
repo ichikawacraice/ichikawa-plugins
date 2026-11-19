@@ -5,7 +5,7 @@
 import type { EngineInterface } from 'claude-code'
 
 import type { Pedido } from '../types'
-import { NOME_DO_PEDIDO, PEDIDO_GRAVANDO_MS, lerPedido } from './logica'
+import { NOME_DO_PEDIDO, PEDIDO_GRAVANDO_MS, lerPedido, sessaoSumiu } from './logica'
 
 const PRAZO_FS_MS = 5_000
 const PRAZO_ENVIO_MS = 60_000
@@ -46,18 +46,28 @@ async function falhar($: EngineInterface, p: Pastas, nome: string, origem: strin
   await $.ui.log(`pedido ${nome}: ${motivo}`)
 }
 
+/** Manda um texto a uma sessão (a própria, como prompt). Devolve o motivo da falha, ou `null` se deu certo. */
+async function entregarTexto($: EngineInterface, sessao: string, texto: string, eu: string | undefined): Promise<string | null> {
+  if (eu !== undefined && sessao === eu) {
+    const r = await $.prompt.submit({ text: texto })
+
+    return r.drop !== undefined ? `o prompt foi recusado (${r.drop || 'sem motivo'})` : null
+  }
+  const r = await $.tool.call({ tool: 'mcp__ccd_session_mgmt__send_message', session_id: sessao, message: texto })
+
+  return r.deny !== undefined ? r.deny || 'negado' : r.isError ? r.text || 'erro sem texto' : null
+}
+
 /** Executa um pedido já tomado. Devolve o motivo da falha, ou `null` se deu certo. */
 export async function executar($: EngineInterface, pedido: Pedido, eu: string | undefined): Promise<string | null> {
   const propria = eu !== undefined && pedido.sessao === eu
   if (pedido.tipo === 'responder') {
-    if (propria) {
-      const r = await $.prompt.submit({ text: pedido.texto })
+    const motivo = await entregarTexto($, pedido.sessao, pedido.texto, eu)
+    // A dona foi arquivada ou apagada: a resposta vai à orquestradora, para não morrer em `falhos/`.
+    if (motivo === null || !pedido.reserva || !sessaoSumiu(motivo)) return motivo
+    const daReserva = await entregarTexto($, pedido.reserva.sessao, pedido.reserva.texto, eu)
 
-      return r.drop !== undefined ? `o prompt foi recusado (${r.drop || 'sem motivo'})` : null
-    }
-    const r = await $.tool.call({ tool: 'mcp__ccd_session_mgmt__send_message', session_id: pedido.sessao, message: pedido.texto })
-
-    return r.deny !== undefined ? r.deny || 'negado' : r.isError ? r.text || 'erro sem texto' : null
+    return daReserva === null ? null : `${motivo}; reserva ${pedido.reserva.sessao}: ${daReserva}`
   }
   // `open_session_in` só mostra a própria sessão ("self") ou uma que esta sessão abriu, e só age com esta sessão na tela.
   const r = await $.tool.call({ tool: 'mcp__ccd_window__open_session_in', session_id: propria ? 'self' : pedido.sessao, target: 'focus' })

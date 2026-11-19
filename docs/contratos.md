@@ -17,6 +17,7 @@ Tudo o que é de máquina (não de projeto) mora em `~/.claude/ichikawa/` (`$ICH
 | `itens/<projeto>/F<n>.json` | `orquestracao` | `orquestracao` (página) |
 | `siglas.json` | `orquestracao` (`perguntas sigla`) | `orquestracao` |
 | `pedidos/<uuid>.json` | página do `orquestracao` | `barra` (o mod toma, executa e apaga) |
+| `orquestradoras.json` | `orquestracao` (`perguntas papel orquestradora` e o início da sessão com o papel) | `orquestracao` (página, para onde vai a resposta de dona arquivada) |
 | `sessoes-do-app.json` | `barra` (a cada 60 s) | `orquestracao` (página, seção Sessões) |
 
 - **`<projeto>`** é o nome da pasta raiz do repositório principal (pai do `git rev-parse --path-format=absolute --git-common-dir`), para todos os worktrees darem o mesmo nome.
@@ -85,6 +86,8 @@ Quanto o céu se mexe, no app e nas duas páginas. `nenhum` ("Mínimo" na gaveta
 }
 ```
 
+`sessao` é quem perguntou e recebe a resposta da página: o `--sessao`, senão a sessão do app que rodou o `perguntas nova` (`CLAUDE_CODE_HOST_SESSION_ID`), senão a dona gravada no item.
+
 `estado`: `aberta` · `respondida` · `descartada`. `lida: false` marca resposta dada pela página que a sessão ainda não leu (`perguntas novidades`).
 
 ### `itens/<projeto>/F<n>.json`
@@ -133,13 +136,24 @@ Quanto o céu se mexe, no app e nas duas páginas. `nenhum` ("Mínimo" na gaveta
 
 O status ao vivo das sessões, que só o app enxerga. O mod da barra de toda sessão aberta, a cada 60 s, lê `list_sessions` (até 50) e a própria sessão (`get_session self`, que a lista não traz, vem primeiro) e grava por cima, de forma atômica (`.tmp` e `mv`). Arquivo com `lidoEm` de menos de 50 s: não lê de novo (outra sessão acabou de gravar). Falha da leitura não apaga o arquivo. A página casa a sessão com o item pelo `sessao` do item; quando esse id não está na lista ou está arquivado (gravado com o id do transcript, ou a dona foi reaberta), vale a sessão aberta do mesmo projeto cujo título começa pelo código do item (`IZA-F48 · …`, ICH-F38). Com `lidoEm` de mais de 3 min, ela só mostra a idade e não deduz parada nem "rodando". Nada disso entra no contexto do modelo.
 
+### `orquestradoras.json`
+
+```json
+{ "<projeto>": { "sessao": "local_…", "em": "ISO-8601" } }
+```
+
+A sessão do app que tem o papel de orquestradora em cada projeto. `perguntas papel orquestradora` grava (com o `CLAUDE_CODE_HOST_SESSION_ID` de quem roda), e o início de toda sessão com o papel regrava, inclusive depois do /clear.
+
 ### `pedidos/<uuid>.json`
 
 O navegador não alcança as ferramentas do app; o mod da `barra` alcança. A página grava o pedido e o mod de qualquer sessão viva o executa.
 
 ```json
 { "tipo": "abrir-sessao", "sessao": "local_…", "texto": null, "criadoEm": "ISO-8601" }
+{ "tipo": "responder", "sessao": "local_…", "texto": "…", "reserva": { "sessao": "local_…", "texto": "…" }, "criadoEm": "ISO-8601" }
 ```
+
+**Para quem vai a resposta.** A sessão que perguntou, se `sessoes-do-app.json` (fresco) a mostra aberta. Arquivada, apagada ou pergunta sem sessão: a orquestradora do projeto, a de `orquestradoras.json` se aberta, senão a sessão aberta do projeto com "orquestradora" no título; o texto diz que a dona não vai receber e pede que ela aja. Com a leitura do app velha, vai à que perguntou com a orquestradora em `reserva`: se o app recusar a entrega porque a sessão está arquivada ou não existe, a barra manda o `texto` da reserva a ela. Sem ninguém, nenhum pedido: a resposta fica para `perguntas novidades`.
 
 `tipo`: `responder` (manda `texto` à sessão como mensagem) · `abrir-sessao` (foca a sessão da pergunta; a página não grava mais esse pedido desde a ICH-F34, porque o app só foca a própria sessão — a barra ainda o aceita). O mod toma o pedido renomeando-o para `pedidos/tomados/` (só um mod ganha), executa e apaga; falha vai a `pedidos/falhos/` com o motivo. Pedido de mais de 30 min é descartado.
 

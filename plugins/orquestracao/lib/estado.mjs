@@ -240,3 +240,29 @@ export function projetos() {
   }
   return [...nomes].sort();
 }
+
+// A sessão do app (`local_…`) que é a orquestradora de cada projeto: para lá vai a resposta da página cuja sessão
+// dona foi arquivada ou apagada. Gravada por `perguntas papel orquestradora` e pela herança do papel depois do /clear.
+export const SESSAO_DO_APP = /^local_[0-9a-f-]{36}$/;
+const arquivoDasOrquestradoras = () => join(raiz(), 'orquestradoras.json');
+
+/** O id do app da sessão que roda este processo (o app o põe no ambiente); `null` fora do app. */
+export function sessaoDoAppAtual(env = process.env) {
+  const s = env.CLAUDE_CODE_HOST_SESSION_ID;
+  return SESSAO_DO_APP.test(s ?? '') ? s : null;
+}
+
+/** A orquestradora gravada do projeto, ou `null`. */
+export function orquestradoraDe(projeto) {
+  const s = lerJson(arquivoDasOrquestradoras())?.[projeto]?.sessao;
+  return SESSAO_DO_APP.test(s ?? '') ? s : null;
+}
+
+/** Grava a orquestradora do projeto; id que não é do app não grava. Devolve o id gravado ou `null`. */
+export function gravarOrquestradora(projeto, sessao, agora = new Date()) {
+  if (!projeto || !SESSAO_DO_APP.test(sessao ?? '')) return null;
+  const todas = lerJson(arquivoDasOrquestradoras());
+  const base = todas && typeof todas === 'object' && !Array.isArray(todas) ? todas : {};
+  gravarJson(arquivoDasOrquestradoras(), { ...base, [projeto]: { sessao, em: agora.toISOString() } });
+  return sessao;
+}

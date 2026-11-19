@@ -5,7 +5,7 @@ import { tmpdir, homedir } from 'node:os';
 import { join } from 'node:path';
 import * as estado from '../lib/estado.mjs';
 import { main } from '../lib/cli.mjs';
-import { dados, html, servir, criarServidor, abrirPagina, pastaDoServidorDoKit, PASTA_DO_KIT } from '../lib/pagina.mjs';
+import { dados, html, servir, criarServidor, abrirPagina, destinoDaResposta, entregarResposta, pastaDoServidorDoKit, PASTA_DO_KIT } from '../lib/pagina.mjs';
 import { createServer } from 'node:http';
 import { decidir as orquestradoraNaoEdita } from '../hooks/orquestradora-nao-edita.mjs';
 import { decidir as configProtegida } from '../hooks/config-protegida.mjs';
@@ -29,6 +29,8 @@ beforeEach(() => {
   process.env.ICHIKAWA_HOME = mkdtempSync(join(tmpdir(), 'ichikawa-'));
   // A página confere o kit instalado: aponta para uma pasta vazia, longe do ~/.claude de verdade.
   process.env.CLAUDE_CONFIG_DIR = mkdtempSync(join(tmpdir(), 'claude-'));
+  // Rodando dentro do app, o ambiente traz o id da sessão de quem roda os testes: nenhum teste herda esse id.
+  delete process.env.CLAUDE_CODE_HOST_SESSION_ID;
 });
 
 test('criar numera em sequência por projeto e listar devolve do mais novo ao mais velho', () => {
@@ -872,7 +874,7 @@ test('o fim de turno usa a last_assistant_message quando o transcript ainda não
   assert.match(saida.reason, /D2/);
 });
 
-test('a caixa do app (wrap_up com ask) que espera o operador só passa com a pergunta na página', async () => {
+test('toda caixa do app (wrap_up com ask) só passa com a pergunta na página', async () => {
   const cwd = projetoIzanagi();
   const caixa = (ask, extra = {}, comandos = []) => ({
     cwd, session_id: SESSAO_DO_APP, transcript_path: transcriptDoTurno('texto do turno', comandos),
@@ -883,10 +885,49 @@ test('a caixa do app (wrap_up com ask) que espera o operador só passa com a per
   assert.match(perguntaNaCaixa(caixa('IZA-Q1: tiro o superpowers?', { blocked: true })), /IZA-Q1/, 'id citado mas não gravado');
   await rodar('nova', '--projeto', 'izanagi', '--titulo', 'Job', '--caso', 'c', '--se-nao', 's', '--recomendacao', 'r');
   assert.equal(perguntaNaCaixa(caixa('IZA-Q1: tiro o superpowers?', { blocked: true })), null, 'id gravado');
-  assert.equal(perguntaNaCaixa(caixa('Abro o PR?')), null, 'caixa que não bloqueia, fora da orquestradora, passa');
+  assert.match(perguntaNaCaixa(caixa('Abro o PR?')), /perguntas nova/, 'sem blocked também espera o operador: vai à página');
   assert.equal(perguntaNaCaixa(caixa(undefined, { blocked: true })), null, 'sem ask não há pergunta');
-  await rodar('papel', 'orquestradora', '--sessao-id', SESSAO_DO_APP);
-  assert.match(perguntaNaCaixa(caixa('Abro o PR?')), /perguntas nova/, 'na orquestradora, toda caixa com pergunta vai à página');
+});
+
+const OUTRA_SESSAO = 'local_aaaaaaaa-1234-1234-1234-123456789abc';
+const ORQUESTRADORA = 'local_bbbbbbbb-1234-1234-1234-123456789abc';
+const app = (sessoes, lidoEm = Date.now()) => ({ lidoEm, sessoes: sessoes.map((s) => ({ arquivada: false, projeto: 'p', titulo: 't', ...s })), erro: null });
+
+test('perguntas nova grava como sessão quem pergunta; papel orquestradora grava a sessão do app do projeto', async () => {
+  process.env.CLAUDE_CODE_HOST_SESSION_ID = OUTRA_SESSAO;
+  await rodar('item', 'nova', 'Login', '--projeto', 'p', '--sessao', SESSAO_DO_APP);
+  await rodar('nova', '--projeto', 'p', '--item', 'F1', '--titulo', 'T', '--caso', 'c', '--se-nao', 's', '--recomendacao', 'r');
+  assert.equal(estado.ler('perguntas', 'p', 'Q1').sessao, OUTRA_SESSAO, 'a sessão que pergunta, não a dona do item');
+  delete process.env.CLAUDE_CODE_HOST_SESSION_ID;
+  await rodar('nova', '--projeto', 'p', '--item', 'F1', '--titulo', 'T', '--caso', 'c', '--se-nao', 's', '--recomendacao', 'r');
+  assert.equal(estado.ler('perguntas', 'p', 'Q2').sessao, SESSAO_DO_APP, 'fora do app, a dona do item');
+  process.env.CLAUDE_CODE_HOST_SESSION_ID = ORQUESTRADORA;
+  await rodar('papel', 'orquestradora', '--sessao-id', 'transcript-1234', '--projeto', 'p');
+  assert.equal(estado.orquestradoraDe('p'), ORQUESTRADORA);
+});
+
+test('a resposta da página vai à dona aberta; dona arquivada, apagada ou ausente manda à orquestradora', () => {
+  estado.gravarOrquestradora('p', ORQUESTRADORA);
+  const p = { id: 'Q3', titulo: 'T', item: 'F2', sessao: SESSAO_DO_APP };
+  const orq = { sessionId: ORQUESTRADORA };
+  assert.deepEqual(destinoDaResposta(p, 'p', app([{ sessionId: SESSAO_DO_APP }, orq])), { sessao: SESSAO_DO_APP, dona: true, reserva: ORQUESTRADORA });
+  assert.deepEqual(destinoDaResposta(p, 'p', app([{ sessionId: SESSAO_DO_APP, arquivada: true }, orq])), { sessao: ORQUESTRADORA, dona: false, reserva: null }, 'arquivada');
+  assert.deepEqual(destinoDaResposta(p, 'p', app([orq])), { sessao: ORQUESTRADORA, dona: false, reserva: null }, 'apagada');
+  assert.deepEqual(destinoDaResposta({ ...p, sessao: null }, 'p', app([orq])).sessao, ORQUESTRADORA, 'pergunta sem sessão');
+  assert.deepEqual(destinoDaResposta(p, 'p', app([], Date.now() - 10 * 60_000)), { sessao: SESSAO_DO_APP, dona: true, reserva: ORQUESTRADORA }, 'leitura velha: a dona, com a orquestradora de reserva');
+  const pedido = entregarResposta(p, 'p', 'pode', app([orq]));
+  assert.equal(pedido.sessao, ORQUESTRADORA);
+  assert.match(pedido.texto, /^PXX-Q3 · resposta do operador pela página à pergunta «T» \(item PXX-F2\)/);
+  assert.match(pedido.texto, /não está mais aberta: pode/);
+});
+
+test('sem orquestradora gravada aberta, vale a sessão aberta do projeto com orquestradora no título; sem nenhuma, nada', () => {
+  estado.gravarOrquestradora('p', ORQUESTRADORA);
+  const p = { id: 'Q1', titulo: 'T', sessao: SESSAO_DO_APP };
+  const pelaTela = { sessionId: OUTRA_SESSAO, titulo: '🎛 orquestradora — P' };
+  assert.equal(destinoDaResposta(p, 'p', app([pelaTela])).sessao, OUTRA_SESSAO);
+  assert.equal(destinoDaResposta(p, 'p', app([{ ...pelaTela, projeto: 'outro' }])), null);
+  assert.equal(entregarResposta(p, 'p', 'pode', app([])), null);
 });
 
 test('nenhum comando das skills cola `:` logo depois de `$VAR` (no zsh, `$SHA:r…` vira o modificador :r e corta o valor)', () => {
