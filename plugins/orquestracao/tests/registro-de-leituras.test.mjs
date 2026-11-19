@@ -5,10 +5,10 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import {
   RETENCAO_MS, SETUP_DO_REGISTRO, VARIAVEIS, classificarSubprocesso, comandosDoShell, gravarEntrada, leOCaminho, lerEntrada,
-  lerEntradas, listaAPasta, modulosDoWorker, montarEntrada, registroDeLeituras, relativoARaiz,
+  ehCI, lerEntradas, listaAPasta, modulosDoWorker, montarEntrada, registroDeLeituras, relativoARaiz,
 } from '../skills/testes-enxutos/modelos/registro-de-leituras.mjs';
 import {
-  CARO_A_PARTIR_DE_MS, MUDA_O_VITEST, casaGlob, globsMortos, juntarNaoRastreados, lerDiff, motivoDoTeste, oFilhoLe, selecionar,
+  CARO_A_PARTIR_DE_MS, MUDA_O_VITEST, baseDoDiff, casaGlob, universoDeTestes, globsMortos, juntarNaoRastreados, lerDiff, motivoDoTeste, oFilhoLe, selecionar,
 } from '../skills/testes-enxutos/modelos/testes-afetados-pelo-registro.mjs';
 
 const R = '/repo';
@@ -65,6 +65,8 @@ test('modulosDoWorker lê o moduleCache (vitest 2/3) e o evaluatedModules (4/5);
 test('registroDeLeituras: desligado no CI, com a variável ou sem git; ligado grava o ambiente que os workers herdam', () => {
   const git = (args) => ({ '--show-toplevel': R, '--path-format=absolute': '/repo/.git', HEAD: 'abc' })[args[1]];
   assert.deepEqual(registroDeLeituras({ CI: 'true' }, { git }), { setupFiles: [] });
+  assert.equal(ehCI({ CI: 'false' }), false);
+  assert.equal(ehCI({ CI: '1' }), true);
   assert.deepEqual(registroDeLeituras({ [VARIAVEIS.desliga]: '1' }, { git }), { setupFiles: [] });
   const erro = console.error;
   console.error = () => {};
@@ -92,6 +94,8 @@ test('classificarSubprocesso: o que o filho recebe do repositório e quando ele 
 test('o-filho-le e glob: declaração lida do comentário, glob casa caminho inteiro e glob morto é apontado', () => {
   assert.deepEqual(oFilhoLe('// o-filho-le: scripts/**, docs/*.md\n * o-filho-le: a.json'), ['scripts/**', 'docs/*.md', 'a.json']);
   assert.equal(oFilhoLe('nada'), null);
+  assert.deepEqual(oFilhoLe('// o-filho-le: {src,docs}/**, a.json'), ['{src,docs}/**', 'a.json']);
+  assert.ok(casaGlob('docs/x/y.md', '{src,docs}/**'));
   assert.ok(casaGlob('scripts/a/b.mjs', 'scripts/**'));
   assert.ok(casaGlob('a.ts', '**/*.ts'));
   assert.ok(!casaGlob('docs/x/a.md', 'docs/*.md'));
@@ -103,7 +107,7 @@ test('diff: name-status -z vira lista, T conta como M e os não rastreados entra
   const d = lerDiff('M\0src/a.ts\0D\0src/b.ts\0T\0c\0');
   assert.deepEqual(d, [{ status: 'M', caminho: 'src/a.ts' }, { status: 'D', caminho: 'src/b.ts' }, { status: 'M', caminho: 'c' }]);
   assert.deepEqual(juntarNaoRastreados(d.slice(0, 1), ['src/a.ts', 'novo.ts', '']).map((x) => x.status + x.caminho), ['Anovo.ts', 'Msrc/a.ts']);
-  for (const c of ['package.json', 'pnpm-lock.yaml', 'tsconfig.json', 'vitest.config.ts', 'scripts/registro-de-leituras.setup.mjs']) {
+  for (const c of ['package.json', 'pnpm-lock.yaml', 'tsconfig.json', 'vitest.config.ts', 'vitest.workspace.json', '.env.test', '.nvmrc', 'scripts/registro-de-leituras.setup.mjs']) {
     assert.ok(MUDA_O_VITEST.some((r) => r.test(c)), c);
   }
 });
@@ -138,6 +142,21 @@ test('subprocesso: sem declaração entra sempre e é nomeado; com declaração 
   const declarado = '// o-filho-le: scripts/**';
   assert.deepEqual(motivoDoTeste('t.test.ts', { ...ctx, caminhosDoDiff: ['scripts/x.mjs'], texto: declarado }), { motivo: 'subprocesso' });
   assert.deepEqual(motivoDoTeste('t.test.ts', { ...ctx, caminhosDoDiff: ['src/a.ts'], texto: declarado }), { adiado: { motivo: 'subprocesso', porque: 'filho' } });
+});
+
+test('subprocesso e cega antigos continuam marcados: o teste adiado não some da seleção depois da retenção', () => {
+  const antigo = new Date(agora - RETENCAO_MS - 86_400_000).toISOString();
+  const ctx = { noDiff: new Set(), buscadas: [], agora, caminhosDoDiff: ['scripts/lib/util.mjs'], texto: '// o-filho-le: scripts/**' };
+  assert.deepEqual(motivoDoTeste('t.test.ts', { ...ctx, entrada: entrada('t.test.ts', { sempre: antigo }) }), { motivo: 'subprocesso' });
+  assert.deepEqual(motivoDoTeste('t.test.ts', { ...ctx, entrada: entrada('t.test.ts', { cega: antigo }), texto: '' }), { motivo: 'registro-cego' });
+});
+
+test('universo: o padrão menos o EXCLUIR, mais quem tem registro e ainda existe, sem os apagados; sem tronco a base é null', () => {
+  const arquivos = ['src/a.test.ts', 'test/b.ts', 'node_modules/x/c.test.js', 'src/apagado.test.ts', 'src/d.ts'];
+  const entradas = [entrada('test/b.ts'), entrada('sumiu.test.ts')];
+  assert.deepEqual(universoDeTestes({ arquivos, entradas, apagados: new Set(['src/apagado.test.ts']) }), ['src/a.test.ts', 'test/b.ts']);
+  assert.equal(baseDoDiff(null, () => false), null);
+  assert.equal(baseDoDiff(null, (r) => r === 'origin/master'), 'origin/master');
 });
 
 test('cortes para o release: caro que não importa direto, barril lido de fora; alias desconhecido não corta', () => {

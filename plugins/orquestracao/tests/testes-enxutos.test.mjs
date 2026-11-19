@@ -40,6 +40,7 @@ test('baseDoDiff prefere a pedida, depois develop, depois main', () => {
   assert.equal(baseDoDiff('x'), 'x');
   assert.equal(baseDoDiff(null, (r) => r === 'origin/main'), 'origin/main');
   assert.equal(baseDoDiff(null, () => true), 'origin/develop');
+  assert.equal(baseDoDiff(null, () => false), null);
 });
 
 test('plano: nada, tudo quando muda o vitest ou some código, related com o aviso do ponto cego', () => {

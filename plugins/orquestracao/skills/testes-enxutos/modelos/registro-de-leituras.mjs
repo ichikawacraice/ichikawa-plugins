@@ -59,6 +59,9 @@ function gitOuNulo(args, cwd) {
   }
 }
 
+/** `CI` ligado: qualquer valor que não seja vazio, `false` ou `0`. */
+export const ehCI = (env) => typeof env.CI === 'string' && !['', 'false', '0'].includes(env.CI.toLowerCase());
+
 /**
  * O pedaço do config do vitest que liga o registro: `{ setupFiles: [SETUP_DO_REGISTRO] }`, ou `{ setupFiles: [] }`.
  *
@@ -68,7 +71,7 @@ function gitOuNulo(args, cwd) {
  * herdar a raiz de verdade e não gravar nada.
  */
 export function registroDeLeituras(env = process.env, { cwd = process.cwd(), git = gitOuNulo } = {}) {
-  if (env.CI || env[VARIAVEIS.desliga] === '1') return { setupFiles: [] };
+  if (ehCI(env) || env[VARIAVEIS.desliga] === '1') return { setupFiles: [] };
   const raiz = env[VARIAVEIS.raiz] || git(['rev-parse', '--show-toplevel'], cwd);
   const comum = env[VARIAVEIS.dir] ? null : git(['rev-parse', '--path-format=absolute', '--git-common-dir'], cwd);
   const dir = env[VARIAVEIS.dir] || (comum ? join(comum, PASTA_DO_REGISTRO) : null);
@@ -107,7 +110,8 @@ export function modulosDoWorker(estadoDoWorker) {
 
 /** Comandos que, lançados sobre o repositório, rodam código dele: o teste que os usa roda sempre. */
 export const COMANDOS_QUE_RODAM_O_REPO = Object.freeze([
-  'node', 'tsx', 'ts-node', 'bun', 'deno', 'npm', 'pnpm', 'yarn', 'npx', 'vitest', 'bash', 'sh', 'zsh',
+  'node', 'tsx', 'ts-node', 'bun', 'deno', 'npm', 'pnpm', 'yarn', 'npx', 'vitest', 'tsc', 'make', 'python', 'python3',
+  'bash', 'sh', 'zsh',
 ]);
 
 const SHELLS = new Set(['bash', 'sh', 'zsh']);
@@ -130,7 +134,7 @@ const GIT_QUE_VARRE = Object.freeze({
 const GREP_COM_VALOR = new Set(['-e', '-f']);
 const GIT_GLOBAL_COM_VALOR = new Set(['-C', '-c', '--git-dir', '--work-tree', '--namespace', '--super-prefix', '--config-env']);
 /** Os que leem o `cwd` mesmo sem script no argumento (`pnpm test`, `npx tsc`). */
-const LEEM_O_CWD = new Set(['tsx', 'ts-node', 'bun', 'deno', 'npm', 'pnpm', 'yarn', 'npx', 'vitest']);
+const LEEM_O_CWD = new Set(['tsx', 'ts-node', 'bun', 'deno', 'npm', 'pnpm', 'yarn', 'npx', 'vitest', 'tsc', 'make']);
 /** Pastas que nunca entram: dependência de terceiros e o próprio git. */
 const FORA_DO_REGISTRO = new Set(['node_modules', '.git']);
 

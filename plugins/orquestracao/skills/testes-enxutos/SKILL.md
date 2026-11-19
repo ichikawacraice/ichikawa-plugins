@@ -85,7 +85,14 @@ import { registroDeLeituras } from './scripts/registro-de-leituras.mjs';
 export default defineConfig({ test: { setupFiles: [...registroDeLeituras().setupFiles] } });
 ```
 
-Depois, `"test:afetados": "node scripts/testes-afetados-pelo-registro.mjs"` no `package.json`. Rode a suíte inteira uma vez para gravar o registro; sem registro, o seletor roda tudo. Medido com vitest 2, 3, 4 e 5. Num monorepo pnpm, `TESTES_VITEST="pnpm vitest"`.
+Depois, `"test:afetados": "node scripts/testes-afetados-pelo-registro.mjs"` no `package.json`. Rode a suíte inteira uma vez para gravar o registro; sem registro, o seletor roda tudo. Medido com vitest 2, 3, 4 e 5.
+
+Ajuste no topo do seletor o que é do projeto:
+- `ehArquivoDeTeste` e `EXCLUIR`, iguais ao `include` e ao `exclude` do vitest. Um spec do Playwright fora do `EXCLUIR` entra como `sem-registro` em todo PR;
+- `ALIASES` e `BARRIS`, para os cortes;
+- `TESTES_VITEST`, o comando (num monorepo pnpm, `"pnpm vitest"`).
+
+O tronco é `origin/develop`, `origin/main` ou `origin/master`. Sem nenhum deles, o seletor para e pede `--base`, em vez de comparar com o `HEAD` e dizer "nada mudou".
 
 **Como o registro é gravado:**
 - o setup envolve `fs`, `fs/promises` e `child_process`, e chama `syncBuiltinESMExports()`;
@@ -102,12 +109,13 @@ Depois, `"test:afetados": "node scripts/testes-afetados-pelo-registro.mjs"` no `
 - listou a pasta de um arquivo adicionado ou apagado (`lista:<pasta>`);
 - lança subprocesso sobre o repositório (`subprocesso`).
 
-**Subprocesso declara o que o filho lê.** O registro não vê o que o filho lê. Quem lança `node` ou shell sobre o repositório escreve no próprio teste `// o-filho-le: scripts/**, docs/*.md`. Com a declaração, o teste entra quando o diff casa com um glob. Sem ela, entra em todo PR, e o seletor diz o nome dele. Glob que não casa com nenhum arquivo é apontado, porque tiraria o teste do PR para sempre.
+**Subprocesso declara o que o filho lê.** O registro não vê o que o filho lê. Quem lança `node` ou shell sobre o repositório escreve no próprio teste `// o-filho-le: scripts/**, {docs,guias}/*.md`. Com a declaração, o teste entra quando o diff casa com um glob. Sem ela, entra em todo PR, e o seletor diz o nome dele. Glob que não casa com nenhum arquivo é apontado, porque tiraria o teste do PR para sempre.
 
 **Quando não sabe, roda mais:**
 - diff que mexe no runner (`package.json`, lockfile, `tsconfig`, config do vitest, os três scripts) roda a suíte inteira;
 - registro vazio roda a suíte inteira;
-- import por alias que o seletor não conhece desliga o corte do caro.
+- import por alias que o seletor não conhece desliga o corte do caro;
+- a marca de subprocesso não vence enquanto o teste não roda de novo: o teste adiado não some da seleção.
 
 **O seletor fala.** Ele diz quantos testes de quantos rodam e o motivo de cada um, o que fica para o release, o caminho do diff que nenhum teste lê e quem encareceu a seleção acima do teto. `--so-listar` imprime o JSON sem rodar. Diff vazio e seleção vazia são ditos, não um verde mudo.
 

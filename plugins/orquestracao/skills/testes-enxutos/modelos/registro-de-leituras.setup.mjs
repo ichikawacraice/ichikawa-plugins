@@ -27,6 +27,10 @@ import {
 /** Direto no stderr: o console do teste o vitest captura e às vezes descarta. */
 const aviso = (texto) => process.stderr.write(`${texto}\n`);
 
+// O `Date` de verdade, guardado antes de qualquer teste: um `vi.setSystemTime` sem restaurar até o `afterAll`
+// gravaria a entrada com data falsa, e a marca já nasceria vencida.
+const DataReal = Date;
+
 const CHAVE = Symbol.for('kit.registro-de-leituras.estado');
 const ESTE_SETUP = fileURLToPath(import.meta.url);
 // Por `fileURLToPath` do `import.meta.url` com texto, nunca `new URL(...)`: no jsdom o `URL` global é outro.
@@ -98,6 +102,7 @@ function gravar(estado, filepath, dir) {
     sempre: estado.sempre,
     cega: modulos === null,
     anterior: lerEntrada(dir, teste),
+    agora: DataReal.now(),
   }));
 }
 

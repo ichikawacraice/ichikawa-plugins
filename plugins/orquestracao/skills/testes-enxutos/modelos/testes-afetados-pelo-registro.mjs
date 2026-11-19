@@ -30,7 +30,7 @@ import { execFileSync, spawnSync } from 'node:child_process';
 import { readFileSync, readdirSync } from 'node:fs';
 import { join, posix } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { leOCaminho, lerEntradas, listaAPasta, paiDe, pastaDoRegistro, RETENCAO_MS } from './registro-de-leituras.mjs';
+import { leOCaminho, lerEntradas, listaAPasta, paiDe, pastaDoRegistro } from './registro-de-leituras.mjs';
 
 /** O que muda o próprio runner: o registro deixa de valer e roda tudo. */
 export const MUDA_O_VITEST = [
@@ -39,11 +39,32 @@ export const MUDA_O_VITEST = [
   /(^|\/)tsconfig[^/]*\.json$/,
   /(^|\/)vitest\.[^/]*\.[cm]?[jt]s$/,
   /(^|\/)vite\.config\.[cm]?[jt]s$/,
+  /(^|\/)vitest\.workspace\.[^/]+$/,
+  /(^|\/)\.env(\.[^/]*)?$/,
+  /(^|\/)\.(nvmrc|node-version|npmrc|tool-versions)$/,
+  // Os três scripts do degrau 2. Copiou para outra pasta que não `scripts/`? Ajuste aqui.
   /(^|\/)scripts\/(registro-de-leituras(\.setup)?|testes-afetados-pelo-registro)\.mjs$/,
 ];
 
-/** Um arquivo de teste: o padrão que o vitest coleta por padrão. */
+/** Um arquivo de teste: o padrão que o vitest coleta por padrão. Ajuste ao `include` do projeto. */
 export const ehArquivoDeTeste = (caminho) => /\.(test|spec)\.[cm]?[jt]sx?$/.test(caminho);
+
+/**
+ * O que casa `ehArquivoDeTeste` mas o vitest não coleta (o `exclude` do projeto): spec do Playwright, fixture.
+ * Sem isto, esse arquivo nunca ganha registro e entra como `sem-registro` em todo PR. Ex.: `/^e2e\//`.
+ */
+export const EXCLUIR = [/(^|\/)(node_modules|dist)\//];
+
+/**
+ * Os arquivos de teste do PR: os do padrão (fora de EXCLUIR), mais os que têm registro e ainda existem — o vitest
+ * coletou, então são testes mesmo que fujam do padrão. Os apagados saem.
+ */
+export function universoDeTestes({ arquivos, entradas, apagados = new Set() }) {
+  const existe = new Set(arquivos);
+  const doPadrao = arquivos.filter((c) => ehArquivoDeTeste(c) && !EXCLUIR.some((r) => r.test(c)));
+  const doRegistro = entradas.map((e) => e.teste).filter((t) => existe.has(t));
+  return [...new Set([...doPadrao, ...doRegistro])].filter((c) => !apagados.has(c)).sort();
+}
 
 /** O arquivo caro (medido no Izanagi; meça o seu): só entra se está no diff ou importa direto o que mudou. */
 export const CARO_A_PARTIR_DE_MS = 60_000;
@@ -82,8 +103,15 @@ export function globParaRegex(glob) {
       const fim = glob.indexOf('}', i);
       if (fim < 0) re += '\\{';
       else {
-        re += `(?:${glob.slice(i + 1, fim).split(',').map((p) => p.replace(/[.+^${}()|[\]\\]/g, '\\$&').replace(/\*/g, '[^/]*')).join('|')})`;
-        i = fim;
+        let nivel = 0;
+        let fecha = i;
+        for (; fecha < glob.length; fecha++) {
+          if (glob[fecha] === '{') nivel++;
+          else if (glob[fecha] === '}' && --nivel === 0) break;
+        }
+        const alternativas = cortarForaDasChaves(glob.slice(i + 1, fecha));
+        re += `(?:${alternativas.map((a) => globParaRegex(a).source.slice(1, -1)).join('|')})`;
+        i = fecha;
       }
     } else re += c.replace(/[.+^${}()|[\]\\]/g, '\\$&');
   }
@@ -121,11 +149,28 @@ export function pastaExistenteMaisProxima(caminho, existe) {
 
 /* ---------- a seleção ---------- */
 
+/** Corta por vírgula fora de chaves: `a/**, {b,c}/*.md` → `['a/**', ' {b,c}/*.md']`. */
+export function cortarForaDasChaves(texto) {
+  const partes = [];
+  let nivel = 0;
+  let atual = '';
+  for (const c of texto) {
+    if (c === '{') nivel++;
+    else if (c === '}') nivel = Math.max(0, nivel - 1);
+    if (c === ',' && nivel === 0) {
+      partes.push(atual);
+      atual = '';
+    } else atual += c;
+  }
+  partes.push(atual);
+  return partes;
+}
+
 /** O que o FILHO do teste lê, declarado no arquivo: `// o-filho-le: <glob>, <glob>`. `null` = sem declaração. */
 export function oFilhoLe(texto) {
   if (typeof texto !== 'string') return null;
   const globs = [...texto.matchAll(/^[ \t]*(?:\/\/|\*)[ \t]*o-filho-le:[ \t]*(.+)$/gm)]
-    .flatMap((m) => m[1].split(',').map((g) => g.trim()).filter((g) => g !== ''));
+    .flatMap((m) => cortarForaDasChaves(m[1]).map((g) => g.trim()).filter((g) => g !== ''));
   return globs.length > 0 ? globs : null;
 }
 
@@ -154,7 +199,10 @@ export function importaDireto(teste, texto, aliases = ALIASES) {
   return { diretos, incerto };
 }
 
-const recente = (iso, agora) => typeof iso === 'string' && agora - Date.parse(iso) <= RETENCAO_MS;
+// `sempre` e `cega` já saem da entrada quando passam da retenção, e só na gravação (quando o teste roda de novo).
+// O seletor não as envelhece de novo pelo relógio de agora: senão o teste adiado (que não roda) perderia a marca
+// depois de RETENCAO_MS e sumiria da seleção calado.
+const marcado = (iso) => typeof iso === 'string';
 
 const leDeForaDoBarril = (teste, caminho, barris) =>
   barris.some((b) => caminho.startsWith(b.pasta) && !teste.startsWith(b.dono));
@@ -166,7 +214,7 @@ const leDeForaDoBarril = (teste, caminho, barris) =>
 export function motivoDoTeste(teste, { entrada, noDiff, caminhosDoDiff, buscadas, custoMs, texto, barris = BARRIS, aliases = ALIASES, agora = Date.now() }) {
   if (noDiff.has(teste)) return { motivo: 'no-diff' };
   if (entrada === undefined) return { motivo: 'sem-registro' };
-  const cega = recente(entrada.cega, agora);
+  const cega = marcado(entrada.cega);
   const caro = typeof custoMs === 'number' && custoMs >= CARO_A_PARTIR_DE_MS;
   const imp = caro ? importaDireto(teste, texto, aliases) : null;
   const caroQueNaoImporta = (caminho) => caro && !imp.incerto && !imp.diretos.has(caminho);
@@ -186,7 +234,7 @@ export function motivoDoTeste(teste, { entrada, noDiff, caminhosDoDiff, buscadas
     else return { motivo: `lista:${chave}` };
   }
   if (cega) return { motivo: 'registro-cego' };
-  if (recente(entrada.sempre, agora)) {
+  if (marcado(entrada.sempre)) {
     const globs = oFilhoLe(texto);
     if (globs === null) return caro ? (adiar('subprocesso', 'caro'), { adiado }) : { motivo: 'subprocesso', semDeclaracao: true };
     if (caminhosDoDiff.some((c) => globs.some((g) => casaGlob(c, g)))) return { motivo: 'subprocesso' };
@@ -275,8 +323,8 @@ const existeRef = (ref) => {
   }
 };
 
-/** O tronco: `--base`, senão origin/develop, senão origin/main. */
-export const baseDoDiff = (pedida, existe = existeRef) => pedida || (['origin/develop', 'origin/main'].find(existe) ?? 'HEAD');
+/** O tronco: `--base`, senão origin/develop, origin/main, origin/master, origin/HEAD. Sem nenhum, `null`. */
+export const baseDoDiff = (pedida, existe = existeRef) => pedida || (['origin/develop', 'origin/main', 'origin/master', 'origin/HEAD'].find(existe) ?? null);
 
 /** O custo de cada arquivo pela mediana do `.tempos/` do degrau 3; vazio se o os-lentos ou as rodadas não estão lá. */
 async function custoDosTempos(raiz, pasta = '.tempos', rodadas = 10) {
@@ -301,8 +349,10 @@ const PORQUES = {
 function argumentos(argv) {
   const r = { base: null, soListar: false };
   for (let i = 0; i < argv.length; i++) {
-    if (argv[i] === '--base') r.base = argv[++i];
-    else if (argv[i] === '--so-listar') r.soListar = true;
+    if (argv[i] === '--base') {
+      r.base = argv[++i];
+      if (!r.base) throw new Error('--base pede uma referência do git');
+    } else if (argv[i] === '--so-listar') r.soListar = true;
     else throw new Error(`argumento desconhecido: ${argv[i]} — use --base <ref> e --so-listar`);
   }
   return r;
@@ -314,8 +364,11 @@ function rodar(arquivos, soListar, relatorio) {
     return 0;
   }
   const [comando, ...antes] = (process.env.TESTES_VITEST || 'npx vitest').split(' ');
-  const args = arquivos === null ? [...antes, 'run'] : [...antes, 'run', ...arquivos];
-  return spawnSync(comando, args, { stdio: 'inherit' }).status ?? 1;
+  // Na seleção, `--passWithNoTests`: um escolhido que o `exclude` do vitest descarta não vira vermelho falso.
+  const args = arquivos === null ? [...antes, 'run'] : [...antes, 'run', '--passWithNoTests', ...arquivos];
+  const r = spawnSync(comando, args, { stdio: 'inherit' });
+  if (r.error) dizer(`não consegui rodar \`${comando}\` (${r.error.message}) — confira TESTES_VITEST`);
+  return r.status ?? 1;
 }
 
 async function main() {
@@ -323,6 +376,8 @@ async function main() {
   const raiz = git(['rev-parse', '--show-toplevel']).trim();
   process.chdir(raiz);
   const base = baseDoDiff(pedida);
+  // Sem tronco não há diff que valha: comparar com HEAD diria "nada mudou" sobre o que já foi commitado.
+  if (base === null) throw new Error('não achei o tronco (origin/develop, origin/main, origin/master): passe --base <ref>');
   const mergeBase = git(['merge-base', 'HEAD', base]).trim();
   const diff = juntarNaoRastreados(
     lerDiff(git(['diff', '--name-status', '--no-renames', '-z', mergeBase])),
@@ -346,8 +401,8 @@ async function main() {
   }
   const apagados = new Set(diff.filter((d) => d.status === 'D').map((d) => d.caminho));
   const rastreados = git(['ls-files', '-z']).split('\0').filter(Boolean);
-  const universo = [...new Set([...rastreados, ...git(['ls-files', '--others', '--exclude-standard', '-z']).split('\0')])]
-    .filter((c) => c !== '' && ehArquivoDeTeste(c) && !apagados.has(c) && !/(^|\/)(node_modules|dist)\//.test(c));
+  const naoRastreados = git(['ls-files', '--others', '--exclude-standard', '-z']).split('\0').filter(Boolean);
+  const universo = universoDeTestes({ arquivos: [...rastreados, ...naoRastreados], entradas, apagados });
   const pastasDaBase = diff.some((d) => d.status === 'A' || d.status === 'D')
     ? new Set(git(['ls-tree', '-d', '-r', '--name-only', '-z', mergeBase]).split('\0').filter(Boolean))
     : null;
