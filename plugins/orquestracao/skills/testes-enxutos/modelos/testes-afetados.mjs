@@ -34,10 +34,10 @@ function git(args) {
   return execFileSync('git', args, { encoding: 'utf8', timeout: 30_000 }).trim();
 }
 
-/** O tronco: `--base`, senão origin/develop, senão origin/main. */
+/** O tronco: `--base`, senão origin/develop, origin/main, origin/master, origin/HEAD. Sem nenhum, `null`. */
 export function baseDoDiff(pedida, existe = (ref) => { try { git(['rev-parse', '--verify', '--quiet', ref]); return true; } catch { return false; } }) {
   if (pedida) return pedida;
-  return ['origin/develop', 'origin/main'].find(existe) ?? 'HEAD';
+  return ['origin/develop', 'origin/main', 'origin/master', 'origin/HEAD'].find(existe) ?? null;
 }
 
 /** `{ mudados, apagados }` do merge-base com a base até o worktree, com os não rastreados. */
@@ -84,6 +84,8 @@ function argumentos(argv) {
 function main() {
   const { base: pedida, soListar } = argumentos(process.argv.slice(2));
   const base = baseDoDiff(pedida);
+  // Sem tronco não há diff que valha: comparar com HEAD diria "nada mudou" sobre o que já foi commitado.
+  if (base === null) throw new Error('não achei o tronco (origin/develop, origin/main, origin/master): passe --base <ref>');
   const p = plano(diffDoWorktree(base));
   process.stderr.write(`testes afetados contra ${base}: ${p.modo} — ${p.motivo}\n`);
   if (p.avisos.length) {

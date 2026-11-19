@@ -160,7 +160,7 @@ perguntas sigla [SIG] | arquivar | pagina [--abrir | --subir] [--porta 4747]
 | `paralelizar-agentes` | Vários subagentes de uma vez para problemas que não se ligam. |
 | `tdd` | Teste que falha pelo motivo certo, o mínimo para passar, refatorar no verde. |
 | `testes-de-tela` | Onde mora cada teste de React: componente (Testing Library) ou ponta a ponta (Playwright). |
-| `testes-enxutos` | Teste que custa pouco e não mente: escrever só o que paga a si mesmo, o PR roda o que o diff alcança e o release roda a suíte inteira, em degraus (suíte inteira, grafo de import, registro de leituras, tempo e paralelismo), com os modelos `scripts/testes-afetados.mjs` e `scripts/os-lentos.mjs` para copiar. Sai do que o Izanagi mediu. |
+| `testes-enxutos` | Teste que custa pouco e não mente: escrever só o que paga a si mesmo, o PR roda o que o diff alcança e o release roda a suíte inteira, em degraus (suíte inteira, grafo de import, registro de leituras, tempo e paralelismo), com os modelos para copiar: `testes-afetados.mjs` (grafo de import), o registro de leituras (`registro-de-leituras.mjs`, o setup do vitest e o seletor `testes-afetados-pelo-registro.mjs`) e `os-lentos.mjs`. Sai do que o Izanagi mediu. |
 | `depurar` | A causa raiz antes do conserto, em quatro fases. |
 | `auditoria-de-clique` | Segue cada clique até o estado final, para achar o botão que "não faz nada". |
 | `verificar-antes-de-concluir` | Nenhum "pronto" sem a saída do comando que prova. |

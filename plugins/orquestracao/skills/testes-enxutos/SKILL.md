@@ -71,26 +71,59 @@ Copie [`modelos/testes-afetados.mjs`](modelos/testes-afetados.mjs) para `scripts
 
 ### Degrau 2 — pelo registro de leituras
 
-Cada arquivo de teste deixa, fora do git, o que de fato carregou, leu, listou e lançou. O seletor cruza esse registro com o diff. É o que o Izanagi usa: `vitest.registro.setup.mjs`, `scripts/o-registro-de-leituras.mjs` e `scripts/os-testes-afetados.mjs`, com os ADRs 0556 e 0725.
+Cada arquivo de teste deixa, fora do git, o que de fato carregou, leu, listou e lançou. O seletor cruza esse registro com o diff. É o que o Izanagi usa (ADRs 0556 e 0725), extraído para o kit sem o que era só de lá.
 
-O desenho que importa:
-- **Como o registro é gravado:**
-  - um `setupFiles` envolve `fs`, `fs/promises` e `child_process`, e chama `syncBuiltinESMExports()`;
-  - o estado zera no setup, antes do import do arquivo de teste, porque a leitura feita no topo do módulo e no `it.each` conta;
-  - a gravação acontece no `afterAll`, com um JSON por teste no `git rev-parse --git-common-dir`, que serve a todos os worktrees;
-  - o registro nunca reprova o teste: falha nele vira aviso.
-- **Por que um teste entra**, sempre com o motivo dito:
-  - está no diff;
-  - leu um caminho do diff;
-  - listou a pasta de um arquivo adicionado ou apagado;
-  - é novo ou nunca rodou nesta máquina;
-  - lança subprocesso sem declarar o que o filho lê (`// o-filho-le: <glob>`).
-- **Quando não sabe, roda mais:**
-  - pacote sem registro roda inteiro;
-  - mudança na config de teste recai na regra grossa.
-- **Cortes que mandam para o release** (só depois de medir):
-  - o teste que só alcança o diff pelo barril de outro pacote (o contrato fica com o typecheck);
-  - o teste caro (mediana ≥ ~60 s) que não importa direto o que mudou.
+**Montar.** Copie os três modelos para `scripts/` (e o `os-lentos.mjs` do degrau 3, se quiser o corte dos caros):
+- [`modelos/registro-de-leituras.mjs`](modelos/registro-de-leituras.mjs): o formato e as regras;
+- [`modelos/registro-de-leituras.setup.mjs`](modelos/registro-de-leituras.setup.mjs): o `setupFiles` que grava;
+- [`modelos/testes-afetados-pelo-registro.mjs`](modelos/testes-afetados-pelo-registro.mjs): o seletor.
+
+No config do vitest:
+
+```js
+import { registroDeLeituras } from './scripts/registro-de-leituras.mjs';
+export default defineConfig({ test: { setupFiles: [...registroDeLeituras().setupFiles] } });
+```
+
+Depois, `"test:afetados": "node scripts/testes-afetados-pelo-registro.mjs"` no `package.json`. Rode a suíte inteira uma vez para gravar o registro; sem registro, o seletor roda tudo. Medido com vitest 2, 3, 4 e 5.
+
+Ajuste no topo do seletor o que é do projeto:
+- `ehArquivoDeTeste` e `EXCLUIR`, iguais ao `include` e ao `exclude` do vitest. Um spec do Playwright fora do `EXCLUIR` entra como `sem-registro` em todo PR;
+- `ALIASES` e `BARRIS`, para os cortes;
+- `TESTES_VITEST`, o comando (num monorepo pnpm, `"pnpm vitest"`).
+
+O tronco é `origin/develop`, `origin/main` ou `origin/master`. Sem nenhum deles, o seletor para e pede `--base`, em vez de comparar com o `HEAD` e dizer "nada mudou".
+
+**Como o registro é gravado:**
+- o setup envolve `fs`, `fs/promises` e `child_process`, e chama `syncBuiltinESMExports()`;
+- os módulos carregados vêm do estado do worker do vitest; versão que o modelo não conhece grava a entrada como `cega`, e o seletor roda esse teste sempre;
+- o estado zera no setup, antes do import do arquivo de teste, porque a leitura feita no topo do módulo e no `it.each` conta;
+- a gravação acontece no `afterAll`, com um JSON por teste em `<git-common-dir>/registro-de-leituras/`, que serve a todos os worktrees;
+- desligado no CI e com `SEM_REGISTRO_DE_LEITURAS=1`;
+- o registro nunca reprova o teste: falha nele vira aviso no stderr.
+
+**Por que um teste entra**, sempre com o motivo dito:
+- está no diff (`no-diff`);
+- é novo ou nunca rodou nesta máquina (`sem-registro`);
+- leu ou carregou um caminho do diff (`le:<caminho>`);
+- listou a pasta de um arquivo adicionado ou apagado (`lista:<pasta>`);
+- lança subprocesso sobre o repositório (`subprocesso`).
+
+**Subprocesso declara o que o filho lê.** O registro não vê o que o filho lê. Quem lança `node` ou shell sobre o repositório escreve no próprio teste `// o-filho-le: scripts/**, {docs,guias}/*.md`. Com a declaração, o teste entra quando o diff casa com um glob. Sem ela, entra em todo PR, e o seletor diz o nome dele. Glob que não casa com nenhum arquivo é apontado, porque tiraria o teste do PR para sempre.
+
+**Quando não sabe, roda mais:**
+- diff que mexe no runner (`package.json`, lockfile, `tsconfig`, config do vitest, os três scripts) roda a suíte inteira;
+- registro vazio roda a suíte inteira;
+- import por alias que o seletor não conhece desliga o corte do caro;
+- a marca de subprocesso não vence enquanto o teste não roda de novo: o teste adiado não some da seleção.
+
+**O seletor fala.** Ele diz quantos testes de quantos rodam e o motivo de cada um, o que fica para o release, o caminho do diff que nenhum teste lê e quem encareceu a seleção acima do teto. `--so-listar` imprime o JSON sem rodar. Diff vazio e seleção vazia são ditos, não um verde mudo.
+
+**Cortes que mandam para o release** (só depois de medir):
+- o teste caro (mediana ≥ `CARO_A_PARTIR_DE_MS` no `.tempos/` do degrau 3) que não importa direto o que mudou. Ponha os aliases do projeto em `ALIASES`;
+- o teste que só alcança o diff pelo barril de outro pacote (`BARRIS`, vazio por padrão). O contrato fica com o typecheck.
+
+**Com `node:test`** não há worker com a lista de módulos: o caminho é um `--import` que envolva `fs`, `child_process` e os hooks do loader. O kit ainda não tem esse modelo. Fique no degrau 1 por pasta.
 
 ### Degrau 3 — tempo e paralelismo
 
