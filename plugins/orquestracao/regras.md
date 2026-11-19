@@ -6,7 +6,8 @@
 
 **Qualidade sem gargalo.**
 - Planeje antes de mexer (`orquestracao:planejar`); teste antes do código quando o comportamento muda (`orquestracao:tdd`).
-- Rode **só os testes afetados** e o typecheck; a suíte inteira é do CI.
+- Rode **só os testes afetados** e o typecheck; a suíte inteira é do gate do release (CI ou local, conforme o projeto). Os comandos estão no `CLAUDE.md` do projeto; sem eles, ou com teste lento ou instável, `orquestracao:testes-enxutos`.
+- Teste é custo: um por comportamento visível, nada que o typecheck já pegue, espera por evento e nunca por relógio, subprocesso com `timeout`.
 - Nada de "pronto" sem a saída real do comando (`orquestracao:verificar-antes-de-concluir`).
 - Revisão por agente (`orquestracao:revisor`) só nos itens de risco: autenticação, permissão ou segredo; dinheiro; migração ou dado que não volta; diff com mais de ~400 linhas. Nos outros, a autoconferência da skill `revisar`.
 - Bug: causa medida antes do conserto (`orquestracao:depurar`).

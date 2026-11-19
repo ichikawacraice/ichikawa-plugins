@@ -23,7 +23,7 @@ Reconhecimento rápido, por busca e não por leitura de tudo. O resultado é um 
 - **Arquitetura:** monolito, monorepo, front e back separados, serverless; estilo da API (REST, tRPC, GraphQL, RPC).
 - **Pastas:** cada pasta de topo e o que ela guarda. Não explique `src/`.
 - **Caminho de uma requisição:** onde entra, onde valida, onde mora a regra, como chega ao banco. Siga **uma** requisição real, lendo os arquivos do caminho.
-- **Comandos:** dev, build, testes (e como rodar só os afetados), lint, typecheck, migrations. Confirme que existem no `package.json` ou no `Makefile`; não presuma.
+- **Comandos:** dev, build, testes (e como rodar só os afetados), lint, typecheck, migrations. Confirme que existem no `package.json` ou no `Makefile`; não presuma. Sem comando de testes afetados, ou com a suíte levando minutos: siga o Diagnóstico de `orquestracao:testes-enxutos` e proponha o degrau ao operador.
 
 ## 3. Convenções
 
