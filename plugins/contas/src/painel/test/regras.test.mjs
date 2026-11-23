@@ -87,19 +87,22 @@ test('avisoDaCota: velha, falhou, esperar a Anthropic e nada a dizer', async () 
   assert.match(rede.texto, /sem rede/);
 });
 
-test('ordem das contas: a ativa sempre primeiro; depois quem tem mais % livre na semana; sem cota lida, no fim', () => {
+test('ordem das contas: a ativa primeiro; depois a semana que renova antes; zerada ou sem data, no fim', () => {
   const c = (uuid, nome, ativa = false) => ({ uuid, nome, ativa });
-  const contas = [c('a', 'Ana'), c('b', 'Bia', true), c('c', 'Caio'), c('d', 'Davi'), c('e', 'Eva')];
+  // 23/11/2026 17:00 em São Paulo — o caso da imagem do ICH-F46, que saía seg 30/11 10:00, seg 04:59, dom, amanhã.
+  const agora = Date.parse('2026-11-23T20:00:00.000Z');
+  const contas = [c('gabriel', 'gabriel'), c('acesso', 'acesso'), c('dev', 'dev'), c('izanagi', 'izanagi'), c('ativa', 'zz', true), c('zerou', 'aa'), c('sem', 'ab')];
   const uso = {
-    a: { semana: 80 },
-    b: { semana: 95 },
-    c: { semana: 10 },
-    // A semana da Davi já zerou: 100% livre, mesmo com o número velho de 99.
-    d: { semana: 99, semanaReinicia: '2026-11-12T10:00:00.000Z' },
+    gabriel: { semana: 17, semanaReinicia: '2026-11-30T13:00:00.000Z' },
+    acesso: { semana: 18, semanaReinicia: '2026-11-30T07:59:00.000Z' },
+    dev: { semana: 56, semanaReinicia: '2026-11-29T04:00:00.000Z' },
+    izanagi: { semana: 66, semanaReinicia: '2026-11-24T18:00:00.000Z' },
+    ativa: { semana: 90, semanaReinicia: '2026-11-30T20:00:00.000Z' },
+    zerou: { semana: 99, semanaReinicia: '2026-11-23T10:00:00.000Z' },
   };
-  assert.deepEqual(ordenarContas(contas, uso, AGORA).map((x) => x.uuid), ['b', 'd', 'c', 'a', 'e']);
-  assert.deepEqual(ordenarContas([c('x', 'Zé'), c('y', 'Alu')], {}, AGORA).map((x) => x.uuid), ['y', 'x'], 'sem cota, por nome');
-  assert.deepEqual(ordenarContas([c('x', 'Zé'), c('y', 'Alu')], { x: { semana: 50 }, y: { semana: 50 } }, AGORA).map((x) => x.uuid), ['y', 'x'], 'empate, por nome');
+  assert.deepEqual(ordenarContas(contas, uso, agora).map((x) => x.uuid), ['ativa', 'izanagi', 'dev', 'acesso', 'gabriel', 'zerou', 'sem']);
+  const mesma = '2026-11-25T00:00:00.000Z';
+  assert.deepEqual(ordenarContas([c('x', 'Zé'), c('y', 'Alu')], { x: { semana: 1, semanaReinicia: mesma }, y: { semana: 50, semanaReinicia: mesma } }, agora).map((x) => x.uuid), ['y', 'x'], 'empate, por nome');
 });
 
 test('a cor da barra vai do verde (livre) ao vermelho (no limite), pelo matiz', () => {

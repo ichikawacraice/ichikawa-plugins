@@ -92,16 +92,26 @@ export function identidade(conta, emails = {}) {
   return { nome: temNome ? conta.nome : email || padrao, apoio: temNome ? email || padrao : email ? padrao : '' };
 }
 
-/** Quanto da semana está livre (0 a 100); `-1` sem cota lida, para ficar no fim. Semana que já zerou está 100% livre. */
-function livreNaSemana(uso, agoraMs) {
-  const semana = janelas(uso, agoraMs).find((j) => j.chave === 'semana');
-  return semana ? 100 - semana.pct : -1;
+/** Quando a semana renova (ms); `Infinity` sem cota lida, sem data ou com a semana já zerada, para ficar no fim. */
+function renovaASemana(uso, agoraMs) {
+  if (percentual(uso?.semana) === null) return Infinity;
+  const reinicia = paraMs(uso.semanaReinicia);
+  return reinicia !== null && reinicia > agoraMs ? reinicia : Infinity;
 }
 
-/** A ativa sempre primeiro; depois quem tem mais % livre na semana (sem cota lida, no fim); empate, por nome. */
-export const ordenarContas = (contas, uso = {}, agoraMs = Date.now()) => [...contas].sort((a, b) => Number(b.ativa) - Number(a.ativa)
-  || livreNaSemana(uso?.[b.uuid], agoraMs) - livreNaSemana(uso?.[a.uuid], agoraMs)
-  || String(a.nome).localeCompare(String(b.nome), 'pt-BR'));
+/** A ativa sempre primeiro; depois a semana que renova antes (zerada, sem data ou sem cota lida, no fim); empate, por nome. */
+export function ordenarContas(contas, uso = {}, agoraMs = Date.now()) {
+  const renova = new Map(contas.map((c) => [c.uuid, renovaASemana(uso?.[c.uuid], agoraMs)]));
+  const porData = (a, b) => {
+    const ra = renova.get(a.uuid);
+    const rb = renova.get(b.uuid);
+    if (ra === rb) return 0;
+    return ra < rb ? -1 : 1;
+  };
+  return [...contas].sort((a, b) => Number(b.ativa) - Number(a.ativa)
+    || porData(a, b)
+    || String(a.nome).localeCompare(String(b.nome), 'pt-BR'));
+}
 
 const MATIZ_LIVRE = 140;
 // A curva segura o verde até a metade e corre para o vermelho perto do limite: 50% ≈ 90 (verde-amarelo), 70% ≈ 58, 90% ≈ 20.
