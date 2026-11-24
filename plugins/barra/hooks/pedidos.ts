@@ -1,11 +1,13 @@
 // Os pedidos da página de perguntas: a página (servidor local, sem as ferramentas do app) grava
-// `pedidos/<uuid>.json`; o mod de qualquer sessão viva toma o pedido (mv atômico para `tomados/`),
-// executa e apaga; falha vai para `falhos/` com o motivo. Só arquivos, no máximo a cada 5 s.
+// `pedidos/<uuid>.json`; o mod da sessão de destino toma o pedido na hora (mv atômico para `tomados/`) e o entrega
+// como prompt, sem remetente; o da reserva e o de qualquer outra sessão viva só depois de um prazo (`esperaParaTomar`),
+// e aí por `send_message` com o aviso de que o remetente não sabe do que se trata. Executa e apaga; falha vai para
+// `falhos/` com o motivo. Só arquivos, no máximo a cada 5 s.
 
 import type { EngineInterface } from 'claude-code'
 
 import type { Pedido } from '../types'
-import { NOME_DO_PEDIDO, PEDIDO_GRAVANDO_MS, lerPedido, sessaoSumiu } from './logica'
+import { AVISO_DE_REMETENTE, NOME_DO_PEDIDO, PEDIDO_GRAVANDO_MS, esperaParaTomar, lerPedido, sessaoSumiu } from './logica'
 
 const PRAZO_FS_MS = 5_000
 const PRAZO_ENVIO_MS = 60_000
@@ -53,7 +55,7 @@ async function entregarTexto($: EngineInterface, sessao: string, texto: string, 
 
     return r.drop !== undefined ? `o prompt foi recusado (${r.drop || 'sem motivo'})` : null
   }
-  const r = await $.tool.call({ tool: 'mcp__ccd_session_mgmt__send_message', session_id: sessao, message: texto })
+  const r = await $.tool.call({ tool: 'mcp__ccd_session_mgmt__send_message', session_id: sessao, message: `${AVISO_DE_REMETENTE}\n\n${texto}` })
 
   return r.deny !== undefined ? r.deny || 'negado' : r.isError ? r.text || 'erro sem texto' : null
 }
@@ -99,6 +101,8 @@ async function atenderUm($: EngineInterface, p: Pastas, nome: string, mtimeMs: n
   const lido = lerPedido(texto, agora)
   // JSON ainda incompleto: a página pode estar gravando.
   if ('motivo' in lido && lido.motivo === 'não é JSON' && agora - mtimeMs < PEDIDO_GRAVANDO_MS) return
+  // A sessão de destino tem a vez: as outras esperam o prazo, para a resposta não chegar com o remetente errado.
+  if ('pedido' in lido && agora - Date.parse(lido.pedido.criadoEm) < esperaParaTomar(lido.pedido, eu)) return
   if (!(await tomar($, p, nome))) return
   const tomado = `${p.tomados}/${nome}`
   if ('motivo' in lido) return falhar($, p, nome, tomado, texto, lido.motivo)

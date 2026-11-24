@@ -146,7 +146,7 @@ A sessão do app que tem o papel de orquestradora em cada projeto. `perguntas pa
 
 ### `pedidos/<uuid>.json`
 
-O navegador não alcança as ferramentas do app; o mod da `barra` alcança. A página grava o pedido e o mod de qualquer sessão viva o executa.
+O navegador não alcança as ferramentas do app; o mod da `barra` alcança. A página grava o pedido e o mod da sessão de destino o executa na hora; os outros só entram como reserva depois de um prazo (abaixo).
 
 ```json
 { "tipo": "abrir-sessao", "sessao": "local_…", "texto": null, "criadoEm": "ISO-8601" }
@@ -155,7 +155,7 @@ O navegador não alcança as ferramentas do app; o mod da `barra` alcança. A p�
 
 **Para quem vai a resposta.** A sessão que perguntou, se `sessoes-do-app.json` (fresco) a mostra aberta. Arquivada, apagada ou pergunta sem sessão: a orquestradora do projeto, a de `orquestradoras.json` se aberta, senão a sessão aberta do projeto com "orquestradora" no título; o texto diz que a dona não vai receber e pede que ela aja. Com a leitura do app velha, vai à que perguntou com a orquestradora em `reserva`: se o app recusar a entrega porque a sessão está arquivada ou não existe, a barra manda o `texto` da reserva a ela. Sem ninguém, nenhum pedido: a resposta fica para `perguntas novidades`.
 
-`tipo`: `responder` (manda `texto` à sessão como mensagem) · `abrir-sessao` (foca a sessão da pergunta; a página não grava mais esse pedido desde a ICH-F34, porque o app só foca a própria sessão — a barra ainda o aceita). O mod toma o pedido renomeando-o para `pedidos/tomados/` (só um mod ganha), executa e apaga; falha vai a `pedidos/falhos/` com o motivo. Pedido de mais de 30 min é descartado.
+`tipo`: `responder` (manda `texto` à sessão como mensagem) · `abrir-sessao` (foca a sessão da pergunta; a página não grava mais esse pedido desde a ICH-F34, porque o app só foca a própria sessão — a barra ainda o aceita). **Quem toma.** O mod da sessão de destino (`sessao`) toma na hora e entrega o `texto` como prompt na própria sessão, sem remetente. O da orquestradora da `reserva` toma depois de 20 s do `criadoEm`, e o de qualquer outra sessão viva depois de 40 s (a dona fechada ou parada). O que sai por `send_message` (de uma sessão para outra) começa com o aviso de que veio da página e de que o remetente que o app mostra não sabe do que se trata, para ninguém responder a ele (ICH-F47). O mod toma o pedido renomeando-o para `pedidos/tomados/` (só um mod ganha), executa e apaga; falha vai a `pedidos/falhos/` com o motivo. Pedido de mais de 30 min é descartado.
 
 Pedido vencido ou inválido também vai a `falhos/` com o motivo (fica o rastro). O nome do arquivo segue `[A-Za-z0-9_-]+.json` e `sessao` segue `local_[A-Za-z0-9-]+`. **Limite do app:** `abrir-sessao` usa `open_session_in` com `target: "focus"`, que só mostra a própria sessão (`self`) ou uma que a sessão que tomou o pedido abriu, e só age com essa sessão na tela; fora disso o app diz que não mudou nada e o mod registra o texto no log.
 

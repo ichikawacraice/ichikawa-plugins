@@ -294,5 +294,20 @@ export function lerPedido(texto: string, agora: number): { pedido: Pedido } | { 
   return { pedido: { tipo: 'responder', sessao: o.sessao, texto: o.texto as string, criadoEm: o.criadoEm as string, ...(reserva ? { reserva } : {}) } }
 }
 
+/** A barra da sessão de destino entrega na hora, como prompt e sem remetente; as outras só depois de um prazo. */
+export const PRAZO_DA_RESERVA_MS = 20_000
+export const PRAZO_DE_QUALQUER_UMA_MS = 40_000
+
+/** Quanto o pedido precisa ter de idade (pelo `criadoEm`) para a barra desta sessão o tomar. */
+export function esperaParaTomar(pedido: Pedido, eu: string | undefined): number {
+  if (eu !== undefined && pedido.sessao === eu) return 0
+  if (eu !== undefined && pedido.tipo === 'responder' && pedido.reserva?.sessao === eu) return PRAZO_DA_RESERVA_MS
+  return PRAZO_DE_QUALQUER_UMA_MS
+}
+
+/** Vai no começo do que sai por `send_message`: o app põe como remetente a sessão que entregou, não a página. */
+export const AVISO_DE_REMETENTE =
+  '[Resposta do operador pela página de perguntas, repassada pela barra de outra sessão: o remetente desta mensagem não sabe do que se trata, não responda a ele.]'
+
 /** A entrega falhou porque a sessão não existe mais para receber (arquivada ou apagada): vale tentar a reserva. */
 export const sessaoSumiu = (motivo: string): boolean => /is archived|not found/i.test(motivo)
