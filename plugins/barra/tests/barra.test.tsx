@@ -2,6 +2,8 @@ import { expect, mock, test } from 'claude-code/testing'
 import type { On } from 'claude-code'
 import type { TestBody } from 'claude-code/testing'
 
+import { AVISO_DE_REMETENTE } from '../hooks/logica'
+
 // HOME temporário em memória: nada toca o ~/.claude real.
 const HOME = '/tmp/home-teste'
 const ICH = `${HOME}/.claude/ichikawa`
@@ -333,7 +335,7 @@ test('pedidos: responder a outra sessão manda send_message e apaga o pedido', a
   await m.relogio.advance(5_000)
   const envio = m.chamadas.find(c => c.tool === 'mcp__ccd_session_mgmt__send_message')
   expect(envio?.session_id).toBe('local_outra')
-  expect(envio?.message).toBe('Pode apagar.')
+  expect(envio?.message).toBe(`${AVISO_DE_REMETENTE}\n\nPode apagar.`)
   expect(m.rodadas.some(a => a[0] === 'mv' && a[2] === `${ICH}/pedidos/tomados/p1.json`), 'tomou por mv').toBe(true)
   expect([...m.arquivos.keys()].filter(k => k.includes('/pedidos/'))).toEqual([])
 })
@@ -343,6 +345,37 @@ test('pedidos: responder à própria sessão vira prompt, sem send_message', asy
   await m.relogio.advance(5_000)
   expect(m.prompts).toEqual(['Pode apagar.'])
   expect(m.chamadas.some(c => c.tool === 'mcp__ccd_session_mgmt__send_message')).toBe(false)
+})
+
+test('pedidos: a resposta nova vai pela barra da dona, como prompt; a de outra sessão espera a vez', async ($, on) => {
+  const criadoEm = new Date(AGORA - 1000).toISOString()
+  const m = await iniciar($, on, {
+    arquivos: {
+      [`${ICH}/pedidos/minha.json`]: pedido({ sessao: EU, criadoEm }),
+      [`${ICH}/pedidos/de-outro-projeto.json`]: pedido({ criadoEm }),
+    },
+  })
+  await m.relogio.advance(5_000)
+  expect(m.prompts).toEqual(['Pode apagar.'])
+  expect(m.chamadas.some(c => c.tool === 'mcp__ccd_session_mgmt__send_message'), 'não tomou a de outra sessão').toBe(false)
+  expect(m.arquivos.has(`${ICH}/pedidos/de-outro-projeto.json`)).toBe(true)
+  await m.relogio.advance(40_000)
+  const envio = m.chamadas.find(c => c.tool === 'mcp__ccd_session_mgmt__send_message')
+  expect(envio?.session_id, 'depois do prazo, entra como reserva').toBe('local_outra')
+  expect(String(envio?.message)).toMatch(/^\[Resposta do operador pela página de perguntas.*não responda a ele\.\]/)
+})
+
+test('pedidos: a orquestradora da reserva entra antes de qualquer outra e recebe como prompt se a dona sumiu', async ($, on) => {
+  const criadoEm = new Date(AGORA - 1000).toISOString()
+  const m = await iniciar($, on, {
+    arquivos: { [`${ICH}/pedidos/p1.json`]: pedido({ criadoEm, reserva: { sessao: EU, texto: 'A dona não vai receber: Pode apagar.' } }) },
+    ferramenta: () => ({ isError: true, text: 'session is archived' }),
+  })
+  await m.relogio.advance(5_000)
+  expect(m.chamadas.some(c => c.tool === 'mcp__ccd_session_mgmt__send_message')).toBe(false)
+  await m.relogio.advance(20_000)
+  expect(m.chamadas.find(c => c.tool === 'mcp__ccd_session_mgmt__send_message')?.session_id).toBe('local_outra')
+  expect(m.prompts).toEqual(['A dona não vai receber: Pode apagar.'])
 })
 
 test('pedidos: outra sessão tomou antes (mv falha): nada é enviado', async ($, on) => {
@@ -376,7 +409,8 @@ test('pedidos: envio recusado vai para falhos com o texto do app', async ($, on)
 })
 
 test('pedidos: abrir-sessao chama open_session_in com focus ("self" quando é a própria)', async ($, on) => {
-  const criadoEm = new Date(AGORA - 1000).toISOString()
+  // Com mais de 40 s: a de outra sessão já passou do prazo da vez da dona.
+  const criadoEm = new Date(AGORA - 60_000).toISOString()
   const m = await iniciar($, on, {
     arquivos: {
       [`${ICH}/pedidos/a.json`]: JSON.stringify({ tipo: 'abrir-sessao', sessao: 'local_outra', criadoEm }),

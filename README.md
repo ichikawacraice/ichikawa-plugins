@@ -127,7 +127,7 @@ A orquestradora é para **dividir trabalho grande entre várias sessões**, não
 
 | Seção | O que mostra |
 |---|---|
-| **Perguntas** | As abertas de todos os projetos: o caso, o que acontece se ninguém decidir e a recomendação. Um botão só para responder: com o campo vazio ele **aceita a recomendação**, com texto **envia a resposta** (⌘/Ctrl+Enter também envia). A resposta chega à sessão que perguntou, pela barra; se ela foi arquivada ou apagada, chega à orquestradora do projeto. |
+| **Perguntas** | As abertas de todos os projetos: o caso, o que acontece se ninguém decidir e a recomendação. Um botão só para responder: com o campo vazio ele **aceita a recomendação**, com texto **envia a resposta** (⌘/Ctrl+Enter também envia). A resposta chega à sessão que perguntou, pela barra dela, como mensagem sem remetente; se ela foi arquivada ou apagada, chega à orquestradora do projeto. |
 | **Sessões** | Um grupo por projeto, com a etapa de cada item (planejamento → execução → revisão → PR → entregue), quem espera você e quem está rodando agora. Cada estado tem um selo de cor própria: esperando você em âmbar, trabalhando em azul, em revisão em ciano, no PR em lilás, parada em vermelho. Clicar no cartão o abre, como os Entregues: o que já está feito e o que falta, no resumo da dona, e quanto tempo o item ficou em cada etapa, com o total. |
 | **Entregues** | As entregas dos últimos 30 dias: resultado, o que foi medido, o que ficou sem medir, próximos passos e o PR. |
 

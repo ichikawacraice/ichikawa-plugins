@@ -7,7 +7,7 @@ A barra acima do prompt do Claude Code (app desktop e terminal). Mostra:
 - **Ausente**: botão que liga e desliga o modo ausente, gravando `~/.claude/ichikawa/ausente.json` (`$ICHIKAWA_HOME` troca a pasta).
 - **Botões de outros plugins**: de cada plugin instalado e ligado neste projeto, lê o `barra.json` da raiz e mostra os botões, na ordem.
 - **Sessões para a página**: a cada 60 s grava `~/.claude/ichikawa/sessoes-do-app.json` com a lista de sessões do app (`list_sessions`, que só o app enxerga), para a seção Sessões da página do kit. Se outra sessão gravou há menos de 50 s, não lê de novo. É interface do mod: nada entra no contexto do modelo.
-- **Pedidos da página**: a cada 5 s confere `~/.claude/ichikawa/pedidos/` e executa o que a página de perguntas pediu (abrir uma sessão, responder a uma sessão).
+- **Pedidos da página**: a cada 5 s confere `~/.claude/ichikawa/pedidos/` e executa o que a página de perguntas pediu (abrir uma sessão, responder a uma sessão). A sessão de destino entrega a resposta na própria conversa, sem remetente; outra sessão só entra como reserva depois de 20 a 40 s, e o texto avisa que veio da página e que não é para responder ao remetente.
 
 Só lê arquivos, roda os contadores declarados e lê `list_sessions` no máximo uma vez por minuto entre todas as sessões abertas.
 
