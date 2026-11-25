@@ -193,3 +193,15 @@
 :root[data-tema-do-painel="desligado"] .cartoes > li.sem-item { border-style: solid; border-radius: 0; }
 :root[data-tema-do-painel="desligado"] .grupo { font-weight: 600; }
 :root[data-tema-do-painel="desligado"] .entrega > summary:hover .cartao-titulo, :root[data-tema-do-painel="desligado"] .sessao-detalhe > summary:hover .cartao-titulo { color: var(--texto); text-decoration: underline; }
+
+/* Uso do computador (ICH-F48): um cartão baixo por responsável; números em mono à direita, barra da CPU relativa ao maior. */
+.cartoes.uso { gap: 6px; }
+.cartoes.uso > li.uso-grupo { padding: 10px 14px; }
+.uso-cab { display: flex; gap: 4px 8px; align-items: baseline; min-width: 0; }
+.uso-nome { font: 500 var(--t-corpo)/20px var(--titulo); min-width: 0; flex: 1 1 auto; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.uso-numeros { flex: none; margin-left: auto; font: 500 var(--t-meta)/16px var(--mono); color: var(--texto-2); font-variant-numeric: tabular-nums; }
+.uso-barra { margin-top: 6px; height: 4px; border-radius: 2px; background: var(--fio); overflow: hidden; }
+.uso-barra > span { display: block; height: 100%; border-radius: 2px; background: var(--trabalhando); }
+.uso-sessao .uso-barra > span { background: var(--lilas); }
+.cartoes.uso .quando { margin-top: 4px; }
+.cartoes.uso > li.uso-resto { padding: 4px 2px; background: none; border: 0; color: var(--texto-3); font-size: var(--t-meta); -webkit-backdrop-filter: none; backdrop-filter: none; }
