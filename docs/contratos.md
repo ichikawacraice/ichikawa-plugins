@@ -181,9 +181,10 @@ O Painel compara o que está instalado com a `main`, sem gravar nada em `ICHIKAW
 
 O Painel mostra quem pesa na máquina (`lib/uso.mjs`, ICH-F48), sem gravar nada em `ICHIKAWA_HOME`:
 
-- **`GET /uso`** devolve a `<section id="uso">` inteira (HTML, `no-store`); a página troca a seção a cada 5 s, só com `document.visibilityState === 'visible'`. O servidor nunca coleta sozinho: guarda a última amostra por 4 s (duas abas não dobram o `ps`), e o HTML de `/` só a usa se tiver menos de 15 s.
+- **Abas** (ICH-F50): `<nav role="tablist">` com `aba-perguntas` (padrão: Perguntas, Sessões, Entregues em `<main id="painel-perguntas">`) e `aba-uso` (`<main id="painel-uso" hidden>`). A aba ativa vai em `data-aba="perguntas|uso"` no `<html>` e no endereço (`#uso`; Perguntas limpa o `#`, por `history.replaceState`), aplicada por um script comum logo depois dos painéis, antes da primeira pintura. Ao trocar, a página dispara o evento `trocou-de-aba` no `document`.
+- **`GET /uso`** devolve a `<section id="uso">` inteira (HTML, `no-store`); a página troca a seção a cada 5 s, só com `data-aba="uso"` e `document.visibilityState === 'visible'` (pede uma na hora ao trocar para a aba). O servidor nunca coleta sozinho: guarda a última amostra por 4 s (duas abas não dobram o `ps`), e o HTML de `/` só a usa se tiver menos de 15 s.
 - **Lê** `ps -A -o pid=,ppid=,pcpu=,rss=,etime=,args=` (o comando cortado em 400 caracteres). O dono de cada processo é a raiz da árvore (o processo logo abaixo do app do Claude ou do `launchd`): o ambiente dessa raiz é lido uma vez por processo (`ps -E -o pid=,command= -p …`), e dele só sai `CLAUDE_CODE_HOST_SESSION_ID`, que o app põe em toda sessão e em todo servidor que sobe por ela; o resto do ambiente (há tokens) é descartado na hora. Sem a variável: Docker (incluindo a VM do Virtualization quando o Docker roda), app (`/<Nome>.app/`), sistema (`/System`, `/usr`, `/sbin`, `/bin`) ou o nome do executável. O título vem de `sessoes-do-app.json`.
-- **Custo medido em 25/11/2026** (15 núcleos, carga 31–41): ~25 ms de CPU no servidor e ~100–150 ms no `ps` por amostra, ou seja ~3% de um núcleo (~0,2% da máquina) enquanto a página está visível, e zero com ela escondida.
+- **Custo medido em 25/11/2026** (15 núcleos, carga 31–41): ~25 ms de CPU no servidor e ~100–150 ms no `ps` por amostra, ou seja ~3% de um núcleo (~0,2% da máquina) enquanto a aba Uso está aberta e visível, e zero com a aba Perguntas ou a página escondida (medido em 25/11/2026: 0 pedidos de `/uso` em 10 s com Perguntas, 3 com Uso).
 
 ## Botões da barra: `barra.json`
 

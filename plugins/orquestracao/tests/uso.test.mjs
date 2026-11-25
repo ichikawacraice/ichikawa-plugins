@@ -99,13 +99,20 @@ test('a seção escapa o título e diz o tipo e o tempo; ps que falha vira aviso
   assert.match(secaoDeUso(await ruim.amostra()), /Não deu para ler os processos: ps sumiu/);
 });
 
-test('a página põe o uso entre Perguntas e Sessões e o serve em GET /uso', async () => {
+test('a página põe o uso numa aba própria, fechada por padrão, e o serve em GET /uso', async () => {
   const h = html(Date.now(), null, null);
-  const perguntas = h.indexOf('id="h-perguntas"');
-  const uso = h.indexOf('id="h-uso"');
-  assert.ok(perguntas >= 0 && uso > perguntas && uso < h.indexOf('id="h-entregas"'));
-  assert.match(h, /Lendo os processos/);
-  assert.match(h, /visibilityState !== 'visible'/, 'só coleta com a página visível');
+  // Duas abas: Perguntas (com Sessões e Entregues), a padrão, e Uso do computador, escondida até ser escolhida.
+  assert.match(h, /role="tablist"/);
+  assert.match(h, /<button type="button" role="tab" id="aba-perguntas" aria-controls="painel-perguntas" aria-selected="true" tabindex="0">Perguntas<\/button>/);
+  assert.match(h, /<button type="button" role="tab" id="aba-uso" aria-controls="painel-uso" aria-selected="false" tabindex="-1">Uso do computador<\/button>/);
+  const painelPerguntas = h.match(/<main id="painel-perguntas" role="tabpanel" aria-labelledby="aba-perguntas">([\s\S]*?)<\/main>/);
+  const painelUso = h.match(/<main id="painel-uso" role="tabpanel" aria-labelledby="aba-uso" hidden>([\s\S]*?)<\/main>/);
+  assert.ok(painelPerguntas && painelUso, 'os dois painéis, o de Uso escondido');
+  assert.match(painelPerguntas[1], /id="h-perguntas"[\s\S]*id="h-entregas"/);
+  assert.doesNotMatch(painelPerguntas[1], /id="h-uso"/);
+  assert.match(painelUso[1], /id="h-uso"[\s\S]*Lendo os processos/);
+  // A coleta só pede amostra com a aba Uso ativa e a página visível.
+  assert.match(h, /if \(abaAtiva\(\) !== 'uso' \|\| document\.visibilityState !== 'visible' \|\| lendoUso\) return;/);
 
   const coleta = criarColeta({ executar: executarFalso(), lerSessoes: () => SESSOES, pidDoPainel: 800 });
   const servidor = criarServidor(0, { coleta, aviso: () => null });
