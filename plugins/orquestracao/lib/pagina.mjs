@@ -1,7 +1,7 @@
 // A página local: perguntas abertas, sessões ativas e o que já foi entregue.
 // Só lê os arquivos de estado (e, uma vez por dia, move para arquivo/ a entrega que já saiu dela); grava a resposta dada aqui e os pedidos que o mod da barra executa
 // (abrir a sessão, entregar a resposta). Nenhuma batida, nenhum laço em segundo plano: o uso do computador (`GET /uso`)
-// só é lido quando a página aberta e visível pede.
+// só é lido quando a página aberta e visível pede, com a aba Uso do computador escolhida.
 import { createServer } from 'node:http';
 import { execFileSync, spawn } from 'node:child_process';
 import { randomUUID } from 'node:crypto';
@@ -236,6 +236,51 @@ const usoGuardado = (agora) => {
   return a && agora - a.em <= AMOSTRA_FRESCA_MS ? a : null;
 };
 
+/**
+ * As abas da página: Perguntas (com Sessões e Entregues: a visão que fica aberta) e Uso do computador, que só coleta
+ * enquanto está escolhida. A aba escolhida vai no endereço (`#uso`), por isso sobrevive ao recarregar de 30 s e ao F5,
+ * e a página aberta de novo (pela barra, pelo favorito) começa em Perguntas.
+ */
+const ABAS_DA_PAGINA = [['perguntas', 'Perguntas'], ['uso', 'Uso do computador']];
+const ABAS = `<nav class="abas" role="tablist" aria-label="Visões do ${NOME_DA_PAGINA}">${ABAS_DA_PAGINA.map(([id, rotulo], i) =>
+  `<button type="button" role="tab" id="aba-${id}" aria-controls="painel-${id}" aria-selected="${i === 0}" tabindex="${i === 0 ? 0 : -1}">${rotulo}</button>`).join('')}</nav>`;
+/**
+ * Script comum (não módulo), logo depois dos painéis: aplica a aba do endereço antes da primeira pintura, sem piscar
+ * a aba Perguntas. Teclado do padrão de abas: setas, Home e End trocam e focam; Tab entra no painel. Ao trocar, avisa
+ * `trocou-de-aba` (a coleta do uso escuta).
+ */
+const LIGAR_ABAS = `(() => {
+  const abas = [...document.querySelectorAll('[role="tab"]')];
+  const escolher = (id, focar) => {
+    if (!abas.some((a) => a.id === 'aba-' + id)) id = 'perguntas';
+    document.documentElement.dataset.aba = id;
+    for (const a of abas) {
+      const ativa = a.id === 'aba-' + id;
+      a.setAttribute('aria-selected', String(ativa));
+      a.tabIndex = ativa ? 0 : -1;
+      document.getElementById(a.getAttribute('aria-controls')).hidden = !ativa;
+      if (ativa && focar) a.focus();
+    }
+  };
+  const doEndereco = () => location.hash.slice(1) || 'perguntas';
+  escolher(doEndereco(), false);
+  const trocar = (id, focar) => {
+    escolher(id, focar);
+    history.replaceState(null, '', id === 'perguntas' ? location.pathname + location.search : '#' + id);
+    document.dispatchEvent(new Event('trocou-de-aba'));
+  };
+  abas.forEach((a, i) => {
+    a.addEventListener('click', () => trocar(a.id.slice(4), false));
+    a.addEventListener('keydown', (ev) => {
+      const alvo = { ArrowRight: i + 1, ArrowLeft: i - 1, Home: 0, End: abas.length - 1 }[ev.key];
+      if (alvo === undefined) return;
+      ev.preventDefault();
+      trocar(abas[(alvo + abas.length) % abas.length].id.slice(4), true);
+    });
+  });
+  addEventListener('hashchange', () => { escolher(doEndereco(), false); document.dispatchEvent(new Event('trocou-de-aba')); });
+})();`;
+
 /** A conferência do kit desta página (uma por processo do servidor). */
 export const avisoDoKit = criarAviso();
 
@@ -256,7 +301,6 @@ export function html(agora = Date.now(), kit = avisoDoKit(agora), uso = usoGuard
   const { perguntas, andamento, sessoes, entregas, maisEntregas } = dados(agora);
   const ausente = estado.lerAusente();
   const esquerda = secao('h-perguntas', 'Perguntas', perguntas.length || '', perguntas.map(({ projeto, p }) => cartaoDePergunta(projeto, p)), 'Nada esperando por você.')
-    + secaoDeUso(uso)
     + (sessoes.total ? secao('h-sessoes', 'Sessões', esc(frescor(sessoes, agora)), grupos(sessoes, agora), '') : '');
   const direita = secao('h-entregas', 'Entregues', `últimos ${estado.DIAS_DE_ENTREGAS} dias`, entregas.map(({ projeto, i }) => cartaoDeEntrega(projeto, i)), 'Nenhuma entrega ainda.', verMais(maisEntregas));
   // O céu segue só o botão de tema (`tema.json`): claro é o dia; escuro, e o padrão, a noite (estilo.css e ceu.js leem o `data-ceu`).
@@ -266,7 +310,10 @@ export function html(agora = Date.now(), kit = avisoDoKit(agora), uso = usoGuard
 <title>${esc(NOME_DA_PAGINA)}</title><link rel="preload" href="/fontes/geist-medium.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="stylesheet" href="/estilo.css"><link rel="stylesheet" href="/perguntas.css"></head>
 <body><canvas id="ceu" class="ceu" aria-hidden="true"></canvas><header class="topo">${BOTAO_DE_TEMAS}${BOTAO_DE_TEMA}<h1>${esc(NOME_DA_PAGINA)}</h1>${selosDoTopo(perguntas.length, andamento.length, entregas.length + maisEntregas.length)}${avisoDeAusente(ausente)}${avisoDeKitNovo(kit)}</header>
-<main><div>${esquerda}</div><div>${direita}</div></main>
+${ABAS}
+<main id="painel-perguntas" role="tabpanel" aria-labelledby="aba-perguntas"><div>${esquerda}</div><div>${direita}</div></main>
+<main id="painel-uso" role="tabpanel" aria-labelledby="aba-uso" hidden><div>${secaoDeUso(uso)}</div></main>
+<script>${LIGAR_ABAS}</script>
 <footer class="pe"><p>Lido às ${esc(horaSP(new Date(agora).toISOString()))}. A página se atualiza sozinha enquanto você não está escrevendo.</p><p class="assinatura">made by Ichikawa</p></footer>
 ${GAVETA_DE_TEMAS}
 <script type="module">
@@ -332,10 +379,12 @@ document.addEventListener('toggle', () => {
   try { sessionStorage.setItem(ABERTOS, JSON.stringify(abertos)); } catch { /* sem armazenamento: só não lembra */ }
 }, true);
 setInterval(() => { if (!document.hidden && !escrevendo()) location.reload(); }, 30000);
-// Uso do computador: pede uma amostra a cada 5 s, só com a página visível (aba escondida ou janela minimizada não coleta).
+// Uso do computador: pede uma amostra a cada 5 s, só com a aba Uso ativa e a página visível (aba Perguntas, aba do
+// navegador escondida ou janela minimizada não coleta).
+const abaAtiva = () => document.documentElement.dataset.aba;
 let lendoUso = false;
 const lerUso = async () => {
-  if (document.visibilityState !== 'visible' || lendoUso) return;
+  if (abaAtiva() !== 'uso' || document.visibilityState !== 'visible' || lendoUso) return;
   lendoUso = true;
   try {
     const r = await fetch('/uso', { cache: 'no-store' });
@@ -346,6 +395,7 @@ const lerUso = async () => {
 lerUso();
 setInterval(lerUso, 5000);
 document.addEventListener('visibilitychange', lerUso);
+document.addEventListener('trocou-de-aba', lerUso);
 // O céu é enfeite: se ele falhar (canvas de tamanho 0), o resto da página segue.
 try { iniciarCeu(document.getElementById('ceu')); } catch { /* sem céu */ }
 </script></body></html>`;
