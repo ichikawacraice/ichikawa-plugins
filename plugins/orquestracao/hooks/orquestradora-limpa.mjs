@@ -1,7 +1,8 @@
 #!/usr/bin/env node
-// Stop: quando o contexto da orquestradora passa do limite, avisa o operador numa caixa (`systemMessage`)
-// e deixa a limpeza pendente. Não bloqueia: bloquear forçaria uma rodada extra do modelo.
-// A limpeza acontece ao fim da próxima mensagem do operador (hook orquestradora-limpa-na-mensagem).
+// Stop: quando o contexto da orquestradora passa do limite, pergunta ao operador numa caixa (`systemMessage`)
+// se pode limpar e deixa a limpeza pendente. Não bloqueia: bloquear forçaria uma rodada extra do modelo.
+// A limpeza só roda quando a mensagem do operador pede (hook orquestradora-limpa-na-mensagem): limpar sozinha
+// apagava o texto que ele estava lendo e deixava as notas das donas presas até a próxima mensagem dele.
 // O estado vive no `perguntas`; perder o histórico não perde nada. Avisa uma vez por degrau.
 import { existsSync, readFileSync, writeFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
@@ -23,7 +24,7 @@ export function pedirLimpeza(entrada) {
   if (anterior && tokens < anterior + DEGRAU) return null;
   writeFileSync(aviso, String(tokens));
   writeFileSync(limpezaPendenteDe(entrada.session_id), String(tokens));
-  return { systemMessage: `🧹 Contexto em ${Math.round(tokens / MIL)} mil tokens — limpo ao fim da sua próxima mensagem` };
+  return { systemMessage: `🧹 Contexto em ${Math.round(tokens / MIL)} mil tokens — posso limpar? Diga "limpa" quando terminar de ler (ou digite /clear)` };
 }
 
 if (process.argv[1] === fileURLToPath(import.meta.url)) {
