@@ -144,6 +144,10 @@ O status ao vivo das sessões, que só o app enxerga. O mod da barra de toda ses
 
 A sessão do app que tem o papel de orquestradora em cada projeto. `perguntas papel orquestradora` grava (com o `CLAUDE_CODE_HOST_SESSION_ID` de quem roda), e o início de toda sessão com o papel regrava, inclusive depois do /clear.
 
+### `briefs/<projeto>/<data>-<item>.md`
+
+O detalhe do brief que a orquestradora manda à dona (o brief da `start_session` fica em até 150 palavras e leva este caminho). Texto livre, escrito só pela orquestradora, lido pela dona. Mora aqui, e não em `docs/planos/` do projeto, para não deixar arquivo solto na pasta principal e para a trava `orquestradora-nao-edita` (que libera tudo em `~/.claude`) não perguntar.
+
 ### `pedidos/<uuid>.json`
 
 O navegador não alcança as ferramentas do app; o mod da `barra` alcança. A página grava o pedido e o mod da sessão de destino o executa na hora; os outros só entram como reserva depois de um prazo (abaixo).

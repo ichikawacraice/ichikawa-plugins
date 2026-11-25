@@ -25,7 +25,7 @@ Você não escreve código de produto: cada frente vira uma sessão **dona** (sk
    - `start_session` com `context: "fresh"`, `use_worktree: true`, título `IZA-F7 · <tema>` e o brief abaixo;
    - `perguntas item etapa IZA-F7 planejamento --sessao <local_… do resultado>`.
 
-**Brief da dona** (até 150 palavras; o detalhe vai num arquivo em `docs/planos/` e o brief leva o caminho):
+**Brief da dona** (até 150 palavras; o detalhe vai num arquivo em `~/.claude/ichikawa/briefs/<projeto>/<data>-<item>.md` e o brief leva o caminho absoluto). Fora do repositório de propósito: não suja a pasta principal com arquivo solto, a dona lê de qualquer worktree, e a trava `orquestradora-nao-edita` não pergunta. Arquivo dentro do repositório (código, docs, plano) é trabalho de dona, e a trava pergunta antes.
 
 ```
 Você é a dona do item IZA-F7 · <título> no projeto <projeto>. Siga a skill orquestracao:dona.
