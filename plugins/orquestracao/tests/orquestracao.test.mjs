@@ -121,6 +121,12 @@ test('papel grava e remove o marcador; a trava só vale para a orquestradora for
   await rodar('papel', 'orquestradora', '--sessao-id', 'sessao-teste-1');
   assert.match(orquestradoraNaoEdita(entrada), /Orquestradora editando/);
   assert.equal(orquestradoraNaoEdita({ ...entrada, tool_input: { file_path: join(homedir(), '.claude', 'x.md') } }), null);
+  // O brief que a skill manda gravar não pode cair na trava: a orquestradora o escreve a cada dona.
+  const skill = readFileSync(new URL('../skills/orquestradora/SKILL.md', import.meta.url), 'utf8');
+  const pasta = skill.match(/o detalhe vai num arquivo em `~\/\.claude\/([^`]+)`/)?.[1];
+  assert.ok(pasta, 'a skill diz onde vai o detalhe do brief, dentro da ~/.claude');
+  const brief = join(homedir(), '.claude', pasta.replace('<projeto>', 'p').replace('<data>', '2026-11-25').replace('<item>', 'P-F1'));
+  assert.equal(orquestradoraNaoEdita({ ...entrada, tool_input: { file_path: brief } }), null);
   await rodar('papel', 'nenhum', '--sessao-id', 'sessao-teste-1');
   assert.equal(orquestradoraNaoEdita(entrada), null);
   await assert.rejects(rodar('papel', 'orquestradora', '--sessao-id', '../../x'), /uso/);
