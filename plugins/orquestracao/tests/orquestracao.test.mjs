@@ -524,7 +524,7 @@ test('passar-papel leva a orquestradora para o novo id depois do /clear, só na 
   await assert.rejects(rodar('passar-papel', '--sessao-id', 'sessao-sem-papel'), /sem papel/);
 });
 
-test('a limpeza avisa sem bloquear, só à orquestradora, uma vez por degrau, e deixa a limpeza pendente', async () => {
+test('a limpeza pergunta numa caixa sem bloquear, só à orquestradora, uma vez por degrau, e deixa a limpeza pendente', async () => {
   const transcript = join(mkdtempSync(join(tmpdir(), 'tr-')), 't.jsonl');
   const uso = (n) => JSON.stringify({ type: 'assistant', message: { usage: { input_tokens: 2, cache_creation_input_tokens: 0, cache_read_input_tokens: n } } });
   writeFileSync(transcript, `${uso(50_000)}\n{"type":"user"}\n${uso(160_000)}\nlinha quebrada\n`);
@@ -536,7 +536,7 @@ test('a limpeza avisa sem bloquear, só à orquestradora, uma vez por degrau, e 
   assert.equal(existsSync(pendente), false);
   const saidaDoHook = pedirLimpeza(entrada);
   assert.deepEqual(Object.keys(saidaDoHook), ['systemMessage']);
-  assert.equal(saidaDoHook.systemMessage, '🧹 Contexto em 160 mil tokens — limpo ao fim da sua próxima mensagem');
+  assert.equal(saidaDoHook.systemMessage, '🧹 Contexto em 160 mil tokens — posso limpar? Diga "limpa" quando terminar de ler (ou digite /clear)');
   assert.equal(existsSync(pendente), true);
   assert.equal(pedirLimpeza(entrada), null);
   writeFileSync(transcript, `${uso(200_000)}\n`);
@@ -544,25 +544,25 @@ test('a limpeza avisa sem bloquear, só à orquestradora, uma vez por degrau, e 
   assert.equal(tokensDoContexto(join(tmpdir(), 'nao-existe.jsonl')), null);
 });
 
-test('com a limpeza pendente, a próxima mensagem do operador manda responder e limpar ao fim do turno; passar-papel apaga a pendência', async () => {
-  const entrada = { session_id: 'sessao-limpa-3', prompt: 'oi' };
-  assert.equal(lembrarLimpeza(entrada), null);
+test('com a limpeza pendente, só a mensagem que pede limpa: o resto passa sem lembrete; passar-papel apaga a pendência', async () => {
+  const pede = { session_id: 'sessao-limpa-3', prompt: 'pode limpar' };
+  const outra = { session_id: 'sessao-limpa-3', prompt: 'como está o ICH-F7? o que limpa o cache?' };
+  assert.equal(lembrarLimpeza(pede), null);
   await rodar('papel', 'orquestradora', '--sessao-id', 'sessao-limpa-3');
-  assert.equal(lembrarLimpeza(entrada), null);
+  assert.equal(lembrarLimpeza(pede), null, 'sem pendência, nada');
   const pendente = join(process.env.ICHIKAWA_HOME, 'papeis', 'sessao-limpa-3.limpeza-pendente');
   writeFileSync(pendente, '160002');
-  const ctx = lembrarLimpeza(entrada);
-  assert.match(ctx, /Responda à mensagem/);
+  assert.equal(lembrarLimpeza(outra), null, 'mensagem que não pede a limpeza não limpa');
+  for (const prompt of ['limpa', 'Limpa.', 'sim, limpa', 'pode limpar', 'limpe', '/clear']) {
+    assert.match(lembrarLimpeza({ ...pede, prompt }) ?? '', /clear_session/, prompt);
+  }
+  const ctx = lembrarLimpeza(pede);
   assert.match(ctx, /perguntas nova/);
   assert.match(ctx, /perguntas passar-papel --sessao-id sessao-limpa-3/);
-  assert.match(ctx, /clear_session/);
   assert.match(ctx, /"self"/);
-  assert.match(ctx, /brainstorming/);
-  assert.doesNotMatch(ctx, /Posso limpar/);
-  assert.match(lembrarLimpeza(entrada), /Responda à mensagem/, 'adiada, a pendência continua até o intervalo');
   await rodar('passar-papel', '--sessao-id', 'sessao-limpa-3');
   assert.equal(existsSync(pendente), false);
-  assert.equal(lembrarLimpeza(entrada), null);
+  assert.equal(lembrarLimpeza(pede), null);
 });
 
 test('o limite padrão da limpeza é 150 mil: 140 mil não pede, 150 mil pede', async () => {

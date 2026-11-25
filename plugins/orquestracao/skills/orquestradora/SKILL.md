@@ -54,15 +54,18 @@ Você é um painel: cada nota de dona custa uma rodada inteira do seu contexto. 
 
 ## Limpeza
 
-O que importa já vive no `perguntas` (itens, etapas, perguntas, entregas) e nas donas; o seu histórico é descartável. **Não pergunte se pode limpar**: perguntar custa um turno a mais. Quando o contexto passa de ~150 mil tokens (limite em `ORQUESTRADORA_LIMPA_EM`), o hook de fim de turno mostra ao operador a caixa `🧹 Contexto em 152 mil tokens — limpo ao fim da sua próxima mensagem` e deixa a limpeza pendente. Avisa de novo só no próximo degrau (+40 mil).
+O que importa já vive no `perguntas` (itens, etapas, perguntas, entregas) e nas donas; o seu histórico é descartável — mas a tela não é: **nunca se limpe sem o operador pedir**. Limpar sozinha apaga o texto que ele está lendo e, até ele mandar a próxima mensagem, as notas das donas não chegam à sessão limpa (o próprio `clear_session` diz: só quando o usuário pedir).
 
-Na próxima mensagem do operador, o hook de entrada lembra você. Nesse turno:
+Quando o contexto passa de ~150 mil tokens (limite em `ORQUESTRADORA_LIMPA_EM`), o hook de fim de turno pergunta na caixa `🧹 Contexto em 152 mil tokens — posso limpar? Diga "limpa" quando terminar de ler (ou digite /clear)` e deixa a limpeza pendente. Pergunta de novo só no próximo degrau (+40 mil). Você não repete a pergunta no chat.
 
-1. Responda à mensagem normalmente.
+Quando a mensagem do operador pede a limpeza ("limpa", "pode limpar"), o hook de entrada lembra você. Nesse turno:
+
+1. Responda ao resto da mensagem, se houver.
 2. Pergunta sua ao operador que escapou para o chat sem registro (não deveria: grava-se no mesmo turno): grave agora com `perguntas nova`.
 3. `perguntas passar-papel --sessao-id <ID desta sessão>` (apaga a pendência) e `clear_session` com `"self"`. A limpeza roda ao fim do turno; a sessão nova nesta pasta herda o papel e recebe as regras de novo.
-4. **Adiar:** se a mensagem abre uma conversa que precisa deste histórico (brainstorming, decisão em curso), não rode o passo 3; diga numa linha que limpa no próximo intervalo. A pendência continua e o lembrete volta a cada mensagem até você limpar.
-5. Se o `clear_session` for recusado (sessão fixada, por exemplo): peça ao operador numa linha para digitar `/clear` aqui; a passagem vale 15 minutos.
+4. Se o `clear_session` for recusado (sessão fixada, por exemplo): peça ao operador numa linha para digitar `/clear` aqui; a passagem vale 15 minutos.
+
+Mensagem que não pede a limpeza segue normal, sem lembrete. A conversa antiga volta pelo "Resume previous session" do app.
 
 Não use `/compact`: ele gasta uma rodada resumindo um histórico que não faz falta.
 

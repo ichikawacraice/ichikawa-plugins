@@ -154,7 +154,7 @@ perguntas sigla [SIG] | arquivar | pagina [--abrir | --subir] [--porta 4747]
 
 | Skill | Para quê |
 |---|---|
-| `orquestradora` | O papel: quebrar o pedido em itens, abrir as donas, responder a elas, levar a você só o que é seu e sugerir o release. Limpa o próprio contexto sozinha quando passa de ~150 mil tokens. |
+| `orquestradora` | O papel: quebrar o pedido em itens, abrir as donas, responder a elas, levar a você só o que é seu e sugerir o release. Quando o contexto passa de ~150 mil tokens, pergunta numa caixa se pode se limpar e só limpa quando você diz "limpa". |
 | `dona` | O papel de dona de um item: planejar, executar, conferir, PR, merge por squash, gravar a entrega e se arquivar. |
 | `brainstorming` | Desenhar antes de planejar: duas ou três abordagens com a recomendada, e o desenho aprovado no topo do plano. |
 | `entrevistar` | Uma entrevista rodada a rodada até o plano ficar sem ponto cego (*"me entrevista"*, *"grill me"*). |
@@ -198,7 +198,7 @@ A maioria avisa ou pergunta antes. Só três seguram: a mensagem com segredo par
 | Antes de mandar mensagem a outra sessão | `segredo-sai` | Recusa a mensagem que leva segredo a outra sessão. |
 | Antes da caixa de próximo passo | `pergunta-na-caixa` | Toda caixa com pergunta (bloqueando ou não) só passa com a pergunta gravada no Painel. |
 | Depois de editar | `aviso-console-log`, `formatar-editado` | Avisa `console.log` em código de produto; formata só o arquivo editado, se o projeto declara Biome ou Prettier (`ICHIKAWA_FORMATAR=0` desliga). |
-| Fim do turno | `pergunta-no-painel`, `orquestradora-limpa` | Cobra bloco de decisão (`**D…`, `**IZA-Q…`) sem registro; avisa quando o contexto da orquestradora pede limpeza. |
+| Fim do turno | `pergunta-no-painel`, `orquestradora-limpa` | Cobra bloco de decisão (`**D…`, `**IZA-Q…`) sem registro; pergunta se pode limpar quando o contexto da orquestradora passa do limite. |
 
 ---
 
