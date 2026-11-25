@@ -1,6 +1,7 @@
 // A página local: perguntas abertas, sessões ativas e o que já foi entregue.
 // Só lê os arquivos de estado (e, uma vez por dia, move para arquivo/ a entrega que já saiu dela); grava a resposta dada aqui e os pedidos que o mod da barra executa
-// (abrir a sessão, entregar a resposta). Nenhuma batida, nenhum laço em segundo plano.
+// (abrir a sessão, entregar a resposta). Nenhuma batida, nenhum laço em segundo plano: o uso do computador (`GET /uso`)
+// só é lido quando a página aberta e visível pede.
 import { createServer } from 'node:http';
 import { execFileSync, spawn } from 'node:child_process';
 import { randomUUID } from 'node:crypto';
@@ -10,6 +11,7 @@ import { fileURLToPath } from 'node:url';
 import * as estado from './estado.mjs';
 import { atualizarKit, comandoDeAtualizar, criarAviso, nomesDosVelhos } from './kit.mjs';
 import { LEITURA_FRESCA_MS, ROTULO_DO_ESTADO, duracao, lerSessoesDoApp, sessoesDaPagina } from './sessoes.mjs';
+import { AMOSTRA_FRESCA_MS, criarColeta, secaoDeUso } from './uso.mjs';
 import { BOTAO_DE_TEMA, BOTAO_DE_TEMAS, GAVETA_DE_TEMAS } from './publico/tema.js';
 
 export const PORTA_PADRAO = 4747;
@@ -225,6 +227,15 @@ function avisoDeAusente(ausente) {
     : '<p class="aviso-ausente desligado" role="status"><span class="aviso-ponto" aria-hidden="true"></span><b>Ausente desligado</b><span class="aviso-apoio">o que é seu espera pela sua resposta</span></p>';
 }
 
+/** A coleta do uso do computador desta página (uma por processo do servidor; só roda quando a página pede). */
+export const coletaDeUso = criarColeta({ lerSessoes: () => lerSessoesDoApp(estado.raiz()).sessoes });
+
+/** A amostra guardada, se ainda fresca: o HTML inicial nunca roda o `ps`. */
+const usoGuardado = (agora) => {
+  const a = coletaDeUso.ultima();
+  return a && agora - a.em <= AMOSTRA_FRESCA_MS ? a : null;
+};
+
 /** A conferência do kit desta página (uma por processo do servidor). */
 export const avisoDoKit = criarAviso();
 
@@ -241,10 +252,11 @@ function avisoDeKitNovo(kit) {
     + `<div class="kit-comando" hidden><p class="kit-erro"></p><code>${esc(comandoDeAtualizar(kit.velhos))}</code></div></div>`;
 }
 
-export function html(agora = Date.now(), kit = avisoDoKit(agora)) {
+export function html(agora = Date.now(), kit = avisoDoKit(agora), uso = usoGuardado(agora)) {
   const { perguntas, andamento, sessoes, entregas, maisEntregas } = dados(agora);
   const ausente = estado.lerAusente();
   const esquerda = secao('h-perguntas', 'Perguntas', perguntas.length || '', perguntas.map(({ projeto, p }) => cartaoDePergunta(projeto, p)), 'Nada esperando por você.')
+    + secaoDeUso(uso)
     + (sessoes.total ? secao('h-sessoes', 'Sessões', esc(frescor(sessoes, agora)), grupos(sessoes, agora), '') : '');
   const direita = secao('h-entregas', 'Entregues', `últimos ${estado.DIAS_DE_ENTREGAS} dias`, entregas.map(({ projeto, i }) => cartaoDeEntrega(projeto, i)), 'Nenhuma entrega ainda.', verMais(maisEntregas));
   // O céu segue só o botão de tema (`tema.json`): claro é o dia; escuro, e o padrão, a noite (estilo.css e ceu.js leem o `data-ceu`).
@@ -320,6 +332,20 @@ document.addEventListener('toggle', () => {
   try { sessionStorage.setItem(ABERTOS, JSON.stringify(abertos)); } catch { /* sem armazenamento: só não lembra */ }
 }, true);
 setInterval(() => { if (!document.hidden && !escrevendo()) location.reload(); }, 30000);
+// Uso do computador: pede uma amostra a cada 5 s, só com a página visível (aba escondida ou janela minimizada não coleta).
+let lendoUso = false;
+const lerUso = async () => {
+  if (document.visibilityState !== 'visible' || lendoUso) return;
+  lendoUso = true;
+  try {
+    const r = await fetch('/uso', { cache: 'no-store' });
+    const atual = document.getElementById('uso');
+    if (r.ok && atual) atual.outerHTML = await r.text();
+  } catch { /* servidor fora: a seção fica com a última leitura */ } finally { lendoUso = false; }
+};
+lerUso();
+setInterval(lerUso, 5000);
+document.addEventListener('visibilitychange', lerUso);
 // O céu é enfeite: se ele falhar (canvas de tamanho 0), o resto da página segue.
 try { iniciarCeu(document.getElementById('ceu')); } catch { /* sem céu */ }
 </script></body></html>`;
@@ -493,6 +519,11 @@ export function criarServidor(portaPedida = PORTA_PADRAO, opcoes = {}) {
       if (req.method === 'GET' && caminho === '/') {
         limparSeDeuODia();
         res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8', 'Cache-Control': 'no-store' }).end(html(Date.now(), (opcoes.aviso ?? avisoDoKit)()));
+        return;
+      }
+      if (req.method === 'GET' && caminho === '/uso') {
+        const amostra = await (opcoes.coleta ?? coletaDeUso).amostra();
+        res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8', 'Cache-Control': 'no-store' }).end(secaoDeUso(amostra));
         return;
       }
       if (req.method === 'POST' && caminho === '/responder') { await responder(req, res, porta); return; }
