@@ -2,7 +2,7 @@
 
 Painel local para quem usa várias contas no app desktop do Claude no Mac:
 
-- **Cota de cada conta**: as janelas de 5 h e da semana, lado a lado, com a hora em que cada uma zera. A barra vai do verde (livre) ao vermelho (perto do limite).
+- **Cota de cada conta**: as janelas de 5 h e da semana, lado a lado, com a hora em que cada uma zera. Plano sem janela de 5 h (Ultra) mostra só a semana. Resposta num formato que o painel não conhece grava em `uso.json` só os nomes dos campos (`forma`), nunca os valores. A barra vai do verde (livre) ao vermelho (perto do limite).
 - **Ordem da lista**: a conta no app primeiro; as outras pela renovação da cota da semana, a que zera antes primeiro. Semana já zerada, sem data ou sem cota lida vai ao fim; empate, por nome.
 - **Troca de conta sem Sign out** e sem código por e-mail a cada troca.
 - **As sessões do Code continuam na conta nova**: a lista de conversas vem junto, e as que estavam respondendo quando o app fechou são retomadas sozinhas.
@@ -66,7 +66,7 @@ Pasta de dados: `~/.claude-account-switcher/` (troque com `TROCA_DE_CONTA_DIR`).
 | Login de cada conta (3 chaves do `config.json` + `Cookies`, cifrados como o app os gravou) | `contas/<conta>/` |
 | Nomes das contas (sem token) | `estado.json` |
 | Backup do `config.json` e do `Cookies` antes de cada troca (10 últimos) | `backups/<data>/` |
-| Última cota lida de cada conta e o e-mail (sem token) | `uso.json` |
+| Última cota lida de cada conta e o e-mail (sem token); no erro `formato`, os nomes dos campos da resposta (`forma`, sem valores) | `uso.json` |
 | Desfecho da última ação, lido pelo painel | `ultima-acao.json` |
 | Conversas tiradas da lista por terem sido apagadas em outra conta | `lista-reserva/` |
 

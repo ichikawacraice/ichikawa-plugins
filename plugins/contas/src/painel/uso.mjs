@@ -95,6 +95,7 @@ const entradaLimpa = (e) => ({
   sessao: numero(e?.sessao), sessaoReinicia: horario(e?.sessaoReinicia),
   semana: numero(e?.semana), semanaReinicia: horario(e?.semanaReinicia),
   lidoEm: horario(e?.lidoEm), erro: ERROS.has(e?.erro) ? e.erro : null, email: emailLimpo(e?.email),
+  ...(formaLimpa(e?.forma) ? { forma: e.forma } : {}),
 });
 
 /** O último uso gravado, por uuid. Sem arquivo, torto ou uuid fora do padrão: some, sem erro. */
@@ -167,13 +168,32 @@ function loginDe(c, { app, env, chave }) {
   try { return JSON.parse(decifrar(bruto, chave)); } catch { throw Object.assign(new Error('chave'), { chaveRuim: true }); } // a chave não abre o login (o texto sai errado ou não é JSON)
 }
 
-/** O corpo da resposta → o uso, ou `null` se não tem `five_hour` e `seven_day` com `utilization` numérico. */
+/**
+ * O corpo da resposta → o uso, ou `null` se `seven_day` não tem `utilization` numérico. A janela de 5 h é opcional:
+ * plano sem ela (Ultra) manda `five_hour` nulo ou sem número, e a sessão fica `null`. Número em texto continua formato.
+ */
 function usoDoCorpo(corpo, lidoEm) {
   const f = corpo?.five_hour; const s = corpo?.seven_day;
-  if (!f || typeof f !== 'object' || !s || typeof s !== 'object') return null;
-  if (numero(f.utilization) === null || numero(s.utilization) === null) return null;
-  return { sessao: f.utilization, sessaoReinicia: horario(f.resets_at), semana: s.utilization, semanaReinicia: horario(s.resets_at), lidoEm, erro: null };
+  if (!s || typeof s !== 'object' || numero(s.utilization) === null) return null;
+  const semJanela = f === null || f === undefined || (typeof f === 'object' && f.utilization === null);
+  if (!semJanela && (typeof f !== 'object' || numero(f.utilization) === null)) return null;
+  return {
+    sessao: semJanela ? null : f.utilization, sessaoReinicia: semJanela ? null : horario(f.resets_at),
+    semana: s.utilization, semanaReinicia: horario(s.resets_at), lidoEm, erro: null,
+  };
 }
+
+const NOME_DE_CAMPO = /^[A-Za-z0-9_]{1,40}$/;
+const MAX_CAMPOS = 30;
+const MAX_FORMA = 600;
+const nomes = (o) => Object.keys(o).filter((k) => NOME_DE_CAMPO.test(k)).sort().slice(0, MAX_CAMPOS);
+const tipoDe = (v) => (v === null ? 'null' : Array.isArray(v) ? 'array' : typeof v === 'object' ? `{${nomes(v).join(',')}}` : typeof v);
+/** Só os nomes dos campos (e dos de 2º nível) e os tipos, nunca valores: para entender a próxima mudança da API sem adivinhar. */
+export function formaDoCorpo(corpo) {
+  if (!corpo || typeof corpo !== 'object' || Array.isArray(corpo)) return corpo === null ? 'null' : Array.isArray(corpo) ? 'array' : typeof corpo;
+  return nomes(corpo).map((k) => `${k}:${tipoDe(corpo[k])}`).join(' ').slice(0, MAX_FORMA);
+}
+const formaLimpa = (v) => (typeof v === 'string' && v.length <= MAX_FORMA && /^[A-Za-z0-9_:{},\s]*$/.test(v) ? v : undefined);
 
 /** O e-mail do perfil da conta, ou `null` em qualquer falha (o uso não depende dele). Perfil de outra conta não vale. */
 async function emailDoPerfil(token, uuid, fetch) {
@@ -206,9 +226,9 @@ async function lerUsoDaConta(c, { app, env, chave, fetch, agora }) {
   if (res.status === 429) { E.retryAte.set(c.uuid, agora() + esperaDoRetryAfter(res.headers?.get?.('retry-after'))); return { erro: 'limite' }; }
   if (!res.ok) return { erro: 'rede' };
   let corpo;
-  try { corpo = await res.json(); } catch { return { erro: 'formato', token }; }
+  try { corpo = await res.json(); } catch { return { erro: 'formato', forma: 'corpo_sem_json', token }; }
   const uso = usoDoCorpo(corpo, new Date(agora()).toISOString());
-  return uso ? { uso, token } : { erro: 'formato', token }; // o token volta só a `lerDaConta`, para o perfil, e sai dali
+  return uso ? { uso, token } : { erro: 'formato', forma: formaDoCorpo(corpo), token }; // o token volta só a `lerDaConta`, para o perfil, e sai dali
 }
 
 const appDe = (env, app) => app ?? criarApp({ dir: env.CLAUDE_APP_DIR || undefined });
@@ -248,7 +268,8 @@ async function relerTodas({ env, app, contas, fetch, agora }) {
       tentadas++;
       if (r.chaveRuim) ruins++;
       const email = r.email ?? velho.email;
-      depois[c.uuid] = r.uso ? { ...r.uso, email } : { ...velho, erro: r.erro, email }; // o erro não apaga o último uso bom
+      const { forma: _velha, ...semForma } = velho;
+      depois[c.uuid] = r.uso ? { ...r.uso, email } : { ...semForma, erro: r.erro, email, ...(r.forma ? { forma: r.forma } : {}) }; // o erro não apaga o último uso bom
     }
   } finally { E.lendoUso = false; }
   if (tentadas > 0 && ruins === tentadas) { descartarChave(); return null; }
