@@ -18,6 +18,18 @@ function raizDoRepositorio(cwd) {
 }
 
 const lerOuVazio = (caminho) => { try { return readFileSync(caminho, 'utf8'); } catch { return ''; } };
+const FRONTMATTER = /^---\n[\s\S]*?\n---\n/;
+
+/**
+ * O corpo da skill do papel, sem o frontmatter, para colar no início da sessão. Citar o nome não basta: a skill
+ * carregada some na compactação e no reinício, e a sessão seguia sem ela (medido: orquestradora sem os selos depois
+ * de cada compactação de 25/11). `null` se o papel não tem skill no kit.
+ */
+export function skillDoPapel(papel) {
+  if (!/^[a-z-]+$/.test(papel ?? '')) return null;
+  const texto = lerOuVazio(fileURLToPath(new URL(`../skills/${papel}/SKILL.md`, import.meta.url)));
+  return texto ? texto.replace(FRONTMATTER, '').trim() : null;
+}
 const SEM_TESTE = /no test specified/;
 const DECLARA_AFETADOS = /afetad|affected|vitest related|--changed|test:changed/i;
 
@@ -44,7 +56,12 @@ export function contexto(entrada) {
   partes.push(`Sigla do projeto: **${estado.sigla(projeto)}** — itens e perguntas se escrevem \`${estado.sigla(projeto)}-F7\`, \`${estado.sigla(projeto)}-Q12\` em títulos e mensagens (o CLI aceita os dois).`);
   const herdado = herdarPapel(entrada);
   const papel = herdado ?? papelDe(entrada.session_id);
-  if (papel) partes.push(`Papel desta sessão: **${papel}** (siga a skill \`orquestracao:${papel}\`).`);
+  if (papel) {
+    const skill = skillDoPapel(papel);
+    partes.push(skill
+      ? `Papel desta sessão: **${papel}**. A skill \`orquestracao:${papel}\` vai abaixo, inteira, e vale a cada mensagem (não precisa carregá-la de novo):\n\n${skill}`
+      : `Papel desta sessão: **${papel}** (siga a skill \`orquestracao:${papel}\`).`);
+  }
   // A cada início (e depois de um /clear), a orquestradora se regrava: é para ela que vai a resposta de dona arquivada.
   if (papel === 'orquestradora') estado.gravarOrquestradora(projeto, estado.sessaoDoAppAtual());
   if (herdado) partes.push('Você acabou de ser limpa: o andamento está em `perguntas item listar` e `perguntas listar`. Não releia transcripts; responda ao que chegar.');

@@ -157,6 +157,17 @@ test('o início traz as regras, o ausente e o id da sessão', () => {
   assert.match(ctx, /sessao-teste-2/);
 });
 
+test('com papel, o início cola a skill do papel inteira, também depois de compactar', async () => {
+  await rodar('papel', 'orquestradora', '--sessao-id', 'sessao-skill-1');
+  for (const source of ['startup', 'resume', 'compact']) {
+    const ctx = contexto({ session_id: 'sessao-skill-1', cwd: tmpdir(), source });
+    assert.match(ctx, /Selo sempre, colado à palavra/, source);
+    assert.match(ctx, /## Limpeza/, source);
+    assert.doesNotMatch(ctx, /^name: orquestradora/m, 'sem o frontmatter');
+  }
+  assert.doesNotMatch(contexto({ session_id: 'sessao-sem-papel', cwd: tmpdir() }), /Selo sempre/);
+});
+
 test('a página escapa o texto e separa perguntas, sessões e entregas', () => {
   estado.criar('perguntas', 'p', { titulo: '<script>x</script>', estado: 'aberta', sessao: SESSAO_DO_APP, item: 'F1' });
   estado.criar('itens', 'p', { titulo: 'vivo', etapa: 'execucao' });
