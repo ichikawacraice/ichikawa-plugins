@@ -151,6 +151,36 @@ test('lerUso: resets_at null vira null; o corpo traz só sessao e semana numéri
   assert.deepEqual([a.sessao, a.sessaoReinicia, a.semana, a.semanaReinicia, a.erro], [0, null, 3.5, null, null]);
 });
 
+test('lerUso: plano sem janela de 5 h (Ultra) lê só a semana, sem erro', async () => {
+  for (const corpo of [
+    { five_hour: null, seven_day: { utilization: 94, resets_at: '2026-11-27T18:00:00.000Z' } },
+    { seven_day: { utilization: 94, resets_at: '2026-11-27T18:00:00.000Z' } },
+    { five_hour: { utilization: null, resets_at: null }, seven_day: { utilization: 94, resets_at: '2026-11-27T18:00:00.000Z' } },
+  ]) {
+    const m = ambiente();
+    const f = fetchFalso({ [TOKEN_A]: () => resposta(corpo) });
+    await atualizarUso(opcoes(m, { fetch: f }));
+    const a = cacheEmDisco(m)[CONTA_A];
+    assert.deepEqual([a.sessao, a.sessaoReinicia, a.semana, a.semanaReinicia, a.erro], [null, null, 94, '2026-11-27T18:00:00.000Z', null], JSON.stringify(corpo));
+    esquecerUso();
+  }
+});
+
+test('lerUso: formato desconhecido grava só os nomes dos campos da resposta, nunca os valores', async () => {
+  const m = ambiente();
+  const f = fetchFalso({ [TOKEN_A]: () => resposta({ five_hour: null, seven_day: null, weekly_cap: { utilization: 12, segredo: 'VALOR-SECRETO' }, 'chave estranha!': 1 }) });
+  await atualizarUso(opcoes(m, { fetch: f }));
+  const a = cacheEmDisco(m)[CONTA_A];
+  assert.equal(a.erro, 'formato');
+  assert.equal(a.forma, 'five_hour:null seven_day:null weekly_cap:{segredo,utilization}');
+  assert.ok(!readFileSync(join(m.dados, 'uso.json'), 'utf8').includes('VALOR-SECRETO'));
+  assert.equal(lerCacheDeUso(m.env)[CONTA_A].forma, a.forma, 'a forma sobrevive à releitura do cache');
+  const g = fetchFalso({ [TOKEN_A]: () => resposta(corpoDeUso()) });
+  esquecerUso();
+  await atualizarUso(opcoes(m, { fetch: g, agora: () => AGORA + 600_000 }));
+  assert.equal(cacheEmDisco(m)[CONTA_A].forma, undefined, 'leitura boa apaga a forma');
+});
+
 test('lerUso: cada falha vira um código; o erro de uma conta não toca a outra', async () => {
   const casos = [
     ['401 venceu', () => resposta('{}', 401), 'venceu'],
@@ -159,7 +189,6 @@ test('lerUso: cada falha vira um código; o erro de uma conta não toca a outra'
     ['fetch lança', () => new TypeError('fetch failed SEGREDO-DA-REDE'), 'rede'],
     ['prazo', () => Object.assign(new Error('The operation was aborted due to timeout'), { name: 'TimeoutError' }), 'rede'],
     ['não é JSON', () => resposta('<html>', 200), 'formato'],
-    ['sem five_hour', () => resposta({ seven_day: { utilization: 1, resets_at: null } }), 'formato'],
     ['sem seven_day', () => resposta({ five_hour: { utilization: 1, resets_at: null } }), 'formato'],
     ['utilization texto', () => resposta({ five_hour: { utilization: '5', resets_at: null }, seven_day: { utilization: 1, resets_at: null } }), 'formato'],
     ['null', () => resposta('null', 200), 'formato'],

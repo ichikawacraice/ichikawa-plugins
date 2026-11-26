@@ -327,7 +327,7 @@ Configuração e testes: [`plugins/design-wicomm/README.md`](plugins/design-wico
 
 **O que faz.** Para quem usa mais de uma conta no app desktop do Claude no Mac:
 
-- **A cota de cada conta:** as janelas de 5 h e da semana lado a lado, com a hora em que cada uma zera.
+- **A cota de cada conta:** as janelas de 5 h e da semana lado a lado, com a hora em que cada uma zera (no Ultra, que não tem a de 5 h, só a semana).
 - **Troca de conta sem Sign out** e sem código por e-mail a cada troca. O app fecha e abre de novo na conta escolhida em uns 5 s.
 - **As sessões do Code continuam na conta nova:** a lista de conversas vem junto, e as que estavam respondendo quando o app fechou são retomadas sozinhas.
 
