@@ -191,6 +191,7 @@ A maioria avisa ou pergunta antes. Só três seguram: a mensagem com segredo par
 | Quando | Hook | O que faz |
 |---|---|---|
 | Início da sessão | `inicio` | Injeta as regras do kit, o papel herdado com a skill dele inteira (também depois de compactar ou reiniciar, para a orquestradora não perder os selos), o modo ausente e as respostas do Painel ainda não lidas. Em projeto com script de teste cujo `CLAUDE.md` não declara o comando de testes afetados, lembra a sessão de seguir o Diagnóstico de `testes-enxutos`. |
+| Início da sessão | `prioridade-de-fundo` | No Mac, baixa a prioridade da sessão do Claude Code (`renice 10`): build, teste e servidor que ela abrir herdam, e a tela e o teclado passam na frente com muitas sessões. Não usa `taskpolicy -b`, que prende nos núcleos de eficiência e deixou o teste 170× mais lento. `ICHIKAWA_PRIORIDADE_NORMAL=1` desliga. |
 | Antes de editar | `orquestradora-nao-edita` | A orquestradora não escreve código de produto: pergunta antes. |
 | Antes de editar | `config-protegida` | Mexer em configuração de lint, formatador ou tipos pergunta antes (o certo é consertar o código). |
 | Antes de editar ou rodar Bash | `segredo-em-arquivo` | Pergunta antes de gravar segredo de verdade em arquivo e antes de `git add .env`. Nomeia o padrão, nunca o valor. |
