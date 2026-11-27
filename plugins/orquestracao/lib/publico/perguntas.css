@@ -119,6 +119,7 @@
 .marcador-no-pr { color: var(--lilas); }
 .marcador-revisando { color: var(--revisao); }
 .marcador-trabalhando { color: var(--trabalhando); }
+.marcador-falta-fechar { color: var(--entregou); }
 /* Rodando: o arco de três quartos com pontas redondas (o do kit antigo) gira; parado com "reduzir movimento". */
 .marcador.girando { width: 14px; height: 14px; border: 0; background: none; display: grid; place-items: center; animation: gira 1.2s linear infinite; }
 .marcador.girando svg { display: block; width: 14px; height: 14px; }
@@ -129,6 +130,7 @@
 .selo-sessao-revisando { --cor-selo: var(--revisao); }
 .selo-sessao-no-pr { --cor-selo: var(--lilas); }
 .selo-sessao-trabalhando { --cor-selo: var(--trabalhando); }
+.selo-sessao-falta-fechar { --cor-selo: var(--entregou); }
 
 .esteira { display: flex; flex-wrap: wrap; gap: 4px 14px; margin: 10px 0 0; padding: 0; list-style: none; font-size: var(--t-meta); line-height: 16px; }
 .passo { display: inline-flex; align-items: center; gap: 5px; color: var(--texto-3); }
@@ -144,6 +146,7 @@
 .espera a:hover { color: var(--texto); text-decoration: underline; }
 .espera a:focus-visible { outline: 2px solid var(--foco); outline-offset: 2px; border-radius: 4px; }
 .motivo { color: var(--critico); }
+.sessao-falta-fechar .motivo { color: var(--texto-2); }
 
 /* Sem item: linhas compactas, sem cartão. */
 .cartoes > li.sem-item { padding: 10px 16px; background: none; border: 1px dashed var(--fio-forte); -webkit-backdrop-filter: none; backdrop-filter: none; }
@@ -153,6 +156,11 @@
 .sem-item .marcador { width: 8px; height: 8px; align-self: center; }
 .titulo-sem-item { font-size: var(--t-apoio); line-height: 18px; overflow-wrap: anywhere; min-width: 0; }
 .sem-item .quando { margin: 0; }
+/* A fila sem dona (ICH-F52): recolhida no pontilhado, o código antes do título. */
+.fila-detalhe > summary { cursor: pointer; color: var(--texto-3); font-size: var(--t-meta); line-height: 16px; font-weight: 500; }
+.fila-detalhe > summary:hover { color: var(--texto-2); }
+.fila-detalhe > summary:focus-visible { outline: 2px solid var(--foco); outline-offset: 4px; border-radius: 6px; }
+.fila .id { font-size: var(--t-meta); color: var(--texto-3); }
 
 @media (prefers-reduced-motion: reduce) {
   .entrega > summary .cartao-cab::after, .sessao-detalhe > summary .cartao-cab::after { transition: none; }

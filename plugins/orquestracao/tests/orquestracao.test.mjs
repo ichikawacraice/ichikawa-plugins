@@ -229,7 +229,8 @@ test('o topo mostra o nome da página, sem o selo e o resumo antigos, e a aba te
 test('os selos do topo trazem só o número, na cor do status, e dizem o que contam ao leitor de tela', () => {
   estado.criar('perguntas', 'p', { titulo: 'A', estado: 'aberta' });
   estado.criar('perguntas', 'p', { titulo: 'B', estado: 'aberta' });
-  estado.criar('itens', 'p', { titulo: 'vivo', etapa: 'execucao' });
+  estado.criar('itens', 'p', { titulo: 'vivo', etapa: 'execucao', sessao: 'local_1' });
+  estado.criar('itens', 'p', { titulo: 'na fila, sem dona: não conta (ICH-F52)', etapa: 'planejamento' });
   estado.criar('itens', 'p', { titulo: 'feito', etapa: 'feito', entrega: { desfecho: 'entregue', resultado: 'ok', em: new Date().toISOString() } });
   const topo = topoDe(html());
   const selo = (classe) => new RegExp(`<li class="contagem contagem-${classe}"[^>]*><span aria-hidden="true">(\\d+)</span><span class="so-leitor">([^<]+)</span></li>`).exec(topo);

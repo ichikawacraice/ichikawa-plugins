@@ -7,6 +7,10 @@ export const SESSOES_INTERVALO_MS = 60_000
 /** Arquivo gravado há menos que isto (por esta ou outra sessão): não lê o app de novo. */
 export const SESSOES_FRESCO_MS = 50_000
 export const SESSOES_LIMITE = 50
+/** As donas que a página procura e a lista não traz (arquivadas): a barra pergunta por elas, uma a uma (ICH-F52). */
+export const ARQUIVO_PROCURADAS = 'sessoes-procuradas.json'
+export const PROCURADAS_LIMITE = 20
+const ID_DO_APP = /^local_[0-9a-f-]{36}$/
 
 /** Uma entrada do `list_sessions`/`get_session`, só com o que a página usa; o resto é ignorado. */
 export type SessaoDoApp = {
@@ -69,6 +73,20 @@ export function aindaFresco(atual: string | null, agora: number): boolean {
   } catch {
     return false
   }
+}
+
+/** Os ids de `sessoes-procuradas.json`, sem confiar nele: só id do app, sem repetir, até 20; ausente ou ilegível é nenhum. */
+export function idsProcurados(texto: string | null): string[] {
+  if (texto === null) return []
+  let bruto: unknown
+  try {
+    bruto = (JSON.parse(texto) as { sessoes?: unknown }).sessoes
+  } catch {
+    return []
+  }
+  if (!Array.isArray(bruto)) return []
+
+  return [...new Set(bruto.filter((id): id is string => typeof id === 'string' && ID_DO_APP.test(id)))].slice(0, PROCURADAS_LIMITE)
 }
 
 /** A própria sessão primeiro (a lista do app não a traz), sem repetir id. */

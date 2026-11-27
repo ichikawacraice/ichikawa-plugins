@@ -469,6 +469,28 @@ test('sessões: ao abrir e a cada 60 s grava sessoes-do-app.json com a própria 
   expect(lidas(m)).toBe(2)
 })
 
+test('sessões: pergunta ao app pelas donas que a página procura e junta a arquivada; recusa e repetida ficam de fora (ICH-F52)', async ($, on) => {
+  const ARQUIVADA = 'local_00000000-0000-4000-8000-0000000000aa'
+  const SUMIDA = 'local_00000000-0000-4000-8000-0000000000bb'
+  const LISTADA = 'local_00000000-0000-4000-8000-0000000000cc'
+  const lista = JSON.stringify([{ sessionId: LISTADA, title: 'ICH-F3 · Viva', isRunning: true }])
+  const procuradas = JSON.stringify({ em: new Date(AGORA).toISOString(), sessoes: [ARQUIVADA, SUMIDA, LISTADA, 'nao-e-id'] })
+  const m = await iniciar($, on, {
+    arquivos: { [`${ICH}/sessoes-procuradas.json`]: procuradas },
+    ferramenta: (tool, e) => {
+      if (tool === 'mcp__ccd_session_mgmt__list_sessions') return { text: lista }
+      if (e.session_id === 'self') return { text: EU_JSON }
+      if (e.session_id === ARQUIVADA) return { text: JSON.stringify({ sessionId: ARQUIVADA, title: 'ICH-F2 · Entregou', isArchived: true, prNumber: 12, prState: 'MERGED' }) }
+      return { isError: true, text: 'session not found' }
+    },
+  })
+  const perguntadas = m.chamadas.filter(c => c.tool === 'mcp__ccd_session_mgmt__get_session').map(c => c.session_id)
+  expect(perguntadas.sort()).toEqual([ARQUIVADA, SUMIDA, 'self'].sort())
+  const gravado = JSON.parse(m.arquivos.get(ARQ_SESSOES) as string)
+  expect(gravado.sessoes.map((s: { sessionId: string }) => s.sessionId)).toEqual([EU, LISTADA, ARQUIVADA])
+  expect(gravado.sessoes[2]).toMatchObject({ isArchived: true, prNumber: 12, prState: 'MERGED' })
+})
+
 test('sessões: outra sessão gravou há menos de 50 s: não lê o app de novo', async ($, on) => {
   const recente = JSON.stringify({ lidoEm: new Date(AGORA - 20_000).toISOString(), por: 'local_outra', sessoes: [] })
   const m = await iniciar($, on, { ferramenta: ferramentaDoApp, arquivos: { [ARQ_SESSOES]: recente } })

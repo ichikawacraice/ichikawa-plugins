@@ -47,10 +47,12 @@ import { svgDoCeu } from './fundo-noite'
 import { CORES_DIA, CORES_NOITE } from './paleta'
 import { atenderPedidos } from './pedidos'
 import {
+  ARQUIVO_PROCURADAS,
   ARQUIVO_SESSOES,
   SESSOES_INTERVALO_MS,
   SESSOES_LIMITE,
   aindaFresco,
+  idsProcurados,
   jsonDaFerramenta,
   juntarSessoes,
   lerSessoes,
@@ -383,7 +385,8 @@ async function chamar($: EngineInterface, chamada: Record<string, unknown>): Pro
 }
 
 /**
- * Grava `sessoes-do-app.json`: a lista do app e a própria sessão (que a lista não traz). Pula quando outra sessão gravou há
+ * Grava `sessoes-do-app.json`: a lista do app, a própria sessão (que a lista não traz) e as donas que a página procura
+ * (`sessoes-procuradas.json`: arquivadas, que a lista não traz; `get_session` de cada uma, a recusa fica de fora). Pula quando outra sessão gravou há
  * menos de 50 s. Gravação atômica (escreve ao lado e renomeia). Falha não apaga o arquivo: a página mostra a idade.
  */
 export async function gravarSessoes($: EngineInterface): Promise<void> {
@@ -400,8 +403,18 @@ export async function gravarSessoes($: EngineInterface): Promise<void> {
     const bruto = jsonDaFerramenta(lista)
     if (lista.deny !== undefined || lista.isError || !Array.isArray(bruto)) throw new Error(lista.deny || lista.text || 'a lista de sessões falhou')
     const propria = lerSessoes(jsonDaFerramenta(eu))
+    const listadas = lerSessoes(bruto)
+    const vistas = new Set([...propria, ...listadas].map(s => s.sessionId))
+    const procuradas = idsProcurados(await lerSeExiste($, `${base}/${ARQUIVO_PROCURADAS}`).catch(() => null)).filter(id => !vistas.has(id))
+    const achadas = await Promise.all(
+      procuradas.map(async id => {
+        const r = await chamar($, { tool: 'mcp__ccd_session_mgmt__get_session', session_id: id }).catch(() => ({}) as Resposta)
+
+        return r.deny !== undefined || r.isError ? [] : lerSessoes(jsonDaFerramenta(r))
+      }),
+    )
     const temp = `${destino}.${propria[0]?.sessionId ?? 'barra'}.tmp`
-    await $.fs.write(temp, textoDoArquivo(juntarSessoes(propria, lerSessoes(bruto)), await $.clock.now(), propria[0]?.sessionId ?? null))
+    await $.fs.write(temp, textoDoArquivo(juntarSessoes(propria, [...listadas, ...achadas.flat()]), await $.clock.now(), propria[0]?.sessionId ?? null))
     const r = await $.process.run(['mv', temp, destino], { timeoutMs: CONTADOR_PRAZO_MS })
     if (r.exitCode !== 0) throw new Error(r.stderr.trim() || `mv saiu com ${r.exitCode}`)
     erroDasSessoes = ''
