@@ -156,9 +156,14 @@ const linhasSemItem = (paradas, agora) => (paradas.length
   ? `<li class="sem-item"><p class="rotulo-sem-item">Sessões paradas</p><ul>${paradas.map((o) => `<li>${marcador('quieta', false)}<span class="titulo-sem-item">${esc(o.titulo)}</span><span class="quando">${esc(atividade(o, agora))}</span></li>`).join('')}</ul></li>`
   : '');
 
+/** Itens sem dona (ICH-F52): não são trabalho em curso; recolhidos, uma linha cada, abaixo das sessões vivas do projeto. */
+const filaSemDona = (projeto, fila) => (fila.length
+  ? `<li class="sem-item fila"><details class="fila-detalhe" id="fila-${esc(String(projeto).replace(/[^\w-]/g, '-'))}"><summary>${esc(ROTULO_DO_ESTADO['sem-dona'].replace(/^./, (c) => c.toUpperCase()))} (${fila.length})</summary><ul>${fila.map((x) => `<li><span class="id">${idLido(projeto, x.item)}</span><span class="titulo-sem-item">${esc(x.titulo)}</span></li>`).join('')}</ul></details></li>`
+  : '');
+
 /** Sessões, um grupo por projeto, o mais urgente em cima. */
 const grupos = (sessoes, agora) => sessoes.grupos.map((g) => `<li class="grupo-de-projeto"><h3 class="grupo">${esc(g.projeto)}</h3>
-<ul class="cartoes">${g.sessoes.map((s) => cartaoDeSessao(g.projeto, s, agora)).join('\n')}${g.outras.filter((o) => o.rodando).map((o) => cartaoSemItem(o, agora)).join('\n')}${linhasSemItem(g.outras.filter((o) => !o.rodando), agora)}</ul></li>`);
+<ul class="cartoes">${g.sessoes.map((s) => cartaoDeSessao(g.projeto, s, agora)).join('\n')}${g.outras.filter((o) => o.rodando).map((o) => cartaoSemItem(o, agora)).join('\n')}${linhasSemItem(g.outras.filter((o) => !o.rodando), agora)}${filaSemDona(g.projeto, g.fila)}</ul></li>`);
 
 /** Ao lado do título: a idade da leitura do app; velha ou ausente, diz o que falta. */
 function frescor(sessoes, agora) {
@@ -194,6 +199,8 @@ export function dados(agora = Date.now()) {
   const entregas = recentes.slice(0, ENTREGAS_A_MOSTRAR);
   const maisEntregas = recentes.slice(ENTREGAS_A_MOSTRAR);
   const sessoes = sessoesDaPagina({ itens: andamento, perguntas, app: lerSessoesDoApp(estado.raiz()), projetos: estado.projetos(), sigla: estado.sigla, agora });
+  // A dona arquivada some de `sessoes-do-app.json`; a barra pergunta ao app pelas que a página procura. Falha não derruba a página.
+  try { estado.gravarProcuradas(sessoes.procuradas, new Date(agora)); } catch { /* a página segue sem as procuradas */ }
   return { perguntas, andamento, sessoes, entregas, maisEntregas };
 }
 
@@ -298,7 +305,7 @@ function avisoDeKitNovo(kit) {
 }
 
 export function html(agora = Date.now(), kit = avisoDoKit(agora), uso = usoGuardado(agora)) {
-  const { perguntas, andamento, sessoes, entregas, maisEntregas } = dados(agora);
+  const { perguntas, sessoes, entregas, maisEntregas } = dados(agora);
   const ausente = estado.lerAusente();
   const esquerda = secao('h-perguntas', 'Perguntas', perguntas.length || '', perguntas.map(({ projeto, p }) => cartaoDePergunta(projeto, p)), 'Nada esperando por você.')
     + (sessoes.total ? secao('h-sessoes', 'Sessões', esc(frescor(sessoes, agora)), grupos(sessoes, agora), '') : '');
@@ -309,7 +316,7 @@ export function html(agora = Date.now(), kit = avisoDoKit(agora), uso = usoGuard
   return `<!doctype html><html lang="pt-BR" data-ceu="${estado.lerTema() === 'claro' ? 'dia' : 'noite'}" data-tema-do-app="${ligadoOuNao(estado.lerTemaDoApp())}" data-tema-do-painel="${ligadoOuNao(estado.lerTemaDoPainel())}" data-efeitos="${estado.lerEfeitos()}"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
 <title>${esc(NOME_DA_PAGINA)}</title><link rel="preload" href="/fontes/geist-medium.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="stylesheet" href="/estilo.css"><link rel="stylesheet" href="/perguntas.css"></head>
-<body><canvas id="ceu" class="ceu" aria-hidden="true"></canvas><header class="topo">${BOTAO_DE_TEMAS}${BOTAO_DE_TEMA}<h1>${esc(NOME_DA_PAGINA)}</h1>${selosDoTopo(perguntas.length, andamento.length, entregas.length + maisEntregas.length)}${avisoDeAusente(ausente)}${avisoDeKitNovo(kit)}</header>
+<body><canvas id="ceu" class="ceu" aria-hidden="true"></canvas><header class="topo">${BOTAO_DE_TEMAS}${BOTAO_DE_TEMA}<h1>${esc(NOME_DA_PAGINA)}</h1>${selosDoTopo(perguntas.length, sessoes.emAndamento, entregas.length + maisEntregas.length)}${avisoDeAusente(ausente)}${avisoDeKitNovo(kit)}</header>
 ${ABAS}
 <main id="painel-perguntas" role="tabpanel" aria-labelledby="aba-perguntas"><div>${esquerda}</div><div>${direita}</div></main>
 <main id="painel-uso" role="tabpanel" aria-labelledby="aba-uso" hidden><div>${secaoDeUso(uso)}</div></main>
@@ -375,7 +382,7 @@ const ABERTOS = 'entregas-abertas';
 const lerAbertos = () => { try { return JSON.parse(sessionStorage.getItem(ABERTOS) ?? '[]'); } catch { return []; } };
 for (const id of lerAbertos()) { const d = document.getElementById(id); if (d) { d.open = true; d.closest('.ver-mais')?.setAttribute('open', ''); } }
 document.addEventListener('toggle', () => {
-  const abertos = [...document.querySelectorAll('details.entrega[open], details.sessao-detalhe[open]')].map((d) => d.id);
+  const abertos = [...document.querySelectorAll('details.entrega[open], details.sessao-detalhe[open], details.fila-detalhe[open]')].map((d) => d.id);
   try { sessionStorage.setItem(ABERTOS, JSON.stringify(abertos)); } catch { /* sem armazenamento: só não lembra */ }
 }, true);
 setInterval(() => { if (!document.hidden && !escrevendo()) location.reload(); }, 30000);

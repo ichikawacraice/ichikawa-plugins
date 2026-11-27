@@ -1,6 +1,6 @@
 import { test, beforeEach } from 'node:test';
 import assert from 'node:assert/strict';
-import { mkdtempSync, writeFileSync } from 'node:fs';
+import { mkdtempSync, readFileSync, statSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import * as estado from '../lib/estado.mjs';
@@ -95,8 +95,55 @@ test('id gravado que não bate: acha a dona aberta pelo código do item no títu
   assert.deepEqual([porItem.F33.estado, porItem.F33.rodando], ['trabalhando', true]);
   assert.equal(porItem.F48.estado, 'revisando');
   assert.equal(porItem.F4.estado, 'parada');
-  assert.equal(porItem.F7.estado, 'trabalhando', 'sem sessão gravada, não decide parada');
+  assert.equal(porItem.F7, undefined, 'sem sessão gravada nem achada pelo título, não é cartão');
+  assert.deepEqual(r.grupos.find((g) => g.projeto === 'kit').fila.map((x) => x.item), ['F7']);
   assert.deepEqual(r.grupos.find((g) => g.projeto === 'kit').outras, [], 'a dona achada pelo título não se repete em "outras"');
+});
+
+test('item sem dona vai para a fila: não conta como trabalhando; com pergunta aberta, segue esperando você (ICH-F52)', () => {
+  const r = sessoesDaPagina({
+    itens: [item('F9', 'planejamento', null), item('F2', 'planejamento', undefined), item('F3', 'planejamento', null), item('F1', 'execucao', 'local_1')],
+    perguntas: [{ projeto: 'kit', p: { id: 'Q1', item: 'F3', titulo: 'Qual tela?' } }],
+    app: app([s('local_1', { rodando: true })]),
+    projetos: ['kit'],
+    agora: AGORA,
+  });
+  const [g] = r.grupos;
+  assert.deepEqual(g.sessoes.map((x) => `${x.item}:${x.estado}`), ['F3:esperando', 'F1:trabalhando']);
+  assert.deepEqual(g.fila.map((x) => [x.item, x.titulo]), [['F2', 'tF2'], ['F9', 'tF9']], 'em ordem de F');
+  assert.equal(r.emAndamento, 2, 'o selo do topo não conta a fila');
+  const soFila = sessoesDaPagina({ itens: [item('F5', 'planejamento', null)], perguntas: [], app: app([]), projetos: ['kit'], agora: AGORA });
+  assert.deepEqual([soFila.grupos[0].sessoes.length, soFila.grupos[0].fila.length, soFila.total, soFila.emAndamento], [0, 1, 1, 0]);
+});
+
+test('dona arquivada com o PR mergeado: falta fechar, no fim; arquivada sem PR mergeado: parada; ausente: a barra procura (ICH-F52)', () => {
+  const r = sessoesDaPagina({
+    itens: [
+      item('F1', 'execucao', 'local_1'),
+      item('F2', 'pr', 'local_2', { pr: 7 }),
+      item('F3', 'execucao', 'local_3'),
+      item('F4', 'execucao', 'local_00000000-0000-4000-8000-000000000004'),
+      item('F5', 'execucao', 'b82d761a-df18-4096-9c8a-362d942e037a'),
+    ],
+    perguntas: [],
+    app: app([
+      s('local_1', { rodando: true }),
+      s('local_2', { arquivada: true, pr: 7, prEstado: 'MERGED', ultimaAtividade: ha(600) }),
+      s('local_3', { arquivada: true, pr: 8, prEstado: 'OPEN', ultimaAtividade: ha(600) }),
+    ]),
+    projetos: ['kit'],
+    agora: AGORA,
+  });
+  const [g] = r.grupos;
+  assert.deepEqual(g.sessoes.map((x) => `${x.item}:${x.estado}`), ['F3:parada', 'F4:parada', 'F5:parada', 'F1:trabalhando', 'F2:falta-fechar']);
+  const porItem = Object.fromEntries(g.sessoes.map((x) => [x.item, x]));
+  assert.match(porItem.F2.motivo, /arquivada com o PR #7 mergeado/);
+  assert.match(porItem.F3.motivo, /arquivada sem gravar a entrega/);
+  assert.match(porItem.F4.motivo, /não está aberta/);
+  assert.equal(r.emAndamento, 4, 'falta fechar não conta como em andamento');
+  assert.deepEqual(r.procuradas, ['local_00000000-0000-4000-8000-000000000004'], 'só o id do app que não está no arquivo');
+  const velha = sessoesDaPagina({ itens: [item('F2', 'pr', 'local_2')], perguntas: [], app: app([s('local_2', { arquivada: true, pr: 7, prEstado: 'MERGED' })], 10), projetos: ['kit'], agora: AGORA });
+  assert.equal(velha.grupos[0].sessoes[0].estado, 'no-pr', 'com a leitura velha não decide');
 });
 
 test('duracao: minutos, horas e dias, sem segundos', () => {
@@ -196,4 +243,33 @@ test('sessão sem item rodando vira cartão como as ativas; no pontilhado ficam 
   assert.match(sec, /Documentação do kit[\s\S]*rodando agora<\/p>/);
   assert.doesNotMatch(pontilhado, /Documentação do kit/);
   assert.match(pontilhado, /Sessões paradas[\s\S]*🎛 orquestradora/);
+});
+
+test('a página: fila recolhida abaixo das sessões vivas, falta fechar com o motivo e o arquivo das procuradas (ICH-F52)', () => {
+  const agora = Date.now();
+  const casa = process.env.ICHIKAWA_HOME;
+  estado.criar('itens', 'kit', { titulo: 'Login', etapa: 'execucao', sessao: 'local_1' });
+  estado.criar('itens', 'kit', { titulo: 'Backlog <1>', etapa: 'planejamento' });
+  estado.criar('itens', 'kit', { titulo: 'Entregou', etapa: 'pr', sessao: 'local_3' });
+  estado.criar('itens', 'kit', { titulo: 'Sumida', etapa: 'execucao', sessao: 'local_00000000-0000-4000-8000-000000000004' });
+  writeFileSync(join(casa, 'sessoes-do-app.json'), JSON.stringify({ lidoEm: new Date(agora - 30_000).toISOString(), sessoes: [
+    { sessionId: 'local_1', title: 'KIT-F1 · Login', cwd: '/p/kit', isRunning: true },
+    { sessionId: 'local_3', title: 'KIT-F3 · Entregou', cwd: '/p/kit', isArchived: true, prNumber: 12, prState: 'MERGED' },
+  ] }));
+  const h = html(agora);
+  const sec = h.slice(h.indexOf('id="h-sessoes"'), h.indexOf('id="h-entregas"'));
+  assert.match(sec, /selo-sessao-falta-fechar">falta fechar</);
+  assert.match(sec, /A dona foi arquivada com o PR #12 mergeado, sem gravar a entrega/);
+  const fila = sec.slice(sec.indexOf('class="sem-item fila"'));
+  assert.ok(sec.indexOf('class="sem-item fila"') > sec.lastIndexOf('class="sessao '), 'a fila fica abaixo dos cartões');
+  assert.match(fila, /^class="sem-item fila"><details class="fila-detalhe" id="fila-kit"><summary>Na fila · sem dona \(1\)<\/summary>/);
+  assert.match(fila, /KIT-F2<\/span><span class="titulo-sem-item">Backlog &lt;1&gt;/);
+  assert.doesNotMatch(sec.slice(0, sec.indexOf('class="sem-item fila"')), /Backlog/);
+  assert.match(h, /<span class="so-leitor">2 itens em andamento<\/span>/, 'Login e Sumida; nem a fila nem o falta fechar');
+  const procuradas = JSON.parse(readFileSync(join(casa, 'sessoes-procuradas.json'), 'utf8'));
+  assert.deepEqual(procuradas.sessoes, ['local_00000000-0000-4000-8000-000000000004']);
+  assert.match(h, /details\.fila-detalhe\[open\]/, 'o recarregamento reabre a fila também');
+  const antes = statSync(join(casa, 'sessoes-procuradas.json')).mtimeMs;
+  html(agora + 1000);
+  assert.equal(statSync(join(casa, 'sessoes-procuradas.json')).mtimeMs, antes, 'sem mudança na lista, não regrava');
 });

@@ -38,6 +38,18 @@ function gravarJson(caminho, valor) {
   renameSync(temp, caminho);
 }
 
+/** As donas que a página não achou em `sessoes-do-app.json` (o `list_sessions` não traz arquivada): a barra pergunta por elas (ICH-F52). */
+export const ARQUIVO_DAS_PROCURADAS = 'sessoes-procuradas.json';
+
+/** Grava as procuradas só quando a lista muda (a página chama a cada carga); devolve se gravou. */
+export function gravarProcuradas(sessoes, agora = new Date()) {
+  const caminho = join(raiz(), ARQUIVO_DAS_PROCURADAS);
+  const atual = lerJson(caminho);
+  if (Array.isArray(atual?.sessoes) && atual.sessoes.join('\n') === sessoes.join('\n')) return false;
+  gravarJson(caminho, { em: agora.toISOString(), sessoes });
+  return true;
+}
+
 const PASTA_DO_ARQUIVO = 'arquivo';
 const DIA_MS = 24 * 60 * 60 * 1000;
 /** Dias que a entrega fica na página; depois disso o item vai para `arquivo/`. */

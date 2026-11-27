@@ -19,6 +19,7 @@ Tudo o que é de máquina (não de projeto) mora em `~/.claude/ichikawa/` (`$ICH
 | `pedidos/<uuid>.json` | página do `orquestracao` | `barra` (o mod toma, executa e apaga) |
 | `orquestradoras.json` | `orquestracao` (`perguntas papel orquestradora` e o início da sessão com o papel) | `orquestracao` (página, para onde vai a resposta de dona arquivada) |
 | `sessoes-do-app.json` | `barra` (a cada 60 s) | `orquestracao` (página, seção Sessões) |
+| `sessoes-procuradas.json` | `orquestracao` (página, quando a lista muda) | `barra` (pergunta ao app por cada uma) |
 
 - **`<projeto>`** é o nome da pasta raiz do repositório principal (pai do `git rev-parse --path-format=absolute --git-common-dir`), para todos os worktrees darem o mesmo nome.
 - **Sigla do projeto**: 3 letras ou dígitos que antecedem o id na leitura (`IZA-F3`, `IZA-Q12`). Sai das 3 primeiras letras ou dígitos do nome, em maiúsculas, ou de `siglas.json` (`{ "<projeto>": "IZA" }`, gravado por `perguntas sigla`). O arquivo e o campo `id` seguem sem sigla (`F3.json`, `"id": "F3"`); o CLI aceita os dois formatos.
@@ -135,6 +136,16 @@ Quanto o céu se mexe, no app e nas duas páginas. `nenhum` ("Mínimo" na gaveta
 ```
 
 O status ao vivo das sessões, que só o app enxerga. O mod da barra de toda sessão aberta, a cada 60 s, lê `list_sessions` (até 50) e a própria sessão (`get_session self`, que a lista não traz, vem primeiro) e grava por cima, de forma atômica (`.tmp` e `mv`). Arquivo com `lidoEm` de menos de 50 s: não lê de novo (outra sessão acabou de gravar). Falha da leitura não apaga o arquivo. A página casa a sessão com o item pelo `sessao` do item; quando esse id não está na lista ou está arquivado (gravado com o id do transcript, ou a dona foi reaberta), vale a sessão aberta do mesmo projeto cujo título começa pelo código do item (`IZA-F48 · …`, ICH-F38). Com `lidoEm` de mais de 3 min, ela só mostra a idade e não deduz parada nem "rodando". Nada disso entra no contexto do modelo.
+
+**Estado do item (ICH-F52).** Item sem `sessao` e sem sessão achada pelo título é **na fila · sem dona**: não é cartão nem conta no selo do topo, e vai para o grupo recolhido do projeto (com pergunta aberta, segue "esperando você"). Com a leitura fresca, a dona arquivada com `prState` `MERGED` é **falta fechar** (o cartão diz o número do PR, que é o último da sessão e pode não ser o do item; a página não fecha o item sozinha); arquivada sem PR mergeado, **parada** ("arquivada sem gravar a entrega"); ausente do arquivo, **parada** ("não está aberta no app").
+
+### `sessoes-procuradas.json`
+
+```json
+{ "em": "ISO-8601", "sessoes": ["local_…"] }
+```
+
+A lista não traz sessão arquivada, então a dona que se arquivou some de `sessoes-do-app.json`. A página grava aqui, de forma atômica e só quando a lista muda, os ids do app (`local_` + 36) das donas de item vivo que não estão no arquivo. A barra, ao gravar `sessoes-do-app.json`, lê este arquivo e chama `get_session` de cada id que a lista não trouxe (até 20, sem repetir); o que vier entra no fim de `sessoes`, com `isArchived` e `prState`; recusa ou sessão apagada fica de fora.
 
 ### `orquestradoras.json`
 
