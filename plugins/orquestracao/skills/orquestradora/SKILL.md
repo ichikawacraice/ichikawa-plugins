@@ -22,8 +22,21 @@ Você não escreve código de produto: cada frente vira uma sessão **dona** (sk
 3. Para cada item (ids com a sigla do projeto, `IZA-F7`: o início da sessão diz qual é; `perguntas sigla --todas` lista as de todos os projetos e as que coincidem):
    - **primeiro o item, depois a sessão:** `perguntas item nova "<título em palavras do produto>"` → imprime `IZA-F7`. O hook `sessao-com-codigo` recusa `start_session` e `hand_off_to_session` cujo título não começa com o código (`IZA-F7 · `), e isso vale também para a sessão que você abre sozinha, fora de lote;
    - **a pasta principal na `origin/develop`:** a dona nasce do commit em que a pasta principal do projeto está, e lê dele o settings, o `CLAUDE.md` e as skills do repo pela sessão inteira (trocar de branch depois não recarrega). Antes da primeira dona do lote: `git -C <pasta principal> fetch -q origin`; com `git -C <pasta principal> status --porcelain --untracked-files=no` vazio, `git -C <pasta principal> checkout -q --detach origin/develop` (sem `develop`: `origin/main`); com mudança, não mexa e diga ao operador;
-   - `start_session` com `context: "fresh"`, `use_worktree: true`, título `IZA-F7 · <tema>` e o brief abaixo;
+   - `start_session` com `context: "fresh"`, `use_worktree: true`, título `IZA-F7 · <tema>`, `model` e `effort` escolhidos pela tabela abaixo e o brief abaixo;
    - `perguntas item etapa IZA-F7 planejamento --sessao <local_… do resultado>`.
+
+**Modelo da dona.** Sem `model` e `effort` no `start_session`, a dona herda o padrão global do settings (Opus 1M, esforço alto): medido em 27/11/2026, toda dona do Izanagi nascia assim, até a de doc. Escolha pelo item, seguindo "quem decide usa Opus, quem cumpre plano fechado pode usar Sonnet, quem só lê usa Haiku":
+
+| Item | `model` | `effort` |
+|---|---|---|
+| De risco (auth, permissão ou segredo; dinheiro; migration ou dado que não volta; diff acima de ~400 linhas), arquitetura, decisão nova, bug sem causa medida | `claude-opus-5-5` | `high` |
+| Comum: planeja e manda o executor fazer | `claude-opus-5-5` | `medium` |
+| Mecânico de plano fechado: doc, renumeração, roadmap, ajuste de texto | `claude-sonnet-5-5` | `medium` |
+| Vigia ou ronda que só lê | `claude-haiku-5-5` | `medium` |
+
+Na dúvida, a linha de cima. O app não deixa dar à dona mais que o seu (modelo da mesma família ou mais barato, esforço igual ou menor): a linha de cima é o teto. Os ids são os do seletor de modelo do app; quando a família mudar de versão, troque aqui e no hook. O hook `modelo-da-dona` recusa o `start_session` com brief sem os dois explícitos, ou sem a linha `Modelo:` no brief. Abra a dona com `initiation: "user_asked"`: proposta iniciada pelo `proposal_id` não leva `model` nem `effort`, e herda o padrão.
+
+**Dona que pede para subir** (o item se mostrou maior: virou risco, achou decisão nova): ela não pode mudar a si mesma, e pede a você. Suba com `set_session_model` / `set_session_effort` no `local_…` dela (até o seu, sem perguntar ao operador) e responda numa linha.
 
 **Brief da dona** (até 150 palavras; o detalhe vai num arquivo em `~/.claude/ichikawa/briefs/<projeto>/<data>-<item>.md` e o brief leva o caminho absoluto). Fora do repositório de propósito: não suja a pasta principal com arquivo solto, a dona lê de qualquer worktree, e a trava `orquestradora-nao-edita` não pergunta. Arquivo dentro do repositório (código, docs, plano) é trabalho de dona, e a trava pergunta antes.
 
@@ -33,6 +46,7 @@ Pedido: <o que o operador pediu, nas palavras dele>.
 Pronto quando: <critério medível>.
 Contexto: <arquivos, decisões já tomadas, o que já se sabe>.
 Fora do escopo: <o que não fazer>.
+Modelo: <Opus médio> — <porquê, em uma frase>. Se o item crescer, peça à orquestradora para subir.
 ```
 
 ## Enquanto as donas trabalham

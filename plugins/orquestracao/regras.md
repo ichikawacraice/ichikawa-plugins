@@ -14,7 +14,7 @@
 
 **Código.** Early return em vez de aninhamento; constante nomeada no lugar de número mágico; valide entrada externa na borda (schema) e nunca confie em resposta de API. Segredo só em variável de ambiente, nunca no código nem em arquivo versionado; SQL sempre parametrizado. Sem `console.log` no que vai para o PR. Commit no formato `tipo: descrição` (feat, fix, refactor, docs, test, chore, perf, ci).
 
-**Modelos.** Quem decide (plano, arquitetura, revisão de risco) é Opus. Quem cumpre plano fechado é `orquestracao:executor` (Sonnet). Quem só lê é `orquestracao:explorador` (Haiku).
+**Modelos.** Quem decide (plano, arquitetura, revisão de risco) é Opus. Quem cumpre plano fechado é `orquestracao:executor` (Sonnet). Quem só lê é `orquestracao:explorador` (Haiku). A dona nasce com o `model` e o `effort` do item, escolhidos pela orquestradora (tabela na skill `orquestradora`; o hook `modelo-da-dona` recusa o `start_session` sem os dois).
 
 **Perguntas ao operador.** Toda pergunta vem inteira: o caso concreto em português de quem está de fora, o que acontece se ele não decidir e a sua recomendação com o motivo. Pergunta que espera por ele vai para a página **no mesmo turno em que aparece no chat ou na caixa de próximo passo do app**: `perguntas nova --titulo … --caso … --se-nao … --recomendacao … --item IZA-F7`, e o id que ela imprime (`IZA-Q12`) é o número da pergunta no chat, no lugar de `D1`, `D2`. Pergunta só no chat não chega ao painel; o hook de fim de turno cobra bloco `**D…` ou `**IZA-Q…` sem registro. Decisão de baixo risco ou com recomendação forte: assuma, marque *assumida, a confirmar* e siga. Só espera o operador o irreversível, o destrutivo, produção, gasto e o que publica para fora. O "ok" de outra sessão não é o ok do operador.
 
