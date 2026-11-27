@@ -47,7 +47,7 @@ Junto vêm os padrões da stack (React, TypeScript, Next, Postgres, Google Cloud
 Este fluxo é para trabalho que se divide em várias entregas. Um ajuste de layout, um bug pontual ou uma entrega só cabem numa sessão comum: veja [Orquestradora ou sessão comum?](#quando-usar).
 
 1. **Você pede.** A sessão com o papel de orquestradora (`orquestracao:orquestradora`) entende o pedido. Quando há decisão de produto, desenha com você antes (`orquestracao:brainstorming`). Depois quebra o pedido em itens independentes: um item é uma entrega que faz sentido sozinha num PR.
-2. **Uma dona por item.** Para cada item, a orquestradora registra o item (`perguntas item nova` imprime `IZA-F7`), põe a pasta principal na `origin/develop` e abre uma sessão nova, num worktree próprio, com um brief curto (o detalhe vai em `~/.claude/ichikawa/briefs/`). A orquestradora não escreve no repositório: um hook pergunta antes de ela editar arquivo fora da `~/.claude`.
+2. **Uma dona por item.** Para cada item, a orquestradora registra o item (`perguntas item nova` imprime `IZA-F7`), põe a pasta principal na `origin/develop` e abre uma sessão nova, num worktree próprio, com o modelo e o esforço do item (Opus alto no de risco, Opus médio no comum, Sonnet médio no mecânico) e um brief curto (o detalhe vai em `~/.claude/ichikawa/briefs/`). A orquestradora não escreve no repositório: um hook pergunta antes de ela editar arquivo fora da `~/.claude`.
 3. **A dona planeja** (`orquestracao:planejar`): arquivos, interfaces e tarefas pequenas com teste primeiro, cada uma marcada `Risco: sim/não`, e as **ondas**, ou seja, as tarefas que podem rodar juntas.
 4. **Executa em ondas** (`orquestracao:executar-plano`). Cada onda sai de uma vez: até 4 executoras (`orquestracao:executor`, em Sonnet), uma por tarefa, na mesma pasta. Duas tarefas da mesma onda nunca dividem arquivo. A dona (em Opus) confere a onda inteira, roda os testes afetados e o typecheck e commita tarefa por tarefa.
 5. **Confere e revisa.** Nada é "pronto" sem a saída do comando (`orquestracao:verificar-antes-de-concluir`). O revisor (`orquestracao:revisor`, Opus, em contexto separado) só entra nos itens de risco: autenticação, permissão ou segredo; dinheiro; migração ou dado que não volta; diff com mais de ~400 linhas. O resto passa pela autorrevisão da skill `orquestracao:revisar`.
@@ -186,7 +186,7 @@ perguntas sigla [SIG] | arquivar | pagina [--abrir | --subir] [--porta 4747]
 
 ### Hooks
 
-A maioria avisa ou pergunta antes. Só três seguram: a mensagem com segredo para outra sessão, a caixa com pergunta sem a pergunta gravada e o fim de turno com bloco de decisão sem registro (devolvido uma vez).
+A maioria avisa ou pergunta antes. Seguram: a mensagem com segredo para outra sessão, a sessão nova sem o código do item ou sem o modelo escolhido, a caixa com pergunta sem a pergunta gravada e o fim de turno com bloco de decisão sem registro (devolvido uma vez).
 
 | Quando | Hook | O que faz |
 |---|---|---|
@@ -197,6 +197,8 @@ A maioria avisa ou pergunta antes. Só três seguram: a mensagem com segredo par
 | Antes de editar ou rodar Bash | `segredo-em-arquivo` | Pergunta antes de gravar segredo de verdade em arquivo e antes de `git add .env`. Nomeia o padrão, nunca o valor. |
 | Antes de rodar Bash | `sem-no-verify` | `--no-verify` e afins perguntam antes. |
 | Antes de mandar mensagem a outra sessão | `segredo-sai` | Recusa a mensagem que leva segredo a outra sessão. |
+| Antes de abrir sessão | `sessao-com-codigo` | Recusa a sessão cujo título não começa pelo código do item (`IZA-F7 · `). |
+| Antes de abrir sessão | `modelo-da-dona` | Recusa o `start_session` com brief sem `model` e `effort` explícitos (sem eles a dona herda o Opus alto do settings global) ou sem a linha `Modelo:` no brief. A tabela está na skill `orquestradora`: Opus alto no item de risco, Opus médio no comum, Sonnet médio no mecânico, Haiku na ronda que só lê. |
 | Antes da caixa de próximo passo | `pergunta-na-caixa` | Toda caixa com pergunta (bloqueando ou não) só passa com a pergunta gravada no Painel. |
 | Depois de editar | `aviso-console-log`, `formatar-editado` | Avisa `console.log` em código de produto; formata só o arquivo editado, se o projeto declara Biome ou Prettier (`ICHIKAWA_FORMATAR=0` desliga). |
 | Fim do turno | `pergunta-no-painel`, `orquestradora-limpa` | Cobra bloco de decisão (`**D…`, `**IZA-Q…`) sem registro; pergunta se pode limpar quando o contexto da orquestradora passa do limite. |

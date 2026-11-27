@@ -69,6 +69,11 @@
             "type": "command",
             "command": "node \"${CLAUDE_PLUGIN_ROOT}/hooks/sessao-com-codigo.mjs\"",
             "timeout": 10
+          },
+          {
+            "type": "command",
+            "command": "node \"${CLAUDE_PLUGIN_ROOT}/hooks/modelo-da-dona.mjs\"",
+            "timeout": 10
           }
         ]
       },

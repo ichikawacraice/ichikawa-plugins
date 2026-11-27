@@ -12,6 +12,7 @@ Você leva o item do plano ao merge na `develop`, sozinha. Sem fila, sem gate co
 - `get_session` com `"self"` → o seu `local_…`; `perguntas item etapa IZA-F7 planejamento --sessao <local_…>`.
 - Título `IZA-F7 · <tema>` (`set_session_title` `"self"`), se não veio assim.
 - `git fetch origin && git switch -c f7-<slug> origin/develop` (sem `develop`: `origin/main`).
+- **Modelo:** o brief diz com que modelo e esforço você nasceu e por quê. Se o item se mostrar maior (virou risco, apareceu decisão nova de arquitetura, bug sem causa à vista), peça à orquestradora para subir, por `SendMessage` numa linha: `IZA-F7 pede Opus alto: <motivo>`. Você não pode mudar a si mesma (`set_session_model`/`set_session_effort` recusam a própria sessão); se o item é menor que o previsto, siga como está.
 
 ## 2. Planejar
 
